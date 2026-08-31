@@ -56,6 +56,7 @@ import {
   Square,
   Expand,
   FileCheck2,
+  Heading1,
   Heading2,
   Quote,
   Tag,
@@ -3886,896 +3887,356 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
           </div>
         )}
 
-        {/* STEP 4: INTERACTIVE SPREAD & PHOTO EDITOR (Zno Designer / CXEditor Engine) */}
+        {/* STEP 4: INTERACTIVE SPREAD & PHOTO EDITOR (Optimized Unified Layout) */}
         {currentStep === 'editor' && (
           <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-            {/* Left Sidebar: Photo Media Library (Dedicated, Maximum Visual Prominence) */}
-            <div className="w-full lg:w-80 xl:w-96 border-b lg:border-b-0 lg:border-r border-[#E0D8C8] bg-[#FDFCF9] p-3 sm:p-3.5 flex flex-col overflow-hidden shrink-0">
-              {/* Header: Photo Gallery Title & Upload Action */}
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <h3 className="font-serif-luxury text-sm font-bold text-[#1F1C18] flex items-center gap-1.5">
-                    <ImageIcon className="w-4 h-4 text-[#8C6D37]" />
-                    <span>Galería de Fotos</span>
-                    <span className="text-[10px] font-sans font-normal text-[#736B60]">
-                      ({uploadedPhotos.length})
+            {/* Hidden file input for uploading photos from any upload trigger */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+
+            {/* Center Area: Double Page Spread Canvas (Zno CXEditor Style) */}
+            <div className="flex-1 flex flex-col overflow-y-auto p-2 sm:p-3 bg-[#EFECE3] items-center justify-between min-h-0 gap-2">
+              {/* TOP BAR: DISEÑOS PREDEFINIDOS (Predefined Layouts Strip) */}
+              <div className="w-full max-w-5xl bg-[#FDFCF9] rounded-2xl border border-[#D6CEBE] p-2 sm:p-2.5 shadow-xs select-none space-y-2 shrink-0">
+                {/* Header with Title, Photo Count Filters, and Full Modal Button */}
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E8E2D5] pb-2">
+                  <div className="flex items-center gap-2">
+                    <Layout className="w-4 h-4 text-[#8C6D37]" />
+                    <span className="font-serif-luxury font-bold text-xs sm:text-sm text-[#1F1C18]">
+                      Diseños Predefinidos
                     </span>
-                  </h3>
-                  <span className="text-[9px] text-[#736B60] block">Arrastra fotos al pliego o toca para colocar</span>
+                    <span className="text-[10px] text-[#736B60] bg-[#EFE9DE] px-2 py-0.5 rounded-full font-medium hidden sm:inline">
+                      15 Estilos Fine Art
+                    </span>
+                  </div>
+
+                  {/* Filter chips */}
+                  <div className="flex flex-wrap items-center gap-1 text-[10px]">
+                    <span className="text-[#736B60] font-semibold mr-1 hidden md:inline">Filtrar:</span>
+                    {[
+                      { id: 'all', label: 'Todo' },
+                      { id: '1', label: '1 foto' },
+                      { id: '2', label: '2 fotos' },
+                      { id: '3', label: '3 fotos' },
+                      { id: '4', label: '4 fotos' },
+                      { id: '5+', label: '5+ fotos' },
+                      { id: 'panoramic', label: 'Panorámica' },
+                      { id: 'text', label: 'Texto' },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setLayoutPhotoFilter(tab.id as any)}
+                        className={`px-2 py-0.5 rounded-full font-medium transition-colors ${
+                          layoutPhotoFilter === tab.id
+                            ? 'bg-[#8C6D37] text-white font-bold'
+                            : 'bg-[#EFE9DE] text-[#595248] hover:bg-[#E2D8C7]'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Open full modal button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowTemplateGridModal(true)}
+                    className="px-2.5 py-1 rounded-lg bg-[#FAF7F2] border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[11px] font-bold text-[#8C6D37] flex items-center gap-1 transition-colors"
+                    title="Ver catálogo completo de plantillas de pliego"
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    <span>Catálogo Completo</span>
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="px-2.5 py-1.5 rounded-lg bg-[#8C6D37] text-white text-[11px] font-bold hover:bg-[#73582A] transition-colors flex items-center gap-1 shadow-xs"
-                  title="Subir fotos en alta resolución"
-                >
-                  <Upload className="w-3 h-3" />
-                  <span>+ Subir Fotos</span>
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </div>
-
-              {/* Sample demo packs selector */}
-              <div className="mb-2 flex items-center gap-1 overflow-x-auto pb-1 text-[10px]">
-                <span className="text-[#736B60] shrink-0 font-medium text-[9px]">Demos:</span>
-                <button
-                  type="button"
-                  onClick={() => handleLoadSamplePack('boda')}
-                  className="px-2 py-0.5 rounded-md bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#1F1C18] font-medium shrink-0"
-                >
-                  Boda
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleLoadSamplePack('familia')}
-                  className="px-2 py-0.5 rounded-md bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#1F1C18] font-medium shrink-0"
-                >
-                  Familia
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleLoadSamplePack('viaje')}
-                  className="px-2 py-0.5 rounded-md bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#1F1C18] font-medium shrink-0"
-                >
-                  Viaje
-                </button>
-              </div>
-
-              <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Multi-Selection Context Bar & Filter Pills */}
-                {selectedPhotoIds.length > 0 && (
-                  <div className="mb-2.5 rounded-xl border border-[#8C6D37]/40 bg-[#FAF7F2] p-2 space-y-1.5 shadow-xs animate-in fade-in">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-[#8C6D37]">
-                        {selectedPhotoIds.length} {selectedPhotoIds.length === 1 ? 'foto seleccionada' : 'fotos seleccionadas'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleDeselectAllPhotos}
-                        className="px-2 py-0.5 text-[9px] font-bold text-[#736B60] hover:text-[#1F1C18] bg-white rounded border border-[#D6CEBE]"
-                      >
-                        Deseleccionar
-                      </button>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleDumpSelectedPhotosToCurrentSpread('spread')}
-                      className="w-full py-1.5 px-2.5 rounded-lg bg-[#8C6D37] text-white text-[11px] font-bold hover:bg-[#73582A] flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-98"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Volcar en Pliego Activo</span>
-                    </button>
-
-                    <div className="grid grid-cols-2 gap-1 text-[9px] font-bold">
-                      <button
-                        type="button"
-                        onClick={() => handleDumpSelectedPhotosToCurrentSpread('left')}
-                        className="py-1 px-1 rounded-md bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-center"
-                      >
-                        En Pág. Izq
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDumpSelectedPhotosToCurrentSpread('right')}
-                        className="py-1 px-1 rounded-md bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-center"
-                      >
-                        En Pág. Der
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                  {/* In-Browser Thumbnail Optimization Progress Banner */}
-                  {isOptimizingPhotos && optimizingProgress && (
-                    <div className="mb-2 rounded-xl border border-blue-200 bg-blue-50/90 p-2 space-y-1 animate-pulse">
-                      <div className="flex items-center justify-between text-[10px] font-bold text-blue-900">
-                        <span className="flex items-center gap-1">
-                          <Sparkles className="w-3 h-3 text-blue-600 animate-spin" />
-                          Optimizando miniaturas...
-                        </span>
-                        <span>{optimizingProgress.current} / {optimizingProgress.total}</span>
-                      </div>
-                      <div className="w-full bg-blue-200 rounded-full h-1 overflow-hidden">
-                        <div 
-                          className="bg-blue-600 h-1 rounded-full transition-all duration-200"
-                          style={{ width: `${(optimizingProgress.current / Math.max(1, optimizingProgress.total)) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Preflight & Optimization Summary */}
-                  {(() => {
-                    const savings = calculatePhotoSavingsSummary(uploadedPhotos);
-                    return (
-                      <div className="mb-2 space-y-1">
-                        <div className="px-2 py-1 rounded-lg bg-[#F4EFE6] border border-[#D6CEBE] flex items-center justify-between text-[9px]">
-                          <div className="flex items-center gap-1 font-semibold text-[#1F1C18]">
-                            <Printer className="w-3 h-3 text-[#8C6D37]" />
-                            <span>Resolución Fine Art</span>
+                {/* Horizontal Scrollable Predefined Layouts Cards */}
+                <div className="flex items-center gap-2 overflow-x-auto py-1 px-0.5 scrollbar-thin">
+                  {[
+                    {
+                      id: 'five-photo-editorial',
+                      title: '5 Fotos Editorial',
+                      subtitle: '2 Arriba + 3 Abajo',
+                      photos: '5+',
+                      diagram: (
+                        <div className="w-full h-full flex flex-col gap-0.5 p-0.5 bg-[#FAF7F2]">
+                          <div className="flex-1 grid grid-cols-2 gap-0.5">
+                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
                           </div>
-                          <div className="flex items-center gap-1">
-                            {savings.optimalCount > 0 && (
-                              <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
-                                {savings.optimalCount} Óptimas HQ
-                              </span>
-                            )}
-                            {savings.hasIssues && (
-                              <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold flex items-center gap-0.5">
-                                <AlertTriangle className="w-2.5 h-2.5" />
-                                {savings.warningCount + savings.insufficientCount} Avisos
-                              </span>
-                            )}
+                          <div className="flex-1 grid grid-cols-3 gap-0.5">
+                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
                           </div>
                         </div>
+                      ),
+                    },
+                    {
+                      id: 'asymmetric-split',
+                      title: '3 Asimétrico 2+1',
+                      subtitle: '2 Horiz + 1 Vertical',
+                      photos: 3,
+                      diagram: (
+                        <div className="w-full h-full grid grid-cols-2 gap-0.5 p-0.5 bg-[#FAF7F2]">
+                          <div className="grid grid-rows-2 gap-0.5">
+                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          </div>
+                          <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                        </div>
+                      ),
+                    },
+                    {
+                      id: 'three-vertical-triptych',
+                      title: 'Tríptico 3 Vert',
+                      subtitle: '3 Columnas Altas',
+                      photos: 3,
+                      diagram: (
+                        <div className="w-full h-full grid grid-cols-3 gap-0.5 p-0.5 bg-[#FAF7F2]">
+                          <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                        </div>
+                      ),
+                    },
+                    {
+                      id: 'editorial-magazine-polaroid',
+                      title: 'Revista & Polaroid',
+                      subtitle: '4 Fotos + Título',
+                      photos: 4,
+                      diagram: (
+                        <div className="w-full h-full flex gap-0.5 p-0.5 bg-[#FAF7F2]">
+                          <div className="w-5/12 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs flex flex-col justify-end p-0.5">
+                            <div className="h-1 bg-[#1F1C18]/30 rounded-full" />
+                          </div>
+                          <div className="w-7/12 flex flex-col gap-0.5">
+                            <div className="h-2/5 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="h-3/5 grid grid-cols-2 gap-0.5">
+                              <div className="bg-white border border-[#D6CEBE] p-0.5 flex flex-col">
+                                <div className="flex-1 bg-[#8C6D37]/40 rounded-xs" />
+                              </div>
+                              <div className="bg-white border border-[#D6CEBE] p-0.5 flex flex-col">
+                                <div className="flex-1 bg-[#8C6D37]/40 rounded-xs" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ),
+                    },
+                    {
+                      id: 'moodboard-mosaic-9',
+                      title: 'Moodboard 9',
+                      subtitle: '9 Fotos Mosaico',
+                      photos: '5+',
+                      diagram: (
+                        <div className="w-full h-full grid grid-cols-3 grid-rows-3 gap-0.5 p-0.5 bg-[#FAF7F2]">
+                          <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          <div className="col-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          <div className="row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          <div className="col-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                        </div>
+                      ),
+                    },
+                    {
+                      id: 'lifestyle-bento-10',
+                      title: 'Bento 10',
+                      subtitle: '10 Fotos Detalle',
+                      photos: '5+',
+                      diagram: (
+                        <div className="w-full h-full grid grid-cols-6 grid-rows-4 gap-0.5 p-0.5 bg-[#FAF7F2]">
+                          <div className="col-span-2 row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          <div className="col-span-2 row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          <div className="col-span-2 row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          <div className="col-span-3 row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          <div className="col-span-3 row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                        </div>
+                      ),
+                    },
+                    {
+                      id: 'single-full',
+                      title: '1 Foto Sangrada',
+                      subtitle: 'Página Completa',
+                      photos: 1,
+                      diagram: (
+                        <div className="w-full h-full bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs flex items-center justify-center text-[9px] font-bold text-[#8C6D37]">
+                          1
+                        </div>
+                      ),
+                    },
+                    {
+                      id: 'single-bordered',
+                      title: 'Passepartout',
+                      subtitle: '1 con Marco',
+                      photos: 1,
+                      diagram: (
+                        <div className="w-full h-full bg-white border border-[#D6CEBE] p-1 flex items-center justify-center">
+                          <div className="w-4/5 h-4/5 bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs flex items-center justify-center text-[8px] font-bold text-[#8C6D37]">
+                            1
+                          </div>
+                        </div>
+                      ),
+                    },
+                    {
+                      id: 'two-vertical',
+                      title: '2 Verticales',
+                      subtitle: 'Paralelas',
+                      photos: 2,
+                      diagram: (
+                        <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5">
+                          <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
+                          <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
+                        </div>
+                      ),
+                    },
+                    {
+                      id: 'two-horizontal',
+                      title: '2 Horizontales',
+                      subtitle: 'Apiladas',
+                      photos: 2,
+                      diagram: (
+                        <div className="w-full h-full grid grid-rows-2 gap-1 p-0.5">
+                          <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
+                          <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
+                        </div>
+                      ),
+                    },
+                    {
+                      id: 'three-collage',
+                      title: '3 Mosaico',
+                      subtitle: '1 Gran + 2 Peq',
+                      photos: 3,
+                      diagram: (
+                        <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5">
+                          <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
+                          <div className="grid grid-rows-2 gap-1">
+                            <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
+                            <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
+                          </div>
+                        </div>
+                      ),
+                    },
+                    {
+                      id: 'four-grid',
+                      title: '4 Grilla 2x2',
+                      subtitle: 'Cuadrícula',
+                      photos: 4,
+                      diagram: (
+                        <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-1 p-0.5">
+                          <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
+                          <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
+                          <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
+                          <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
+                        </div>
+                      ),
+                    },
+                    {
+                      id: 'full-bleed-spread',
+                      title: 'Panorámica 180°',
+                      subtitle: 'Doble Pliego',
+                      photos: 'panoramic',
+                      diagram: (
+                        <div className="w-full h-full bg-[#1F1C18] text-[#ECC880] flex items-center justify-center text-[8px] font-bold rounded-xs">
+                          Panorámica
+                        </div>
+                      ),
+                    },
+                    {
+                      id: 'editorial-text-photo',
+                      title: 'Página de Texto',
+                      subtitle: 'Dedicatoria',
+                      photos: 'text',
+                      diagram: (
+                        <div className="w-full h-full bg-[#F4EFE6] border border-[#D6CEBE] p-1 flex flex-col items-center justify-center text-[7px] text-[#595248] italic font-serif">
+                          <span>“Título”</span>
+                          <span className="text-[5px]">editorial</span>
+                        </div>
+                      ),
+                    },
+                    {
+                      id: 'blank',
+                      title: 'Blanco Fine Art',
+                      subtitle: 'Minimalista',
+                      photos: 0,
+                      diagram: (
+                        <div className="w-full h-full bg-white border border-[#D6CEBE] flex items-center justify-center text-[7px] text-[#A89F91]">
+                          Vacío
+                        </div>
+                      ),
+                    },
+                  ]
+                    .filter((tmpl) => {
+                      if (layoutPhotoFilter === 'all') return true;
+                      if (layoutPhotoFilter === 'panoramic') return tmpl.id === 'full-bleed-spread';
+                      if (layoutPhotoFilter === 'text') return tmpl.id === 'editorial-text-photo';
+                      if (layoutPhotoFilter === '5+') return tmpl.photos === '5+' || (typeof tmpl.photos === 'number' && tmpl.photos >= 5);
+                      return String(tmpl.photos) === layoutPhotoFilter;
+                    })
+                    .map((tmpl) => (
+                      <div
+                        key={tmpl.id}
+                        onMouseEnter={() => setHoveredLayoutTemplateId(tmpl.id)}
+                        onMouseLeave={() => setHoveredLayoutTemplateId(null)}
+                        className="flex-shrink-0 group/card bg-white rounded-xl border border-[#D6CEBE] hover:border-[#8C6D37] hover:shadow-md transition-all p-1.5 flex flex-col items-center gap-1 w-28 relative"
+                      >
+                        {/* Miniature Wireframe Diagram */}
+                        <div className="w-24 h-12 rounded bg-[#EFE9DE] overflow-hidden border border-[#D6CEBE]/50">
+                          {tmpl.diagram}
+                        </div>
 
-                        <div className="flex flex-wrap items-center gap-1 text-[9px] font-bold">
-                          <button
-                            type="button"
-                            onClick={() => setPhotoUsageFilter('all')}
-                            className={`px-2 py-0.5 rounded-md transition-colors ${
-                              photoUsageFilter === 'all'
-                                ? 'bg-[#1F1C18] text-[#ECC880]'
-                                : 'bg-white border border-[#D6CEBE] text-[#736B60] hover:bg-[#F4EFE6]'
-                            }`}
-                          >
-                            Todas ({uploadedPhotos.length})
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPhotoUsageFilter('unused')}
-                            className={`px-2 py-0.5 rounded-md transition-colors ${
-                              photoUsageFilter === 'unused'
-                                ? 'bg-emerald-800 text-white'
-                                : 'bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100'
-                            }`}
-                          >
-                            Sin usar ({uploadedPhotos.filter((p) => getPhotoUsageCount(p.id) === 0).length})
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPhotoUsageFilter('used')}
-                            className={`px-2 py-0.5 rounded-md transition-colors ${
-                              photoUsageFilter === 'used'
-                                ? 'bg-[#8C6D37] text-white'
-                                : 'bg-white border border-[#D6CEBE] text-[#736B60] hover:bg-[#F4EFE6]'
-                            }`}
-                          >
-                            Usadas ({uploadedPhotos.filter((p) => getPhotoUsageCount(p.id) > 0).length})
-                          </button>
+                        <div className="w-full text-center">
+                          <span className="text-[9px] font-bold text-[#1F1C18] truncate block">
+                            {tmpl.title}
+                          </span>
+                        </div>
 
-                          {savings.hasIssues && (
+                        {/* Quick Apply Buttons (Izq, Der, or Spread) */}
+                        <div className="w-full flex gap-1 mt-0.5">
+                          {tmpl.id === 'full-bleed-spread' ? (
                             <button
                               type="button"
-                              onClick={() => setQualityFilter(qualityFilter === 'issues' ? 'all' : 'issues')}
-                              className={`px-2 py-0.5 rounded-md transition-colors flex items-center gap-1 ${
-                                qualityFilter === 'issues'
-                                  ? 'bg-amber-600 text-white'
-                                  : 'bg-amber-50 border border-amber-200 text-amber-800'
-                              }`}
+                              onClick={() => {
+                                handleChangePageLayout('left', 'full-bleed-spread');
+                              }}
+                              className="w-full py-0.5 rounded bg-[#8C6D37] text-white text-[8px] font-bold hover:bg-[#73582A]"
                             >
-                              <AlertTriangle className="w-2.5 h-2.5" />
-                              Avisos ({savings.warningCount + savings.insufficientCount})
+                              Pliego
                             </button>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleChangePageLayout('left', tmpl.id as PageLayoutId);
+                                }}
+                                className="flex-1 py-0.5 rounded bg-[#EFE9DE] hover:bg-[#1F1C18] hover:text-white text-[8px] font-bold transition-colors"
+                              >
+                                Izq
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleChangePageLayout('right', tmpl.id as PageLayoutId);
+                                }}
+                                className="flex-1 py-0.5 rounded bg-[#EFE9DE] hover:bg-[#1F1C18] hover:text-white text-[8px] font-bold transition-colors"
+                              >
+                                Der
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>
-                    );
-                  })()}
-
-                  {/* Multi-Photo Active Selection Bar with Ctrl+D Deselect */}
-                  {selectedPhotoIds.length > 0 && (
-                    <div className="p-2 mb-2 rounded-xl bg-[#8C6D37]/15 border border-[#8C6D37]/35 flex items-center justify-between gap-1.5 text-xs shadow-xs animate-in fade-in">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="w-2 h-2 rounded-full bg-[#8C6D37] animate-ping" />
-                        <span className="font-bold text-[#8C6D37] text-[11px] truncate">
-                          {selectedPhotoIds.length} fotos seleccionadas
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedPhotoIds([])}
-                        title="Deseleccionar todas las fotos (Ctrl+D o Esc)"
-                        className="px-2 py-1 rounded-lg bg-[#8C6D37] hover:bg-[#73582A] text-white font-bold text-[10px] whitespace-nowrap shadow-xs"
-                      >
-                        Deseleccionar (Ctrl+D)
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Photo Thumbnails Grid with Shift+Click Range Selection & Dimmed Used Photos */}
-                  <div className="flex-1 overflow-y-auto grid grid-cols-3 gap-1.5 pr-1 min-h-0">
-                    {uploadedPhotos
-                      .filter((photo) => {
-                        const usage = getPhotoUsageCount(photo.id);
-                        if (photoUsageFilter === 'unused' && usage > 0) return false;
-                        if (photoUsageFilter === 'used' && usage === 0) return false;
-                        if (qualityFilter === 'issues') {
-                          return photo.preflight?.rating === 'advertencia' || photo.preflight?.rating === 'insuficiente';
-                        }
-                        if (qualityFilter === 'optimal') {
-                          return photo.preflight?.rating === 'optima';
-                        }
-                        return true;
-                      })
-                      .map((photo) => {
-                        const rating = photo.preflight?.rating || 'buena';
-                        const usageCount = getPhotoUsageCount(photo.id);
-                        const isSelected = selectedPhotoIds.includes(photo.id);
-                        const isUsed = usageCount > 0;
-
-                        return (
-                          <div
-                            key={photo.id}
-                            draggable
-                            onDragStart={() => setDraggedPhotoId(photo.id)}
-                            onDragEnd={() => setDraggedPhotoId(null)}
-                            onClick={(e) => handleTogglePhotoSelection(photo.id, e)}
-                            className={`group relative aspect-square rounded-lg overflow-hidden border cursor-grab active:cursor-grabbing transition-all select-none ${
-                              isSelected
-                                ? 'border-[#8C6D37] ring-2 ring-[#8C6D37] scale-98 shadow-md opacity-100'
-                                : isUsed
-                                ? 'opacity-40 grayscale-[25%] hover:opacity-90 hover:grayscale-0 border-[#D6CEBE]'
-                                : selectedSlotId
-                                ? 'border-[#8C6D37] hover:scale-105 shadow-md ring-1 ring-[#8C6D37]'
-                                : 'border-[#D6CEBE] hover:border-[#1F1C18]'
-                            }`}
-                          >
-                            <img 
-                              src={getThumbnailSrc(photo)} 
-                              alt={photo.name} 
-                              loading="lazy"
-                              className="w-full h-full object-cover pointer-events-none" 
-                            />
-
-                            {/* Top-Right Selection Checkbox (The ONLY checkbox on the photo) */}
-                            <button
-                              type="button"
-                              onClick={(e) => handleTogglePhotoSelection(photo.id, e)}
-                              className={`absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center transition-all z-20 ${
-                                isSelected
-                                  ? 'bg-[#8C6D37] text-white shadow-md ring-1 ring-white'
-                                  : 'bg-black/45 text-white/50 hover:bg-black/80 hover:text-white border border-white/70 backdrop-blur-xs'
-                              }`}
-                              title={isSelected ? 'Deseleccionar foto (Shift+Clic para seleccionar rango)' : 'Seleccionar foto (Shift+Clic para rango)'}
-                            >
-                              <Check className={`w-3 h-3 stroke-[3] ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
-                            </button>
-                            
-                            {/* Quality / DPI Badge on Top-Left (Clear HQ label, NOT a checkbox) */}
-                            <div className="absolute top-1 left-1 flex items-center gap-0.5 z-10 pointer-events-none">
-                              {rating === 'optima' && (
-                                <span 
-                                  title="Resolución Fine Art Óptima (300+ DPI)"
-                                  className="px-1 py-0.2 rounded bg-emerald-600/95 text-white text-[8px] font-bold tracking-tight shadow-xs backdrop-blur-xs"
-                                >
-                                  HQ
-                                </span>
-                              )}
-                              {rating === 'advertencia' && (
-                                <span 
-                                  title="Resolución moderada (~150 DPI)"
-                                  className="px-1 py-0.2 rounded bg-amber-500/95 text-white text-[8px] font-bold shadow-xs flex items-center gap-0.5 backdrop-blur-xs"
-                                >
-                                  <AlertTriangle className="w-2 h-2" />
-                                  150
-                                </span>
-                              )}
-                              {rating === 'insuficiente' && (
-                                <span 
-                                  title="Calidad baja (<150 DPI)"
-                                  className="px-1 py-0.2 rounded bg-rose-600/95 text-white text-[8px] font-bold shadow-xs flex items-center gap-0.5 backdrop-blur-xs"
-                                >
-                                  <AlertOctagon className="w-2 h-2" />
-                                  Baja
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Usage Count Badge */}
-                            {usageCount > 0 && (
-                              <span 
-                                title={`Usada ${usageCount} ${usageCount === 1 ? 'vez' : 'veces'} en el álbum`}
-                                className="absolute bottom-1 left-1 px-1.5 py-0.2 rounded-md bg-[#1F1C18]/85 text-[#ECC880] text-[9px] font-bold font-mono shadow-xs backdrop-blur-xs"
-                              >
-                                {usageCount}×
-                              </span>
-                            )}
-
-                            {/* Inspector trigger button on hover */}
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setInspectedPhotoForQuality(photo);
-                              }}
-                              title="Inspeccionar DPI, sRGB y resolución Fine Art"
-                              className="absolute bottom-1 right-1 p-0.5 rounded bg-black/60 hover:bg-black text-white text-[8px] font-mono opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 z-20"
-                            >
-                              <Info className="w-2.5 h-2.5" />
-                              <span>DPI</span>
-                            </button>
-
-                            {selectedSlotId && (
-                              <div className="absolute inset-0 bg-[#8C6D37]/35 flex items-center justify-center text-white text-[9px] font-bold text-center p-1 z-10 pointer-events-none">
-                                Clic p/ colocar
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-            </div>
-
-            {/* Center Area: Double Page Spread Canvas (Zno CXEditor Style) */}
-            <div className="flex-1 flex flex-col overflow-y-auto p-2 sm:p-4 bg-[#EFECE3] items-center justify-between min-h-0">
-              {/* TOP SECONDARY TOOLBAR (Clean, organized & intuitive designer toolbar) */}
-              <div className="w-full max-w-5xl flex flex-wrap items-center justify-between gap-2 mb-2 bg-[#FDFCF9] p-2 sm:px-3 sm:py-2 rounded-2xl border border-[#D6CEBE] shadow-xs select-none">
-                
-                {/* LEFT & CENTER GROUPS */}
-                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-[#1F1C18]">
-                  
-                  {/* GROUP 1: PLIEGOS (Navegación y Gestión) */}
-                  <div className="flex items-center bg-[#1F1C18] text-[#FDFCF9] rounded-xl p-0.5 shadow-xs">
-                    <button
-                      type="button"
-                      onClick={() => setActiveSpreadIndex((prev) => Math.max(0, prev - 1))}
-                      disabled={activeSpreadIndex === 0}
-                      title="Pliego anterior"
-                      className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-lg disabled:opacity-25 transition-colors"
-                    >
-                      <ChevronLeft className="w-3.5 h-3.5" />
-                    </button>
-                    <span className="px-2 text-[11px] font-bold tracking-wide whitespace-nowrap">
-                      Pliego {activeSpreadIndex + 1} / {spreads.length}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setActiveSpreadIndex((prev) => Math.min(spreads.length - 1, prev + 1))}
-                      disabled={activeSpreadIndex >= spreads.length - 1}
-                      title="Siguiente pliego"
-                      className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-lg disabled:opacity-25 transition-colors"
-                    >
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  {/* Acciones de Pliego: Agregar y Eliminar */}
-                  <div className="flex items-center gap-0.5 bg-[#F4EFE6] p-0.5 rounded-xl border border-[#D6CEBE]">
-                    <button
-                      type="button"
-                      onClick={handleAddSpread}
-                      title="Agregar un nuevo pliego en blanco"
-                      className="px-2 py-1 rounded-lg text-[11px] font-bold text-[#8C6D37] hover:bg-[#8C6D37] hover:text-white flex items-center gap-1 transition-colors"
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span className="hidden sm:inline">Pliego</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteSpreadWithConfirmation(activeSpreadIndex)}
-                      disabled={spreads.length <= 1}
-                      title="Eliminar este pliego (Deshacer con Ctrl+Z)"
-                      className="p-1.5 rounded-lg text-[#8C7A6B] hover:text-rose-600 hover:bg-rose-50 disabled:opacity-20 transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="h-4 w-[1px] bg-[#D6CEBE] hidden sm:block" />
-
-                  {/* GROUP 2: PLANTILLAS Y DISTRIBUCIÓN */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowTemplateGridModal(!showTemplateGridModal)}
-                      title="Explorar plantillas y estilos para este pliego"
-                      className={`px-2.5 py-1.5 rounded-xl border font-bold text-[11px] flex items-center gap-1.5 transition-all ${
-                        showTemplateGridModal
-                          ? 'bg-[#1F1C18] text-[#ECC880] border-[#1F1C18] shadow-xs'
-                          : 'border-[#D6CEBE] bg-[#FAF7F2] hover:bg-[#EFE9DE] text-[#1F1C18]'
-                      }`}
-                    >
-                      <LayoutGrid className="w-3.5 h-3.5 text-[#8C6D37]" />
-                      <span>Plantillas</span>
-                      <ChevronDown className="w-3 h-3 opacity-60" />
-                    </button>
-
-                    {/* Template Styles Popover Modal with Real-time Hover Preview */}
-                    {showTemplateGridModal && (
-                      <div 
-                        onClick={(e) => e.stopPropagation()}
-                        className="absolute top-full mt-2 left-0 sm:left-1/2 sm:-translate-x-1/2 w-[340px] sm:w-[500px] max-h-[500px] bg-[#1F1C18] border border-white/20 rounded-2xl shadow-2xl z-50 p-3.5 flex flex-col text-white backdrop-blur-md overflow-hidden animate-in fade-in zoom-in-95 duration-150"
-                      >
-                        <div className="flex items-center justify-between pb-2 border-b border-white/15 mb-2.5">
-                          <div className="flex items-center gap-2">
-                            <LayoutGrid className="w-4 h-4 text-[#ECC880]" />
-                            <div>
-                              <span className="text-xs font-bold text-white block">Plantillas de Pliego y Páginas</span>
-                              <span className="text-[10px] text-[#D6CEBE]">Pasa el ratón para previsualizar · Clic para aplicar</span>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowTemplateGridModal(false);
-                              setHoveredLayoutTemplateId(null);
-                            }}
-                            className="p-1 rounded-lg hover:bg-white/20 text-white/70 hover:text-white transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        {/* Layout Mode Tabs: Pliegos Layflat vs Páginas */}
-                        <div className="flex items-center gap-1 p-1 bg-white/10 rounded-xl mb-2.5 text-xs">
-                          <button
-                            type="button"
-                            onClick={() => setLayoutTabMode('spread')}
-                            className={`flex-1 py-1 rounded-lg font-bold transition-all ${
-                              layoutTabMode === 'spread' ? 'bg-[#8C6D37] text-white shadow-xs' : 'text-white/70 hover:text-white'
-                            }`}
-                          >
-                            Pliegos Completos (Layflat)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setLayoutTabMode('page')}
-                            className={`flex-1 py-1 rounded-lg font-bold transition-all ${
-                              layoutTabMode === 'page' ? 'bg-[#8C6D37] text-white shadow-xs' : 'text-white/70 hover:text-white'
-                            }`}
-                          >
-                            Plantillas por Página
-                          </button>
-                        </div>
-
-                        {/* Tab 1: Full Spreads Layflat */}
-                        {layoutTabMode === 'spread' ? (
-                          <div className="flex-1 overflow-y-auto pr-1 space-y-2 max-h-[360px]">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                              {SPREAD_TEMPLATE_PRESETS.map((tmpl) => {
-                                const isHovered = hoveredLayoutTemplateId === tmpl.id;
-                                return (
-                                  <button
-                                    key={tmpl.id}
-                                    type="button"
-                                    onMouseEnter={() => setHoveredLayoutTemplateId(tmpl.id)}
-                                    onMouseLeave={() => setHoveredLayoutTemplateId(null)}
-                                    onClick={() => {
-                                      handleApplySpreadTemplate(tmpl.id);
-                                      setShowTemplateGridModal(false);
-                                      setHoveredLayoutTemplateId(null);
-                                    }}
-                                    className={`group p-2 rounded-xl border text-left transition-all flex flex-col gap-1.5 relative ${
-                                      isHovered
-                                        ? 'border-[#ECC880] bg-white/20 ring-2 ring-[#ECC880] shadow-lg'
-                                        : 'border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/30'
-                                    }`}
-                                  >
-                                    <div className="w-full aspect-[16/9] rounded-lg overflow-hidden bg-[#2A2621] p-1 flex items-center justify-center pointer-events-none">
-                                      {tmpl.renderDiagram()}
-                                    </div>
-
-                                    <div>
-                                      <div className="flex items-center justify-between gap-1">
-                                        <span className="text-[11px] font-bold text-white group-hover:text-[#ECC880] truncate">
-                                          {tmpl.title}
-                                        </span>
-                                        {tmpl.badge && (
-                                          <span className="px-1 py-0.2 rounded text-[8px] font-bold bg-[#8C6D37] text-white whitespace-nowrap">
-                                            {tmpl.badge}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <span className="text-[9px] text-[#A89F91] line-clamp-1 block">
-                                        {tmpl.subtitle}
-                                      </span>
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ) : (
-                          /* Tab 2: Page Layouts */
-                          <div className="flex-1 overflow-y-auto pr-1 space-y-2 max-h-[360px]">
-                            <div className="grid grid-cols-2 gap-2">
-                              {[
-                                { id: 'single-full', label: '1 Foto Sangrada', desc: '100% de la página' },
-                                { id: 'single-bordered', label: '1 Foto c/ Passepartout', desc: 'Margen artístico blanco' },
-                                { id: 'two-vertical', label: '2 Fotos Verticales', desc: 'Columnas paralelas' },
-                                { id: 'two-horizontal', label: '2 Fotos Horizontales', desc: 'Filas apiladas' },
-                                { id: 'three-collage', label: '3 Fotos Mosaico', desc: 'Principal + 2 detalle' },
-                                { id: 'four-grid', label: '4 Fotos Grilla', desc: 'Cuadrícula 2x2 simétrica' },
-                                { id: 'editorial-text-photo', label: 'Editorial / Texto', desc: 'Título, fecha y dedicatoria' },
-                                { id: 'blank', label: 'Página en Blanco', desc: 'Espacio de descanso visual' },
-                              ].map((item) => (
-                                <div key={item.id} className="p-2.5 rounded-xl border border-white/15 bg-white/5 flex flex-col justify-between">
-                                  <div className="mb-2">
-                                    <span className="text-xs font-bold text-white block">{item.label}</span>
-                                    <span className="text-[10px] text-[#D6CEBE] block">{item.desc}</span>
-                                  </div>
-                                  <div className="flex gap-1.5">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        handleChangePageLayout('left', item.id as PageLayoutId);
-                                        setShowTemplateGridModal(false);
-                                      }}
-                                      className="flex-1 py-1 rounded bg-[#8C6D37] hover:bg-[#A38043] text-white text-[10px] font-bold text-center transition-colors"
-                                    >
-                                      Pág. Izq
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        handleChangePageLayout('right', item.id as PageLayoutId);
-                                        setShowTemplateGridModal(false);
-                                      }}
-                                      className="flex-1 py-1 rounded bg-[#8C6D37] hover:bg-[#A38043] text-white text-[10px] font-bold text-center transition-colors"
-                                    >
-                                      Pág. Der
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* GROUP 3: TEXTO (Storytelling y Capas de Texto) */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowTextMenu(!showTextMenu)}
-                      title="Agregar textos, frases y dedicatorias al pliego"
-                      className={`px-2.5 py-1.5 rounded-xl border font-bold text-[11px] flex items-center gap-1.5 transition-all ${
-                        showTextMenu
-                          ? 'bg-[#1F1C18] text-[#ECC880] border-[#1F1C18] shadow-xs'
-                          : 'border-[#D6CEBE] bg-[#FAF7F2] hover:bg-[#EFE9DE] text-[#1F1C18]'
-                      }`}
-                    >
-                      <Type className="w-3.5 h-3.5 text-[#8C6D37]" />
-                      <span>Texto</span>
-                      <ChevronDown className="w-3 h-3 opacity-60" />
-                    </button>
-
-                    {showTextMenu && (
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        className="absolute top-full mt-2 left-0 sm:left-1/2 sm:-translate-x-1/2 w-72 bg-[#1F1C18] text-white p-3 rounded-2xl shadow-2xl border border-white/20 z-50 space-y-2.5 text-xs backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
-                      >
-                        <div className="flex items-center justify-between pb-1.5 border-b border-white/15">
-                          <span className="text-xs font-bold text-[#ECC880]">Herramientas de Texto</span>
-                          <button
-                            type="button"
-                            onClick={() => setShowTextMenu(false)}
-                            className="p-0.5 rounded text-white/60 hover:text-white"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleAddFloatingText('title');
-                              setShowTextMenu(false);
-                            }}
-                            className="p-2 rounded-lg bg-white/10 hover:bg-[#8C6D37] text-left text-xs transition-colors flex items-center gap-1.5"
-                          >
-                            <Type className="w-3.5 h-3.5 text-[#ECC880]" />
-                            <span>+ Título</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleAddFloatingText('subtitle');
-                              setShowTextMenu(false);
-                            }}
-                            className="p-2 rounded-lg bg-white/10 hover:bg-[#8C6D37] text-left text-xs transition-colors flex items-center gap-1.5"
-                          >
-                            <Heading2 className="w-3.5 h-3.5 text-[#ECC880]" />
-                            <span>+ Subtítulo</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleAddFloatingText('quote');
-                              setShowTextMenu(false);
-                            }}
-                            className="p-2 rounded-lg bg-white/10 hover:bg-[#8C6D37] text-left text-xs transition-colors flex items-center gap-1.5"
-                          >
-                            <Quote className="w-3.5 h-3.5 text-[#ECC880]" />
-                            <span>+ Cita</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleAddFloatingText('label');
-                              setShowTextMenu(false);
-                            }}
-                            className="p-2 rounded-lg bg-white/10 hover:bg-[#8C6D37] text-left text-xs transition-colors flex items-center gap-1.5"
-                          >
-                            <Tag className="w-3.5 h-3.5 text-[#ECC880]" />
-                            <span>+ Dedicatoria</span>
-                          </button>
-                        </div>
-
-                        {/* Active text layers on this spread */}
-                        {activeSpread.textElements && activeSpread.textElements.length > 0 && (
-                          <div className="pt-2 border-t border-white/15 space-y-1">
-                            <span className="text-[10px] font-bold text-white/70 block">
-                              Textos en este pliego ({activeSpread.textElements.length})
-                            </span>
-                            <div className="space-y-1 max-h-28 overflow-y-auto">
-                              {activeSpread.textElements.map((txt) => (
-                                <div
-                                  key={txt.id}
-                                  onClick={() => {
-                                    setSelectedTextId(txt.id);
-                                    setShowTextMenu(false);
-                                  }}
-                                  className={`p-1.5 rounded flex items-center justify-between text-[11px] cursor-pointer ${
-                                    selectedTextId === txt.id ? 'bg-[#8C6D37] text-white' : 'bg-white/5 hover:bg-white/15'
-                                  }`}
-                                >
-                                  <span className="truncate pr-1">{txt.text}</span>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteFloatingText(txt.id);
-                                    }}
-                                    className="text-rose-400 hover:text-rose-300 p-0.5"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Auto-distribuir / Auto-Llenar */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (selectedPhotoIds.length > 0) {
-                        handleAutoPopulateWithSelected();
-                      } else {
-                        handleAutoPopulateSpreads();
-                      }
-                    }}
-                    title={
-                      selectedPhotoIds.length > 0
-                        ? `Llenar con las ${selectedPhotoIds.length} fotos seleccionadas`
-                        : "Distribuir automáticamente fotos en el fotolibro"
-                    }
-                    className={`px-2.5 py-1.5 rounded-xl font-bold text-[11px] flex items-center gap-1.5 transition-colors ${
-                      selectedPhotoIds.length > 0
-                        ? 'bg-[#8C6D37] text-white shadow-xs'
-                        : 'bg-[#8C6D37]/10 hover:bg-[#8C6D37] text-[#8C6D37] hover:text-white'
-                    }`}
-                  >
-                    <Wand2 className="w-3.5 h-3.5" />
-                    <span>{selectedPhotoIds.length > 0 ? `Llenar (${selectedPhotoIds.length})` : 'Auto-Llenar'}</span>
-                  </button>
-
-                  {/* Invertir Lados (Izquierda <-> Derecha) */}
-                  <button
-                    type="button"
-                    onClick={handleFlipSpreadSides}
-                    title="Intercambiar el contenido entre la página izquierda y derecha"
-                    className="p-1.5 sm:px-2 sm:py-1.5 rounded-xl border border-[#D6CEBE] bg-[#FAF7F2] hover:bg-[#EFE9DE] font-semibold text-[11px] flex items-center gap-1 text-[#595248] transition-colors"
-                  >
-                    <FlipHorizontal className="w-3.5 h-3.5 text-[#736B60]" />
-                    <span className="hidden md:inline">Invertir</span>
-                  </button>
-
-                  <div className="h-4 w-[1px] bg-[#D6CEBE] hidden sm:block" />
-
-                  {/* Color de Fondo */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowBgColorMenu(!showBgColorMenu)}
-                      title="Cambiar color de fondo del pliego"
-                      className="px-2.5 py-1.5 rounded-xl border border-[#D6CEBE] bg-[#FAF7F2] hover:bg-[#EFE9DE] font-semibold text-[11px] flex items-center gap-1.5 transition-colors"
-                    >
-                      <Palette className="w-3.5 h-3.5 text-[#8C6D37]" />
-                      <span className="hidden sm:inline">Fondo</span>
-                      <div 
-                        className="w-3 h-3 rounded-full border border-black/30 shadow-2xs" 
-                        style={{ backgroundColor: displaySpread.backgroundColor || spreadBgColor }} 
-                      />
-                    </button>
-
-                    {showBgColorMenu && (
-                      <div 
-                        onClick={(e) => e.stopPropagation()}
-                        className="absolute top-full mt-1.5 left-0 bg-[#1F1C18] text-white p-2.5 rounded-2xl shadow-2xl border border-white/20 z-50 w-52 space-y-2 text-xs"
-                      >
-                        <span className="text-[10px] font-bold text-[#ECC880] uppercase tracking-wider block">Fondo del Pliego</span>
-                        <div className="grid grid-cols-2 gap-1 text-[10px]">
-                          {[
-                            { color: '#FDFCFA', name: 'Blanco Puro' },
-                            { color: '#F4EFE6', name: 'Lino Cálido' },
-                            { color: '#EFE9DE', name: 'Marfil Algodón' },
-                            { color: '#2B2B2B', name: 'Gris Carbón' },
-                            { color: '#E2E6DF', name: 'Salvia Editorial' },
-                            { color: '#1B2421', name: 'Verde Bosque' },
-                          ].map((c) => (
-                            <button
-                              key={c.color}
-                              type="button"
-                              onClick={() => {
-                                handleSetSpreadBgColor(c.color);
-                                setShowBgColorMenu(false);
-                              }}
-                              className="flex items-center gap-1.5 p-1.5 rounded-lg hover:bg-white/15 text-left transition-colors"
-                            >
-                              <div className="w-3.5 h-3.5 rounded-full border border-white/40 shadow-2xs shrink-0" style={{ backgroundColor: c.color }} />
-                              <span className="truncate">{c.name}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Margen / Sin Bordes (Sangrado Completo) */}
-                  <button
-                    type="button"
-                    onClick={handleToggleSpreadFlushMargin}
-                    title="Alternar entre margen clásico o fotos al ras sin bordes"
-                    className={`px-2.5 py-1.5 rounded-xl border font-semibold text-[11px] flex items-center gap-1.5 transition-all ${
-                      displaySpread.isFlushMargin
-                        ? 'bg-[#8C6D37] text-white border-[#8C6D37] shadow-xs'
-                        : 'border-[#D6CEBE] bg-[#FAF7F2] hover:bg-[#EFE9DE] text-[#595248]'
-                    }`}
-                  >
-                    <Maximize2 className="w-3.5 h-3.5" />
-                    <span>{displaySpread.isFlushMargin ? 'Sin Bordes' : 'Con Margen'}</span>
-                  </button>
-
-                  {/* Espacio entre fotos */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowGapMenu(!showGapMenu)}
-                      title="Ajustar espacio de separación entre fotos"
-                      className="px-2 py-1.5 rounded-xl border border-[#D6CEBE] bg-[#FAF7F2] hover:bg-[#EFE9DE] font-semibold text-[11px] flex items-center gap-1 text-[#595248] transition-colors"
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5 text-[#736B60]" />
-                      <span className="hidden sm:inline">{spreadPhotoGap}px</span>
-                    </button>
-
-                    {showGapMenu && (
-                      <div 
-                        onClick={(e) => e.stopPropagation()}
-                        className="absolute top-full mt-1.5 left-0 bg-[#1F1C18] text-white p-2.5 rounded-2xl shadow-2xl border border-white/20 z-50 w-44 space-y-2 text-xs"
-                      >
-                        <span className="text-[10px] font-bold text-[#ECC880] uppercase tracking-wider block">Espacio entre Fotos</span>
-                        <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-                          {[
-                            { gap: 0, label: '0px (Al ras)' },
-                            { gap: 8, label: '8px (Normal)' },
-                            { gap: 16, label: '16px (Galería)' },
-                            { gap: 24, label: '24px (Amplio)' },
-                          ].map((g) => (
-                            <button
-                              key={g.gap}
-                              type="button"
-                              onClick={() => {
-                                setSpreadPhotoGap(g.gap);
-                                setShowGapMenu(false);
-                              }}
-                              className={`p-1.5 rounded-lg text-center transition-colors ${
-                                spreadPhotoGap === g.gap ? 'bg-[#8C6D37] text-white font-bold' : 'bg-white/10 hover:bg-white/20'
-                              }`}
-                            >
-                              {g.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* RIGHT GROUP: HISTORIAL & HERRAMIENTAS DE VISTA */}
-                <div className="flex items-center gap-1 sm:gap-1.5">
-                  
-                  {/* Deshacer & Rehacer */}
-                  <div className="flex items-center gap-0.5 bg-[#FAF7F2] p-0.5 rounded-xl border border-[#D6CEBE]">
-                    <button
-                      type="button"
-                      onClick={handleUndo}
-                      disabled={historyIndex <= 0}
-                      title="Deshacer (Ctrl+Z)"
-                      className="p-1.5 rounded-lg hover:bg-[#EFE9DE] disabled:opacity-25 text-[#1F1C18] transition-colors"
-                    >
-                      <Undo2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleRedo}
-                      disabled={historyIndex >= historyCount - 1}
-                      title="Rehacer (Ctrl+Y o Ctrl+Shift+Z)"
-                      className="p-1.5 rounded-lg hover:bg-[#EFE9DE] disabled:opacity-25 text-[#1F1C18] transition-colors"
-                    >
-                      <Redo2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="h-4 w-[1px] bg-[#D6CEBE] hidden sm:block" />
-
-                  {/* Guías de Corte y Sangría */}
-                  <button
-                    type="button"
-                    onClick={() => setShowSafeMarginGuides(!showSafeMarginGuides)}
-                    className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-colors ${
-                      showSafeMarginGuides
-                        ? 'bg-[#8C6D37]/15 text-[#8C6D37] border border-[#8C6D37]/40'
-                        : 'border border-[#D6CEBE] bg-[#FAF7F2] text-[#736B60] hover:bg-[#EFE9DE]'
-                    }`}
-                    title="Mostrar/Ocultar guías de margen de seguridad y sangría de corte"
-                  >
-                    <Grid className="w-3.5 h-3.5" />
-                    <span className="hidden md:inline">Guías</span>
-                  </button>
-
-                  {/* Auditoría Fine Art */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const firstPhoto = uploadedPhotos[0];
-                      if (firstPhoto) setInspectedPhotoForQuality(firstPhoto);
-                    }}
-                    className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-[#1F1C18] text-[#FDFCF9] hover:bg-[#3D352E] text-[11px] font-bold flex items-center gap-1.5 shadow-xs transition-colors"
-                    title="Auditar resolución DPI y perfil sRGB Fine Art"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-[#ECC880]" />
-                    <span className="hidden lg:inline">Auditoría</span>
-                  </button>
+                    ))}
                 </div>
               </div>
 
@@ -5244,22 +4705,22 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 )}
               </div>
 
-              {/* BOTTOM ZNO CLOUD BAR: PREDEFINED LAYOUTS CAROUSEL & FILMSTRIP (Screenshot 1 Match) */}
-              <div className="w-full max-w-5xl mt-2 bg-[#FDFCF9] rounded-2xl border border-[#D6CEBE] p-2.5 shadow-xs select-none space-y-2">
+              {/* BOTTOM BAR: GALERÍA DE FOTOS & TIRA DE PLIEGOS (Zno Workspace Layout) */}
+              <div className="w-full max-w-5xl mt-2 bg-[#FDFCF9] rounded-2xl border border-[#D6CEBE] p-2.5 shadow-xs select-none space-y-2 shrink-0">
                 {/* Mode Selector & Filter Tabs */}
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E8E2D5] pb-2">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() => setBottomBarMode('layouts')}
+                      onClick={() => setBottomBarMode('photos')}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                        bottomBarMode === 'layouts'
+                        bottomBarMode === 'photos'
                           ? 'bg-[#1F1C18] text-[#FDFCF9] shadow-xs'
                           : 'bg-[#EFE9DE] text-[#736B60] hover:text-[#1F1C18]'
                       }`}
                     >
-                      <Layout className="w-3.5 h-3.5 text-[#ECC880]" />
-                      <span>Diseños Predefinidos ({15})</span>
+                      <ImageIcon className="w-3.5 h-3.5 text-[#ECC880]" />
+                      <span>Galería de Fotos ({uploadedPhotos.length})</span>
                     </button>
 
                     <button
@@ -5276,39 +4737,75 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     </button>
                   </div>
 
-                  {/* Photo Count Filters when in 'layouts' mode */}
-                  {bottomBarMode === 'layouts' && (
-                    <div className="flex flex-wrap items-center gap-1 text-[10px]">
-                      <span className="text-[#736B60] font-semibold mr-1">Filtrar fotos:</span>
-                      {[
-                        { id: 'all', label: 'Todo' },
-                        { id: '1', label: '1 foto' },
-                        { id: '2', label: '2 fotos' },
-                        { id: '3', label: '3 fotos' },
-                        { id: '4', label: '4 fotos' },
-                        { id: '5+', label: '5+ fotos' },
-                        { id: 'panoramic', label: 'Panorámica' },
-                        { id: 'text', label: 'Texto' },
-                      ].map((tab) => (
-                        <button
-                          key={tab.id}
-                          type="button"
-                          onClick={() => setLayoutPhotoFilter(tab.id as any)}
-                          className={`px-2 py-0.5 rounded-full font-medium transition-colors ${
-                            layoutPhotoFilter === tab.id
-                              ? 'bg-[#8C6D37] text-white font-bold'
-                              : 'bg-[#EFE9DE] text-[#595248] hover:bg-[#E2D8C7]'
-                          }`}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  {/* Center & Right: Photo Filters & Action Buttons */}
+                  {bottomBarMode === 'photos' ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Photo Usage Filter Chips */}
+                      <div className="flex items-center gap-1 text-[10px]">
+                        {[
+                          { id: 'all', label: `Todas (${uploadedPhotos.length})` },
+                          {
+                            id: 'unused',
+                            label: `Sin usar (${
+                              uploadedPhotos.filter((p) => getPhotoUsageCount(p.id) === 0).length
+                            })`,
+                          },
+                          {
+                            id: 'used',
+                            label: `En uso (${
+                              uploadedPhotos.filter((p) => getPhotoUsageCount(p.id) > 0).length
+                            })`,
+                          },
+                        ].map((filter) => (
+                          <button
+                            key={filter.id}
+                            type="button"
+                            onClick={() => setPhotoUsageFilter(filter.id as any)}
+                            className={`px-2 py-0.5 rounded-full font-medium transition-colors ${
+                              photoUsageFilter === filter.id
+                                ? 'bg-[#8C6D37] text-white font-bold'
+                                : 'bg-[#EFE9DE] text-[#595248] hover:bg-[#E2D8C7]'
+                            }`}
+                          >
+                            {filter.label}
+                          </button>
+                        ))}
+                      </div>
 
-                  {/* Filmstrip Quick Actions when in 'pages' mode */}
-                  {bottomBarMode === 'pages' && (
-                    <div className="flex items-center gap-1">
+                      {/* Multi-selection info / Auto-populate */}
+                      {selectedPhotoIds.length > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={handleAutoPopulateWithSelected}
+                            className="px-2.5 py-1 rounded-lg bg-[#8C6D37] text-white text-[10px] font-bold hover:bg-[#73582A] flex items-center gap-1 shadow-xs"
+                          >
+                            <Sparkles className="w-3 h-3 text-[#ECC880]" />
+                            <span>Llenar ({selectedPhotoIds.length})</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPhotoIds([])}
+                            className="text-[10px] text-[#736B60] hover:text-[#1F1C18] underline"
+                          >
+                            Limpiar
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Upload Photos Trigger */}
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-2.5 py-1 rounded-lg bg-[#FAF7F2] border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[11px] font-bold text-[#8C6D37] flex items-center gap-1 transition-colors"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>+ Subir Fotos</span>
+                      </button>
+                    </div>
+                  ) : (
+                    /* Pliegos actions */
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => handleDuplicateSpread(activeSpreadIndex)}
@@ -5329,333 +4826,103 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   )}
                 </div>
 
-                {/* CONTENT AREA: 1. PREDEFINED LAYOUT TEMPLATES WIREFRAME GALLERY */}
-                {bottomBarMode === 'layouts' && (
-                  <div className="flex items-center gap-2.5 overflow-x-auto py-1.5 px-1 scrollbar-thin">
-                    {[
-                      {
-                        id: 'five-photo-editorial',
-                        title: '5 Fotos Editorial',
-                        subtitle: '2 Arriba + 3 Abajo',
-                        photos: '5+',
-                        numPhotos: 5,
-                        badge: 'Nuevo',
-                        diagram: (
-                          <div className="w-full h-full flex flex-col gap-0.5 p-0.5 bg-[#FAF7F2]">
-                            <div className="flex-1 grid grid-cols-2 gap-0.5">
-                              <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                              <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                            </div>
-                            <div className="flex-1 grid grid-cols-3 gap-0.5">
-                              <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                              <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                              <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                            </div>
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'asymmetric-split',
-                        title: '3 Asimétrico 2+1',
-                        subtitle: '2 Horiz + 1 Vertical',
-                        photos: 3,
-                        numPhotos: 3,
-                        badge: 'Nuevo',
-                        diagram: (
-                          <div className="w-full h-full grid grid-cols-2 gap-0.5 p-0.5 bg-[#FAF7F2]">
-                            <div className="grid grid-rows-2 gap-0.5">
-                              <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                              <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                            </div>
-                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'three-vertical-triptych',
-                        title: 'Tríptico 3 Vert',
-                        subtitle: '3 Columnas Altas',
-                        photos: 3,
-                        numPhotos: 3,
-                        badge: 'Nuevo',
-                        diagram: (
-                          <div className="w-full h-full grid grid-cols-3 gap-0.5 p-0.5 bg-[#FAF7F2]">
-                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'editorial-magazine-polaroid',
-                        title: 'Revista & Polaroid',
-                        subtitle: '4 Fotos + Título',
-                        photos: 4,
-                        numPhotos: 4,
-                        badge: 'Nuevo',
-                        diagram: (
-                          <div className="w-full h-full flex gap-0.5 p-0.5 bg-[#FAF7F2]">
-                            <div className="w-5/12 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs flex flex-col justify-end p-0.5">
-                              <div className="h-1 bg-[#1F1C18]/30 rounded-full" />
-                            </div>
-                            <div className="w-7/12 flex flex-col gap-0.5">
-                              <div className="h-2/5 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                              <div className="h-3/5 grid grid-cols-2 gap-0.5">
-                                <div className="bg-white border border-[#D6CEBE] p-0.5 flex flex-col">
-                                  <div className="flex-1 bg-[#8C6D37]/40 rounded-xs" />
-                                </div>
-                                <div className="bg-white border border-[#D6CEBE] p-0.5 flex flex-col">
-                                  <div className="flex-1 bg-[#8C6D37]/40 rounded-xs" />
-                                </div>
+                {/* CONTENT AREA: 1. PHOTOS TRAY (Bottom Photo Gallery) */}
+                {bottomBarMode === 'photos' && (
+                  <div className="flex items-center gap-2 overflow-x-auto py-1 px-1 scrollbar-thin min-h-[88px]">
+                    {uploadedPhotos
+                      .filter((p) => {
+                        const usage = getPhotoUsageCount(p.id);
+                        if (photoUsageFilter === 'unused') return usage === 0;
+                        if (photoUsageFilter === 'used') return usage > 0;
+                        return true;
+                      })
+                      .map((photo) => {
+                        const usageCount = getPhotoUsageCount(photo.id);
+                        const isSelected = selectedPhotoIds.includes(photo.id);
+
+                        return (
+                          <div
+                            key={photo.id}
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData('text/plain', photo.id);
+                              setDraggedPhotoId(photo.id);
+                            }}
+                            onDragEnd={() => setDraggedPhotoId(null)}
+                            onClick={() => {
+                              setSelectedPhotoIds((prev) =>
+                                prev.includes(photo.id)
+                                  ? prev.filter((id) => id !== photo.id)
+                                  : [...prev, photo.id]
+                              );
+                            }}
+                            onDoubleClick={() => {
+                              if (selectedSlotId) {
+                                updateActiveSlot(selectedSlotId, (s) => ({ ...s, photoId: photo.id }));
+                              } else {
+                                const currentSpread = spreads[activeSpreadIndex];
+                                const emptyLeft = currentSpread?.leftPage.slots.find((s) => !s.photoId);
+                                const emptyRight = currentSpread?.rightPage.slots.find((s) => !s.photoId);
+                                const targetSlot = emptyLeft || emptyRight;
+                                if (targetSlot) {
+                                  updateActiveSlot(targetSlot.id, (s) => ({ ...s, photoId: photo.id }));
+                                }
+                              }
+                            }}
+                            className={`group relative flex-shrink-0 cursor-grab active:cursor-grabbing rounded-xl border-2 transition-all p-1 w-20 h-20 flex flex-col items-center justify-center bg-white ${
+                              isSelected
+                                ? 'border-[#8C6D37] ring-2 ring-[#8C6D37]/40 shadow-md scale-105'
+                                : 'border-[#D6CEBE] hover:border-[#8C6D37] hover:shadow-xs'
+                            }`}
+                            title="Arrastra al pliego o haz doble clic para colocar"
+                          >
+                            {/* Photo Thumbnail */}
+                            <div className="w-full h-full rounded-lg overflow-hidden bg-[#EFE9DE] relative">
+                              <img
+                                src={getThumbnailSrc(photo)}
+                                alt={photo.name}
+                                className="w-full h-full object-cover select-none pointer-events-none"
+                              />
+
+                              {/* Usage Indicator Badge */}
+                              {usageCount > 0 ? (
+                                <span className="absolute top-0.5 left-0.5 bg-[#8C6D37] text-white text-[8px] font-bold px-1 rounded-full shadow-xs">
+                                  {usageCount}x
+                                </span>
+                              ) : (
+                                <span className="absolute top-0.5 left-0.5 bg-black/50 text-white text-[7px] font-medium px-1 rounded-full backdrop-blur-xs">
+                                  Nuevo
+                                </span>
+                              )}
+
+                              {/* Selection Checkbox overlay */}
+                              <div
+                                className={`absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center transition-opacity ${
+                                  isSelected
+                                    ? 'bg-[#8C6D37] text-white opacity-100'
+                                    : 'bg-black/30 text-transparent group-hover:opacity-100 opacity-0'
+                                }`}
+                              >
+                                <Check className="w-2.5 h-2.5 stroke-[3]" />
                               </div>
                             </div>
                           </div>
-                        ),
-                      },
-                      {
-                        id: 'moodboard-mosaic-9',
-                        title: 'Moodboard Romántico',
-                        subtitle: '9 Fotos Mosaico',
-                        photos: '5+',
-                        numPhotos: 9,
-                        badge: 'Nuevo',
-                        diagram: (
-                          <div className="w-full h-full grid grid-cols-3 grid-rows-3 gap-0.5 p-0.5 bg-[#FAF7F2]">
-                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                            <div className="col-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                            <div className="row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                            <div className="col-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'lifestyle-bento-10',
-                        title: 'Bento Lifestyle',
-                        subtitle: '10 Fotos Detalle',
-                        photos: '5+',
-                        numPhotos: 10,
-                        badge: 'Nuevo',
-                        diagram: (
-                          <div className="w-full h-full grid grid-cols-6 grid-rows-4 gap-0.5 p-0.5 bg-[#FAF7F2]">
-                            <div className="col-span-2 row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                            <div className="col-span-2 row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                            <div className="col-span-2 row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                            <div className="col-span-3 row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                            <div className="col-span-3 row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'botanical-floral-scrapbook',
-                        title: 'Scrapbook Botánico',
-                        subtitle: '5 Fotos + Floral',
-                        photos: '5+',
-                        numPhotos: 5,
-                        badge: 'Floral',
-                        diagram: (
-                          <div className="w-full h-full bg-[#FAF7F2] border border-[#E8E2D5] p-0.5 flex flex-col justify-between relative overflow-hidden">
-                            <div className="text-[5px] text-[#607D62] text-center italic font-serif">♡ my everything ♡</div>
-                            <div className="flex-1 grid grid-cols-3 gap-0.5 mt-0.5">
-                              <div className="col-span-2 bg-white border border-[#D6CEBE] p-0.5"><div className="w-full h-full bg-[#8C6D37]/40" /></div>
-                              <div className="bg-white border border-[#D6CEBE] p-0.5"><div className="w-full h-full bg-[#8C6D37]/40" /></div>
-                            </div>
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'single-full',
-                        title: '1 Foto Sangrada',
-                        subtitle: 'Página Completa',
-                        photos: 1,
-                        numPhotos: 1,
-                        diagram: (
-                          <div className="w-full h-full bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs flex items-center justify-center text-[9px] font-bold text-[#8C6D37]">
-                            1
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'single-bordered',
-                        title: 'Passepartout',
-                        subtitle: '1 Foto con Marco',
-                        photos: 1,
-                        numPhotos: 1,
-                        diagram: (
-                          <div className="w-full h-full bg-white border border-[#D6CEBE] p-1 flex items-center justify-center">
-                            <div className="w-4/5 h-4/5 bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs flex items-center justify-center text-[8px] font-bold text-[#8C6D37]">
-                              1
-                            </div>
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'two-vertical',
-                        title: '2 Verticales',
-                        subtitle: 'Paralelas',
-                        photos: 2,
-                        numPhotos: 2,
-                        diagram: (
-                          <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5">
-                            <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
-                            <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'two-horizontal',
-                        title: '2 Horizontales',
-                        subtitle: 'Apiladas',
-                        photos: 2,
-                        numPhotos: 2,
-                        diagram: (
-                          <div className="w-full h-full grid grid-rows-2 gap-1 p-0.5">
-                            <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
-                            <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'three-collage',
-                        title: '3 Mosaico Clásico',
-                        subtitle: '1 Grande + 2 Pequeñas',
-                        photos: 3,
-                        numPhotos: 3,
-                        diagram: (
-                          <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5">
-                            <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
-                            <div className="grid grid-rows-2 gap-1">
-                              <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
-                              <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
-                            </div>
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'four-grid',
-                        title: '4 Grilla 2x2',
-                        subtitle: 'Cuadrícula Equitativa',
-                        photos: 4,
-                        numPhotos: 4,
-                        diagram: (
-                          <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-1 p-0.5">
-                            <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
-                            <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
-                            <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
-                            <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'full-bleed-spread',
-                        title: 'Panorámica 180°',
-                        subtitle: 'Doble Pliego',
-                        photos: 'panoramic',
-                        numPhotos: 1,
-                        diagram: (
-                          <div className="w-full h-full bg-[#1F1C18] text-[#ECC880] flex items-center justify-center text-[8px] font-bold rounded-xs">
-                            Panorámica
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'editorial-text-photo',
-                        title: 'Página de Texto',
-                        subtitle: 'Dedicatoria / Poesía',
-                        photos: 'text',
-                        numPhotos: 0,
-                        diagram: (
-                          <div className="w-full h-full bg-[#F4EFE6] border border-[#D6CEBE] p-1 flex flex-col items-center justify-center text-[7px] text-[#595248] italic font-serif">
-                            <span>“Título”</span>
-                            <span className="text-[5px]">texto editorial</span>
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'blank',
-                        title: 'Blanco Fine Art',
-                        subtitle: 'Minimalista',
-                        photos: 0,
-                        numPhotos: 0,
-                        diagram: (
-                          <div className="w-full h-full bg-white border border-[#D6CEBE] flex items-center justify-center text-[7px] text-[#A89F91]">
-                            Vacío
-                          </div>
-                        ),
-                      },
-                    ]
-                      .filter((tmpl) => {
-                        if (layoutPhotoFilter === 'all') return true;
-                        if (layoutPhotoFilter === 'panoramic') return tmpl.id === 'full-bleed-spread';
-                        if (layoutPhotoFilter === 'text') return tmpl.id === 'editorial-text-photo';
-                        if (layoutPhotoFilter === '5+') return tmpl.photos === '5+' || (typeof tmpl.photos === 'number' && tmpl.photos >= 5);
-                        return String(tmpl.photos) === layoutPhotoFilter;
-                      })
-                      .map((tmpl) => (
-                        <div
-                          key={tmpl.id}
-                          className="flex-shrink-0 group/card bg-white rounded-xl border border-[#D6CEBE] hover:border-[#8C6D37] hover:shadow-md transition-all p-2 flex flex-col items-center gap-1.5 w-32 relative"
+                        );
+                      })}
+
+                    {/* Empty placeholder or upload prompt */}
+                    {uploadedPhotos.length === 0 && (
+                      <div className="w-full flex items-center justify-center py-4 text-center">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-4 py-2 rounded-xl border border-dashed border-[#8C6D37] bg-[#FAF7F2] text-[#8C6D37] hover:bg-[#EFE9DE] text-xs font-bold flex items-center gap-2"
                         >
-                          {tmpl.badge && (
-                            <span className="absolute top-1 right-1 bg-[#8C6D37] text-white text-[8px] font-bold px-1.5 py-0.2 rounded-full uppercase tracking-wider shadow-xs">
-                              {tmpl.badge}
-                            </span>
-                          )}
-
-                          {/* Miniature Wireframe Diagram */}
-                          <div className="w-28 h-18 rounded-lg bg-[#EFE9DE] overflow-hidden border border-[#D6CEBE]/50">
-                            {tmpl.diagram}
-                          </div>
-
-                          <div className="w-full text-center">
-                            <span className="text-[10px] font-bold text-[#1F1C18] truncate block">
-                              {tmpl.title}
-                            </span>
-                            <span className="text-[8px] text-[#736B60] truncate block">
-                              {tmpl.subtitle}
-                            </span>
-                          </div>
-
-                          {/* Quick Apply Buttons (Izq, Der, or Spread) */}
-                          <div className="w-full flex gap-1 mt-0.5">
-                            {tmpl.id === 'full-bleed-spread' ? (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleChangePageLayout('left', 'full-bleed-spread');
-                                }}
-                                className="w-full py-1 rounded-lg bg-[#8C6D37] text-white text-[9px] font-bold hover:bg-[#73582A]"
-                              >
-                                Aplicar a Pliego
-                              </button>
-                            ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    handleChangePageLayout('left', tmpl.id as PageLayoutId);
-                                  }}
-                                  className="flex-1 py-1 rounded-lg bg-[#EFE9DE] hover:bg-[#1F1C18] hover:text-white text-[9px] font-bold transition-colors"
-                                >
-                                  Izq
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    handleChangePageLayout('right', tmpl.id as PageLayoutId);
-                                  }}
-                                  className="flex-1 py-1 rounded-lg bg-[#EFE9DE] hover:bg-[#1F1C18] hover:text-white text-[9px] font-bold transition-colors"
-                                >
-                                  Der
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                          <Upload className="w-4 h-4" />
+                          <span>Subir fotos a tu galería</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -6536,6 +5803,51 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           title={bg.name}
                         />
                       ))}
+                    </div>
+                  </div>
+
+                  {/* HERRAMIENTAS DE TEXTO LIBRE */}
+                  <div className="space-y-2 pt-1 border-t border-[#E8E2D5]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1.5">
+                        <Type className="w-3.5 h-3.5 text-[#8C6D37]" />
+                        <span>Añadir Texto al Pliego</span>
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleAddFloatingText('title')}
+                        className="p-2 rounded-xl bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
+                      >
+                        <Heading1 className="w-3.5 h-3.5 text-[#8C6D37]" />
+                        <span>+ Título</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddFloatingText('subtitle')}
+                        className="p-2 rounded-xl bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
+                      >
+                        <Heading2 className="w-3.5 h-3.5 text-[#8C6D37]" />
+                        <span>+ Subtítulo</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddFloatingText('quote')}
+                        className="p-2 rounded-xl bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
+                      >
+                        <Quote className="w-3.5 h-3.5 text-[#8C6D37]" />
+                        <span>+ Cita / Frase</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddFloatingText('label')}
+                        className="p-2 rounded-xl bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
+                      >
+                        <Tag className="w-3.5 h-3.5 text-[#8C6D37]" />
+                        <span>+ Etiqueta</span>
+                      </button>
                     </div>
                   </div>
 
