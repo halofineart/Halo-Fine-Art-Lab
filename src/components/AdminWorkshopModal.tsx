@@ -12,10 +12,9 @@ import {
   Sparkles, 
   MessageSquare, 
   Search, 
-  Filter, 
-  Lock, 
-  KeyRound, 
-  RefreshCw, 
+  Filter,
+  Lock,
+  RefreshCw,
   FolderDown, 
   Layers, 
   MapPin, 
@@ -28,7 +27,6 @@ import {
   ExternalLink,
   ChevronRight,
   Send,
-  AlertCircle,
   HelpCircle,
   Printer,
   HardDrive,
@@ -57,24 +55,27 @@ import {
   WorkshopCloudConfig
 } from '../lib/cloudStorageService';
 import { formatPriceARS } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
 
 interface AdminWorkshopModalProps {
   isOpen: boolean;
   onClose: () => void;
   onViewOrderInTracker?: (orderCode: string) => void;
+  onOpenAuth?: () => void;
 }
 
 export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
   isOpen,
   onClose,
   onViewOrderInTracker,
+  onOpenAuth,
 }) => {
-  // Authentication State for Admin Portal
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('halo_admin_authenticated') === 'true';
-  });
-  const [pinInput, setPinInput] = useState('');
-  const [pinError, setPinError] = useState(false);
+  // Admin access now comes from the real Supabase session: the signed-in
+  // user's `profiles.is_admin` flag, set directly in the database. There is
+  // no client-side PIN anymore — it was trivial to read out of the bundle
+  // and to bypass entirely via localStorage.
+  const { isLoggedIn, isLoading: isAuthLoading, profile, user, signOut } = useAuth();
+  const isAdmin = Boolean(profile?.isAdmin);
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<'orders' | 'concierge' | 'cloud' | 'downloads' | 'settings'>('orders');
@@ -102,12 +103,12 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
   const [invoicePreviewOrder, setInvoicePreviewOrder] = useState<TrackedOrder | null>(null);
   const [invoicePreviewUrl, setInvoicePreviewUrl] = useState<string | null>(null);
 
-  // Load orders on open
+  // Load orders once the modal is open AND the session has been confirmed as admin
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && isAdmin) {
       loadData();
     }
-  }, [isOpen]);
+  }, [isOpen, isAdmin]);
 
   const loadData = () => {
     const loadedOrders = getAdminOrders();
@@ -116,21 +117,8 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
     setConciergeRequests(loadedRequests);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pinInput === 'halo2026' || pinInput === 'admin' || pinInput === '1234') {
-      setIsAuthenticated(true);
-      localStorage.setItem('halo_admin_authenticated', 'true');
-      setPinError(false);
-      setPinInput('');
-    } else {
-      setPinError(true);
-    }
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem('halo_admin_authenticated');
+  const handleLogout = async () => {
+    await signOut();
   };
 
   const handleSelectOrder = (order: TrackedOrder) => {
@@ -274,7 +262,7 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
-            {isAuthenticated && (
+            {isAdmin && (
               <button
                 type="button"
                 onClick={handleLogout}
@@ -293,8 +281,8 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
           </div>
         </div>
 
-        {/* AUTHENTICATION GATE */}
-        {!isAuthenticated ? (
+        {/* AUTHENTICATION GATE — real Supabase session + profiles.is_admin, no client-side PIN */}
+        {!isAdmin ? (
           <div className="p-8 sm:p-12 flex flex-col items-center justify-center my-auto">
             <div className="w-16 h-16 rounded-full bg-[#EFE9DE] flex items-center justify-center mb-4 border border-[#D6CEBE] shadow-sm">
               <Lock className="w-8 h-8 text-[#8C6D37]" />
@@ -303,55 +291,33 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
               Acceso a Control de Taller & Descargas
             </h2>
             <p className="text-sm text-[#595248] text-center max-w-md mb-6 leading-relaxed">
-              Esta área es exclusiva para el equipo del laboratorio en Pilar. Permite descargar los archivos fotográficos en alta resolución y coordinar los envíos.
+              Esta área es exclusiva para el equipo del laboratorio en Pilar. Iniciá sesión con una cuenta habilitada como administradora para descargar los archivos fotográficos en alta resolución y coordinar los envíos.
             </p>
 
-            <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#736B60] mb-1.5">
-                  PIN o Clave de Taller
-                </label>
-                <div className="relative">
-                  <KeyRound className="w-4 h-4 text-[#8C6D37] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="password"
-                    value={pinInput}
-                    onChange={(e) => {
-                      setPinInput(e.target.value);
-                      setPinError(false);
-                    }}
-                    placeholder="Ingresa PIN (ej. halo2026)"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#D6CEBE] bg-white text-sm text-[#1F1C18] focus:outline-none focus:ring-2 focus:ring-[#8C6D37]"
-                    autoFocus
-                  />
-                </div>
-                {pinError && (
-                  <p className="text-xs text-rose-600 mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5" /> Clave incorrecta. Usa: <strong className="underline">halo2026</strong>
-                  </p>
-                )}
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-[#1F1C18] text-white text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] transition-all shadow-md"
-                >
-                  Ingresar al Taller
-                </button>
+            {isAuthLoading ? (
+              <p className="text-xs text-[#8C6D37]">Verificando sesión…</p>
+            ) : !isLoggedIn ? (
+              <button
+                type="button"
+                onClick={onOpenAuth}
+                className="px-6 py-2.5 rounded-xl bg-[#1F1C18] text-white text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] transition-all shadow-md"
+              >
+                Iniciar Sesión
+              </button>
+            ) : (
+              <div className="w-full max-w-sm text-center space-y-3">
+                <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
+                  La cuenta <strong>{user?.email}</strong> no tiene permisos de administrador del taller. Pedile a alguien del equipo que te habilite desde Supabase, o iniciá sesión con otra cuenta.
+                </p>
                 <button
                   type="button"
-                  onClick={() => {
-                    setPinInput('halo2026');
-                    setIsAuthenticated(true);
-                    localStorage.setItem('halo_admin_authenticated', 'true');
-                  }}
-                  className="px-4 py-2.5 rounded-xl border border-[#D6CEBE] bg-[#F7F3EB] text-xs font-semibold text-[#8C6D37] hover:bg-[#EFE9DE] transition-colors"
+                  onClick={handleLogout}
+                  className="px-4 py-2 rounded-xl border border-[#D6CEBE] bg-[#F7F3EB] text-xs font-semibold text-[#8C6D37] hover:bg-[#EFE9DE] transition-colors"
                 >
-                  Acceso Rápido Demo
+                  Cerrar sesión y probar con otra cuenta
                 </button>
               </div>
-            </form>
+            )}
           </div>
         ) : (
           /* AUTHENTICATED WORKSHOP INTERFACE */
