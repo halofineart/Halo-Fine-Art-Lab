@@ -73,26 +73,26 @@ export const OrderTrackerSection: React.FC<OrderTrackerSectionProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="text-[10px] font-medium tracking-[0.25em] text-[#8C8275] uppercase block mb-2">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <span className="text-xs sm:text-sm font-semibold tracking-[0.22em] text-[#8C6D37] uppercase block mb-3">
             PRODUCCIÓN ARTESANAL (4 A 6 DÍAS)
           </span>
-          <h2 className="font-serif-luxury text-3xl sm:text-4xl text-[#1F1C18] font-normal">
+          <h2 className="font-serif-luxury text-3xl sm:text-5xl text-[#1F1C18] font-normal tracking-tight">
             Seguimiento de tu Fotolibro
           </h2>
-          <p className="text-xs sm:text-sm text-[#736B60] font-light mt-3">
+          <p className="text-sm sm:text-base text-[#595248] font-light mt-4 max-w-xl mx-auto leading-relaxed">
             Notificaciones automáticas por correo electrónico en cada etapa: diseño, revelado en taller y despacho.
           </p>
         </div>
 
         {/* Tracker Box */}
-        <div className="bg-[#FDFCF9] border border-[#E8E2D5] shadow-xs max-w-4xl mx-auto">
+        <div className="bg-[#FDFCF9] border border-[#E8E2D5] shadow-sm max-w-4xl mx-auto">
           
           {/* Top Search & Order Selector Bar */}
-          <div className="p-5 bg-[#FAF8F5] border-b border-[#E8E2D5] flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="p-5 sm:p-6 bg-[#FAF8F5] border-b border-[#E8E2D5] flex flex-col md:flex-row items-center justify-between gap-4">
             {/* Quick Order Tabs */}
             <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-              <span className="text-[11px] font-mono text-[#8C8275] uppercase tracking-wider shrink-0 mr-1">
+              <span className="text-xs sm:text-sm font-mono text-[#595248] uppercase tracking-wider shrink-0 mr-1 font-semibold">
                 Órdenes:
               </span>
               {orders.slice(0, 3).map((ord) => {
@@ -105,10 +105,10 @@ export const OrderTrackerSection: React.FC<OrderTrackerSectionProps> = ({
                       setActiveTab(ord.id);
                       setQuickSearch('');
                     }}
-                    className={`px-3 py-1.5 text-xs font-mono transition-all border cursor-pointer ${
+                    className={`px-3.5 py-2 text-xs sm:text-sm font-mono transition-all border cursor-pointer font-medium ${
                       isSelected
                         ? 'border-[#1F1C18] bg-[#1F1C18] text-[#FDFCF9]'
-                        : 'border-[#E8E2D5] bg-[#FDFCF9] text-[#736B60] hover:bg-[#FAF8F5]'
+                        : 'border-[#D6CEBE] bg-[#FDFCF9] text-[#595248] hover:bg-[#FAF8F5]'
                     }`}
                   >
                     #{ord.orderNumber}
@@ -118,72 +118,72 @@ export const OrderTrackerSection: React.FC<OrderTrackerSectionProps> = ({
             </div>
 
             {/* Search Input */}
-            <div className="relative w-full md:w-64">
-              <Search className="w-3.5 h-3.5 text-[#8C8275] absolute left-3 top-1/2 -translate-y-1/2" />
+            <div className="relative w-full md:w-72">
+              <Search className="w-4 h-4 text-[#8C8275] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={quickSearch}
                 onChange={(e) => setQuickSearch(e.target.value)}
                 placeholder="Buscar por Nº o Nombre..."
-                className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#FDFCF9] border border-[#E8E2D5] focus:outline-none focus:border-[#1F1C18]"
+                className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-[#FDFCF9] border border-[#D6CEBE] focus:outline-none focus:border-[#1F1C18] placeholder:text-[#8C8275]"
               />
             </div>
           </div>
 
           {/* Active Order Details */}
           {matchedOrder ? (
-            <div className="p-6 sm:p-8 space-y-8">
+            <div className="p-6 sm:p-9 space-y-8">
               
               {/* Order Meta Bar */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E8E2D5]">
                 <div>
-                  <span className="text-[10px] uppercase font-mono tracking-widest text-[#8C8275]">
+                  <span className="text-xs uppercase font-mono tracking-widest text-[#8C6D37] font-semibold">
                     Pedido #{matchedOrder.orderNumber}
                   </span>
-                  <h3 className="font-serif-luxury text-2xl text-[#1F1C18] font-normal mt-0.5">
+                  <h3 className="font-serif-luxury text-2xl sm:text-3xl text-[#1F1C18] font-normal mt-1">
                     {matchedOrder.itemTitle}
                   </h3>
-                  <p className="text-xs text-[#736B60] font-light mt-1">
-                    Cliente: {matchedOrder.customerName} · {matchedOrder.format} · Total: {formatPriceARS(matchedOrder.totalPrice)} ARS
+                  <p className="text-sm sm:text-base text-[#595248] font-normal mt-1.5">
+                    Cliente: <strong className="text-[#1F1C18] font-medium">{matchedOrder.customerName}</strong> · {matchedOrder.format} · Total: <strong className="text-[#1F1C18] font-semibold">{formatPriceARS(matchedOrder.totalPrice)} ARS</strong>
                   </p>
                 </div>
 
                 <div className="sm:text-right">
-                  <span className="text-[10px] uppercase font-mono text-[#8C8275] block">Estado Actual</span>
-                  <span className="inline-block px-3 py-1 bg-[#FAF8F5] border border-[#E8E2D5] text-xs font-serif-luxury text-[#1F1C18] mt-1">
+                  <span className="text-xs uppercase font-mono text-[#8C8275] block font-medium">Estado Actual</span>
+                  <span className="inline-block px-4 py-1.5 bg-[#FAF8F5] border border-[#D6CEBE] text-xs sm:text-sm font-serif-luxury font-medium text-[#1F1C18] mt-1">
                     {currentStageInfo?.title}
                   </span>
                 </div>
               </div>
 
               {/* 4 Steps Minimalist Timeline */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 {matchedOrder.timeline.map((step, idx) => {
                   return (
                     <div
                       key={step.stage}
-                      className={`p-4 border transition-all ${
+                      className={`p-4 sm:p-5 border transition-all ${
                         step.current
-                          ? 'border-[#1F1C18] bg-[#FAF8F5]'
+                          ? 'border-[#1F1C18] bg-[#FAF8F5] shadow-2xs ring-1 ring-[#1F1C18]/10'
                           : step.completed
-                          ? 'border-[#E8E2D5] bg-[#FDFCF9]'
-                          : 'border-[#E8E2D5]/50 bg-[#FDFCF9] opacity-50'
+                          ? 'border-[#D6CEBE] bg-[#FDFCF9]'
+                          : 'border-[#E8E2D5] bg-[#FDFCF9] opacity-60'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-mono text-[#8C8275]">0{idx + 1}</span>
+                      <div className="flex items-center justify-between mb-2.5">
+                        <span className="text-xs font-mono font-semibold text-[#8C6D37]">0{idx + 1}</span>
                         {step.completed ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-[#8C6D37]" />
+                          <CheckCircle2 className="w-4 h-4 text-[#8C6D37]" />
                         ) : step.current ? (
-                          <span className="w-2 h-2 rounded-full bg-[#1F1C18] animate-pulse" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#1F1C18] animate-pulse" />
                         ) : (
-                          <span className="w-2 h-2 rounded-full bg-[#E8E2D5]" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#D6CEBE]" />
                         )}
                       </div>
-                      <h4 className="font-serif-luxury text-sm text-[#1F1C18] font-normal">
+                      <h4 className="font-serif-luxury text-base sm:text-lg text-[#1F1C18] font-normal leading-snug">
                         {step.title}
                       </h4>
-                      <p className="text-[11px] text-[#736B60] font-light mt-1 leading-snug">
+                      <p className="text-xs sm:text-sm text-[#595248] font-normal mt-2 leading-relaxed">
                         {step.description}
                       </p>
                     </div>
@@ -193,19 +193,19 @@ export const OrderTrackerSection: React.FC<OrderTrackerSectionProps> = ({
 
               {/* Latest Automated Email preview banner */}
               {latestEmail && (
-                <div className="p-4 bg-[#FAF8F5] border border-[#E8E2D5] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-4 h-4 text-[#8C6D37] shrink-0" />
+                <div className="p-4 sm:p-5 bg-[#FAF8F5] border border-[#D6CEBE] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3.5">
+                    <Mail className="w-5 h-5 text-[#8C6D37] shrink-0" />
                     <div>
-                      <span className="text-[10px] uppercase font-mono text-[#8C8275] block">Último aviso enviado al cliente</span>
-                      <p className="text-xs text-[#1F1C18] font-medium">{latestEmail.subject}</p>
+                      <span className="text-xs uppercase font-mono text-[#8C8275] block font-medium">Último aviso enviado al cliente</span>
+                      <p className="text-sm sm:text-base text-[#1F1C18] font-semibold mt-0.5">{latestEmail.subject}</p>
                     </div>
                   </div>
                   {onViewEmailNotification && (
                     <button
                       type="button"
                       onClick={() => onViewEmailNotification(latestEmail, matchedOrder)}
-                      className="px-3 py-1 border border-[#D6CEBE] text-[11px] uppercase tracking-wider font-mono hover:bg-[#FDFCF9] transition-colors cursor-pointer shrink-0"
+                      className="px-3.5 py-1.5 border border-[#D6CEBE] text-xs uppercase tracking-wider font-mono font-medium hover:bg-[#FDFCF9] transition-colors cursor-pointer shrink-0"
                     >
                       Ver Email
                     </button>
@@ -214,19 +214,19 @@ export const OrderTrackerSection: React.FC<OrderTrackerSectionProps> = ({
               )}
 
               {/* Bottom Actions */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3">
                 <button
                   type="button"
                   onClick={() => onOpenTrackerModal(matchedOrder.id)}
-                  className="text-xs text-[#1F1C18] font-medium hover:underline flex items-center gap-1.5 cursor-pointer"
+                  className="text-sm sm:text-base text-[#1F1C18] font-medium hover:underline flex items-center gap-2 cursor-pointer"
                 >
                   <span>Abrir vista detallada de seguimiento</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-4 h-4" />
                 </button>
 
                 {onUpdateOrderStatus && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono text-[#8C8275]">Simular avance:</span>
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xs font-mono text-[#736B60] font-medium">Simular avance:</span>
                     <button
                       type="button"
                       onClick={() => {
@@ -235,7 +235,7 @@ export const OrderTrackerSection: React.FC<OrderTrackerSectionProps> = ({
                         const nextStage = stages[(curIdx + 1) % stages.length];
                         onUpdateOrderStatus(matchedOrder.id, nextStage);
                       }}
-                      className="px-2.5 py-1 bg-[#1F1C18] text-[#FDFCF9] text-[10px] font-mono uppercase tracking-wider hover:bg-[#3D352E] cursor-pointer"
+                      className="px-3.5 py-1.5 bg-[#1F1C18] text-[#FDFCF9] text-xs font-mono uppercase tracking-wider font-semibold hover:bg-[#3D352E] cursor-pointer shadow-2xs"
                     >
                       Siguiente Etapa
                     </button>
@@ -245,7 +245,7 @@ export const OrderTrackerSection: React.FC<OrderTrackerSectionProps> = ({
 
             </div>
           ) : (
-            <div className="p-12 text-center text-xs text-[#8C8275] font-light">
+            <div className="p-12 text-center text-sm text-[#736B60] font-light">
               No se encontraron pedidos con ese criterio.
             </div>
           )}

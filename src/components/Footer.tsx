@@ -30,26 +30,26 @@ export const Footer: React.FC<FooterProps> = ({
               </span>
             </div>
 
-            <p className="text-xs text-[#8C8275] leading-relaxed max-w-sm font-light">
+            <p className="text-sm text-[#A89F91] leading-relaxed max-w-sm font-normal">
               Laboratorio especializado en encuadernación artesanal y revelado químico sobre auténtico papel fotográfico Layflat. Piezas de arte para guardar lo que de verdad importa.
             </p>
 
             <div className="flex items-center gap-3 pt-2">
-              <div className="w-8 h-8 border border-[#3D352E] flex items-center justify-center text-[#A89F91] hover:text-[#ECC880] hover:border-[#ECC880] transition-colors cursor-pointer">
-                <Instagram className="w-3.5 h-3.5" />
+              <div className="w-9 h-9 border border-[#3D352E] flex items-center justify-center text-[#A89F91] hover:text-[#ECC880] hover:border-[#ECC880] transition-colors cursor-pointer">
+                <Instagram className="w-4 h-4" />
               </div>
-              <div className="w-8 h-8 border border-[#3D352E] flex items-center justify-center text-[#A89F91] hover:text-[#ECC880] hover:border-[#ECC880] transition-colors cursor-pointer">
-                <Facebook className="w-3.5 h-3.5" />
+              <div className="w-9 h-9 border border-[#3D352E] flex items-center justify-center text-[#A89F91] hover:text-[#ECC880] hover:border-[#ECC880] transition-colors cursor-pointer">
+                <Facebook className="w-4 h-4" />
               </div>
             </div>
           </div>
 
           {/* Navigation Links */}
           <div className="md:col-span-3 space-y-3">
-            <h4 className="font-serif-luxury text-sm text-[#FDFCF9] font-normal tracking-wide">
+            <h4 className="font-serif-luxury text-base text-[#FDFCF9] font-medium tracking-wide">
               Navegación
             </h4>
-            <ul className="space-y-2 text-xs text-[#8C8275] font-light">
+            <ul className="space-y-2.5 text-xs sm:text-sm text-[#A89F91] font-light">
               <li>
                 <button
                   type="button"
@@ -100,14 +100,14 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* Quick Actions & Contact */}
           <div className="md:col-span-4 space-y-3">
-            <h4 className="font-serif-luxury text-sm text-[#FDFCF9] font-normal tracking-wide">
+            <h4 className="font-serif-luxury text-base text-[#FDFCF9] font-medium tracking-wide">
               Empezar
             </h4>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <button
                 type="button"
                 onClick={onOpenBuilder}
-                className="w-full py-2.5 px-4 bg-[#262320] hover:bg-[#332F2A] text-left text-xs text-[#FDFCF9] flex items-center justify-between border border-[#3D352E] transition-all cursor-pointer"
+                className="w-full py-3 px-4 bg-[#262320] hover:bg-[#332F2A] text-left text-xs sm:text-sm text-[#FDFCF9] font-medium flex items-center justify-between border border-[#3D352E] transition-all cursor-pointer"
               >
                 <span>Diseñar en el Editor Online</span>
                 <span className="text-[#ECC880]">→</span>
@@ -115,20 +115,20 @@ export const Footer: React.FC<FooterProps> = ({
               <button
                 type="button"
                 onClick={onOpenConcierge}
-                className="w-full py-2.5 px-4 bg-[#262320] hover:bg-[#332F2A] text-left text-xs text-[#FDFCF9] flex items-center justify-between border border-[#3D352E] transition-all cursor-pointer"
+                className="w-full py-3 px-4 bg-[#262320] hover:bg-[#332F2A] text-left text-xs sm:text-sm text-[#FDFCF9] font-medium flex items-center justify-between border border-[#3D352E] transition-all cursor-pointer"
               >
-                <span>Servicio: Nosotros lo Diseñamos</span>
+                <span>Nosotros te lo diseñamos</span>
                 <span className="text-[#ECC880]">→</span>
               </button>
             </div>
 
-            <div className="pt-3 text-[11px] text-[#8C8275] space-y-1.5 font-light">
+            <div className="pt-3 text-xs text-[#A89F91] space-y-2 font-light">
               <p className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-[#ECC880]" />
+                <Mail className="w-4 h-4 text-[#ECC880]" />
                 <span>contacto@halofineartlab.com</span>
               </p>
               <p className="flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-[#ECC880]" />
+                <Phone className="w-4 h-4 text-[#ECC880]" />
                 <span>Pilar, Buenos Aires · Envíos a todo el país</span>
               </p>
             </div>
@@ -136,14 +136,14 @@ export const Footer: React.FC<FooterProps> = ({
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-[#635B50] gap-4">
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-[#8C8275] gap-4">
           <p>© {new Date().getFullYear()} HALO Fine Art Lab. Todos los derechos reservados.</p>
           
           {onOpenAdminWorkshop && (
             <button
               type="button"
               onClick={onOpenAdminWorkshop}
-              className="inline-flex items-center gap-1.5 px-3 py-1 border border-[#2E2A25] hover:border-[#8C6D37] text-[#8C8275] hover:text-[#ECC880] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 border border-[#2E2A25] hover:border-[#8C6D37] text-xs text-[#A89F91] hover:text-[#ECC880] transition-colors cursor-pointer"
             >
               <span>Taller / Admin</span>
             </button>

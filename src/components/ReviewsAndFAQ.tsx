@@ -15,13 +15,13 @@ export const ReviewsAndFAQ: React.FC = () => {
       <section id="reviews" className="py-24 border-b border-[#E8E2D5]/70">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-[10px] font-medium tracking-[0.25em] text-[#8C8275] uppercase block mb-2">
+            <span className="text-xs sm:text-sm font-semibold tracking-[0.22em] text-[#8C6D37] uppercase block mb-3">
               OPINIONES & TESTIMONIOS REALES
             </span>
-            <h2 className="font-serif-luxury text-3xl sm:text-4xl text-[#1F1C18] font-normal">
+            <h2 className="font-serif-luxury text-3xl sm:text-5xl text-[#1F1C18] font-normal tracking-tight">
               Historias que ya viven en papel
             </h2>
-            <p className="text-xs sm:text-sm text-[#736B60] font-light mt-3">
+            <p className="text-sm sm:text-base text-[#595248] font-light mt-4 max-w-xl mx-auto leading-relaxed">
               Familias y fotógrafos que transformaron sus memorias digitales en legados tangibles.
             </p>
           </div>
@@ -30,7 +30,7 @@ export const ReviewsAndFAQ: React.FC = () => {
             {CUSTOMER_REVIEWS.map((review) => (
               <div
                 key={review.id}
-                className="bg-[#FDFCF9] border border-[#E8E2D5] p-7 flex flex-col justify-between shadow-xs hover:border-[#D6CEBE] transition-colors"
+                className="bg-[#FDFCF9] border border-[#E8E2D5] p-7 sm:p-8 flex flex-col justify-between shadow-xs hover:border-[#D6CEBE] transition-colors"
               >
                 <div>
                   {/* Photo of their book */}
@@ -44,28 +44,28 @@ export const ReviewsAndFAQ: React.FC = () => {
                   </div>
 
                   {/* Rating Stars */}
-                  <div className="flex items-center gap-1 text-[#C5A059] mb-3">
+                  <div className="flex items-center gap-1.5 text-[#C5A059] mb-4">
                     {[...Array(review.rating)].map((_, i) => (
-                      <Star key={i} className="w-3.5 h-3.5 fill-[#C5A059] text-[#C5A059]" />
+                      <Star key={i} className="w-4 h-4 fill-[#C5A059] text-[#C5A059]" />
                     ))}
                   </div>
 
                   {/* Comment */}
-                  <p className="font-serif-luxury text-base text-[#1F1C18] leading-relaxed mb-6 font-normal">
+                  <p className="font-serif-luxury text-lg sm:text-xl text-[#1F1C18] leading-relaxed mb-6 font-normal">
                     "{review.comment}"
                   </p>
                 </div>
 
-                <div className="border-t border-[#E8E2D5]/70 pt-4 flex items-center gap-3">
+                <div className="border-t border-[#E8E2D5]/70 pt-5 flex items-center gap-3.5">
                   <img
                     src={review.avatarUrl}
                     alt={review.name}
-                    className="w-9 h-9 rounded-full object-cover border border-[#D6CEBE]"
+                    className="w-11 h-11 rounded-full object-cover border border-[#D6CEBE]"
                     referrerPolicy="no-referrer"
                   />
                   <div>
-                    <h4 className="text-xs font-semibold text-[#1F1C18]">{review.name}</h4>
-                    <span className="text-[10px] text-[#8C8275] block font-light">{review.format} · {review.location}</span>
+                    <h4 className="text-sm sm:text-base font-medium text-[#1F1C18]">{review.name}</h4>
+                    <span className="text-xs text-[#736B60] block font-normal mt-0.5">{review.format} · {review.location}</span>
                   </div>
                 </div>
               </div>
@@ -78,15 +78,15 @@ export const ReviewsAndFAQ: React.FC = () => {
       <section id="faq" className="py-24 border-b border-[#E8E2D5]/70 bg-[#FAF8F5]">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <span className="text-[10px] font-medium tracking-[0.25em] text-[#8C8275] uppercase block mb-2">
+            <span className="text-xs sm:text-sm font-semibold tracking-[0.22em] text-[#8C6D37] uppercase block mb-3">
               PREGUNTAS FRECUENTES
             </span>
-            <h2 className="font-serif-luxury text-3xl sm:text-4xl text-[#1F1C18] font-normal">
+            <h2 className="font-serif-luxury text-3xl sm:text-5xl text-[#1F1C18] font-normal tracking-tight">
               Todo lo que necesitas saber antes de pedir
             </h2>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {FAQ_ITEMS.map((item, idx) => {
               const isOpen = openFaqIndex === idx;
               return (
@@ -97,18 +97,18 @@ export const ReviewsAndFAQ: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => toggleFaq(idx)}
-                    className="w-full p-5 text-left flex items-center justify-between gap-4 font-serif-luxury text-base sm:text-lg font-normal text-[#1F1C18] hover:text-[#8C6D37] transition-colors cursor-pointer"
+                    className="w-full p-6 text-left flex items-center justify-between gap-4 font-serif-luxury text-lg sm:text-xl font-medium text-[#1F1C18] hover:text-[#8C6D37] transition-colors cursor-pointer"
                   >
                     <span>{item.question}</span>
                     {isOpen ? (
-                      <ChevronUp className="w-4 h-4 text-[#8C6D37] shrink-0" />
+                      <ChevronUp className="w-5 h-5 text-[#8C6D37] shrink-0" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-[#8C8275] shrink-0" />
+                      <ChevronDown className="w-5 h-5 text-[#8C8275] shrink-0" />
                     )}
                   </button>
 
                   {isOpen && (
-                    <div className="px-5 pb-5 text-xs sm:text-sm text-[#736B60] leading-relaxed border-t border-[#E8E2D5]/50 pt-3.5 font-light">
+                    <div className="px-6 pb-6 text-sm sm:text-base text-[#595248] leading-relaxed border-t border-[#E8E2D5]/50 pt-4 font-normal">
                       {item.answer}
                     </div>
                   )}

@@ -25,13 +25,13 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="text-[10px] font-medium tracking-[0.25em] text-[#8C8275] uppercase block mb-2">
+            <span className="text-xs sm:text-sm font-semibold tracking-[0.22em] text-[#8C6D37] uppercase block mb-3">
               FORMATOS & DIMENSIONES
             </span>
-            <h2 className="font-serif-luxury text-3xl sm:text-5xl text-[#1F1C18] font-normal leading-tight">
+            <h2 className="font-serif-luxury text-3xl sm:text-5xl text-[#1F1C18] font-normal leading-tight tracking-tight">
               Encuentra el tamaño perfecto para tu historia
             </h2>
-            <p className="text-xs sm:text-sm text-[#736B60] font-light mt-3">
+            <p className="text-sm sm:text-base text-[#595248] font-light mt-4 max-w-xl mx-auto leading-relaxed">
               Ediciones apaisadas, cinematográficas y pocket para souvenirs. Todos con hojas rígidas y apertura 180° Layflat.
             </p>
           </div>
@@ -40,7 +40,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
             {/* Left Big Card (Featured): Gran Cuadrado Fine Art (Col 7) */}
-            <div className="lg:col-span-7 bg-[#FDFCF9] border border-[#E8E2D5] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
+            <div className="lg:col-span-7 bg-[#FDFCF9] border border-[#E8E2D5] p-6 sm:p-9 flex flex-col justify-between shadow-xs">
               <div>
                 {/* Photo of Open Book with Couple */}
                 <div className="aspect-[16/10] overflow-hidden bg-[#EAE5D9] mb-8 border border-[#E8E2D5]/60">
@@ -55,24 +55,24 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   />
                 </div>
 
-                <span className="inline-block text-[9px] uppercase tracking-[0.16em] text-[#736B60] bg-[#FAF8F5] border border-[#E8E2D5] px-2.5 py-0.5 rounded-none font-medium mb-3">
+                <span className="inline-block text-xs uppercase tracking-[0.16em] text-[#595248] bg-[#FAF8F5] border border-[#D6CEBE] px-3 py-1 rounded-none font-semibold mb-3">
                   El más elegido
                 </span>
 
                 <h3 className="font-serif-luxury text-3xl sm:text-4xl text-[#1F1C18] font-normal">
                   Gran Cuadrado Fine Art
                 </h3>
-                <p className="text-xs text-[#8C8275] font-mono mt-1">
+                <p className="text-sm text-[#736B60] font-mono mt-1.5 font-medium">
                   30 x 30 cm | 40 a 120 fotos
                 </p>
 
-                <p className="text-xs sm:text-sm text-[#736B60] font-light leading-relaxed mt-4">
+                <p className="text-sm sm:text-base text-[#595248] font-normal leading-relaxed mt-4">
                   El formato insignia y más solicitado para bodas, aniversarios y grandes hitos de vida. Presencia imponente y fotos panorámicas espectaculares.
                 </p>
 
                 <div className="mt-6">
-                  <span className="text-[10px] text-[#A89F91] uppercase tracking-wider block">Precio desde</span>
-                  <span className="font-serif-luxury text-2xl font-bold text-[#1F1C18]">
+                  <span className="text-xs text-[#8C8275] uppercase tracking-wider block font-medium">Precio desde</span>
+                  <span className="font-serif-luxury text-2xl sm:text-3xl font-bold text-[#1F1C18]">
                     {formatPriceARS(145000)} ARS
                   </span>
                 </div>
@@ -82,7 +82,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                 <button
                   type="button"
                   onClick={() => onSelectFormatToBuild('square-30')}
-                  className="w-full py-3.5 bg-[#1F1C18] hover:bg-[#3D352E] text-[#FDFCF9] text-xs uppercase tracking-[0.18em] font-semibold transition-all text-center cursor-pointer"
+                  className="w-full py-4 bg-[#1F1C18] hover:bg-[#3D352E] text-[#FDFCF9] text-xs sm:text-sm uppercase tracking-[0.18em] font-semibold transition-all text-center cursor-pointer shadow-xs"
                 >
                   Ver Detalles
                 </button>
@@ -93,7 +93,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
             <div className="lg:col-span-5 space-y-8">
               
               {/* Card 2: Clásico Apaisado */}
-              <div className="bg-[#FDFCF9] border border-[#E8E2D5] p-6 sm:p-7 shadow-xs">
+              <div className="bg-[#FDFCF9] border border-[#E8E2D5] p-6 sm:p-8 shadow-xs">
                 <div className="aspect-[16/9] overflow-hidden bg-[#EAE5D9] mb-5 border border-[#E8E2D5]/60">
                   <img
                     src={greenLandscapeImg}
@@ -106,27 +106,27 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   />
                 </div>
 
-                <h3 className="font-serif-luxury text-2xl text-[#1F1C18] font-normal">
+                <h3 className="font-serif-luxury text-2xl sm:text-3xl text-[#1F1C18] font-normal">
                   Clásico Apaisado
                 </h3>
-                <p className="text-[11px] text-[#8C8275] font-mono mt-0.5">
+                <p className="text-xs sm:text-sm text-[#736B60] font-mono mt-1 font-medium">
                   28 x 21 cm | 30 a 80 fotos
                 </p>
-                <p className="text-xs text-[#736B60] font-light leading-relaxed mt-2">
+                <p className="text-sm text-[#595248] font-normal leading-relaxed mt-2.5">
                   Ideal para fotografía de viajes y paisajes. Formato cinematográfico.
                 </p>
 
                 <button
                   type="button"
                   onClick={() => onSelectFormatToBuild('landscape-30-20')}
-                  className="mt-5 w-full py-2.5 border border-[#D6CEBE] hover:bg-[#FAF8F5] text-[#1F1C18] text-[11px] uppercase tracking-[0.18em] font-medium transition-all text-center cursor-pointer"
+                  className="mt-6 w-full py-3.5 border border-[#D6CEBE] hover:bg-[#FAF8F5] text-[#1F1C18] text-xs uppercase tracking-[0.18em] font-semibold transition-all text-center cursor-pointer"
                 >
                   Explorar
                 </button>
               </div>
 
               {/* Card 3: Pocket Souvenir */}
-              <div className="bg-[#FDFCF9] border border-[#E8E2D5] p-6 sm:p-7 shadow-xs">
+              <div className="bg-[#FDFCF9] border border-[#E8E2D5] p-6 sm:p-8 shadow-xs">
                 <div className="aspect-[16/9] overflow-hidden bg-[#EAE5D9] mb-5 border border-[#E8E2D5]/60">
                   <img
                     src={pocketMiniImg}
@@ -139,20 +139,20 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   />
                 </div>
 
-                <h3 className="font-serif-luxury text-2xl text-[#1F1C18] font-normal">
+                <h3 className="font-serif-luxury text-2xl sm:text-3xl text-[#1F1C18] font-normal">
                   Pocket Souvenir
                 </h3>
-                <p className="text-[11px] text-[#8C8275] font-mono mt-0.5">
+                <p className="text-xs sm:text-sm text-[#736B60] font-mono mt-1 font-medium">
                   15 x 15 cm | 20 a 50 fotos
                 </p>
-                <p className="text-xs text-[#736B60] font-light leading-relaxed mt-2">
+                <p className="text-sm text-[#595248] font-normal leading-relaxed mt-2.5">
                   Perfecto para regalar a abuelos o padrinos. Compacto pero premium.
                 </p>
 
                 <button
                   type="button"
                   onClick={() => onSelectFormatToBuild('square-15')}
-                  className="mt-5 w-full py-2.5 border border-[#D6CEBE] hover:bg-[#FAF8F5] text-[#1F1C18] text-[11px] uppercase tracking-[0.18em] font-medium transition-all text-center cursor-pointer"
+                  className="mt-6 w-full py-3.5 border border-[#D6CEBE] hover:bg-[#FAF8F5] text-[#1F1C18] text-xs uppercase tracking-[0.18em] font-semibold transition-all text-center cursor-pointer"
                 >
                   Explorar
                 </button>
@@ -173,7 +173,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
             
             {/* Left Narrative Text (Col 6) */}
             <div className="lg:col-span-6 space-y-6">
-              <div className="flex items-center gap-2 text-[10px] tracking-[0.25em] text-[#C5A059] uppercase font-medium">
+              <div className="flex items-center gap-2 text-xs sm:text-sm tracking-[0.25em] text-[#C5A059] uppercase font-semibold">
                 <span>✦</span>
                 <span>CALIDAD DE ARCHIVO</span>
               </div>
@@ -182,43 +182,43 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                 Materiales nobles para historias que trascienden.
               </h2>
 
-              <p className="text-xs sm:text-sm text-[#A89F91] font-light leading-relaxed max-w-xl">
+              <p className="text-sm sm:text-base text-[#D4CABE] font-light leading-relaxed max-w-xl">
                 Cada ejemplar es una pieza de arte irrepetible. Desde el corte milimétrico del bloque de páginas hasta el grabado térmico de la tipografía, ensamblamos cada fotolibro a mano en nuestro laboratorio en Pilar.
               </p>
 
               {/* 3 Pillars with Checkmarks */}
-              <div className="space-y-4 pt-2">
-                <div className="flex items-start gap-3.5">
-                  <CheckCircle2 className="w-4 h-4 text-[#ECC880] mt-1 shrink-0" />
+              <div className="space-y-5 pt-2">
+                <div className="flex items-start gap-4">
+                  <CheckCircle2 className="w-5 h-5 text-[#ECC880] mt-0.5 shrink-0" />
                   <div>
-                    <h4 className="text-sm font-serif-luxury font-medium text-[#FDFCF9]">
+                    <h4 className="text-base sm:text-lg font-serif-luxury font-medium text-[#FDFCF9]">
                       Papel Fotográfico Químico Layflat
                     </h4>
-                    <p className="text-xs text-[#A89F91] font-light mt-0.5">
+                    <p className="text-xs sm:text-sm text-[#C7BFA8] font-light mt-1 leading-relaxed">
                       Hojas rígidas de 650 g/m² con alma central. Tono continuo sin trama de puntos para negros puros.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3.5">
-                  <CheckCircle2 className="w-4 h-4 text-[#ECC880] mt-1 shrink-0" />
+                <div className="flex items-start gap-4">
+                  <CheckCircle2 className="w-5 h-5 text-[#ECC880] mt-0.5 shrink-0" />
                   <div>
-                    <h4 className="text-sm font-serif-luxury font-medium text-[#FDFCF9]">
+                    <h4 className="text-base sm:text-lg font-serif-luxury font-medium text-[#FDFCF9]">
                       Linos Puros y Cueros Italianos
                     </h4>
-                    <p className="text-xs text-[#A89F91] font-light mt-0.5">
+                    <p className="text-xs sm:text-sm text-[#C7BFA8] font-light mt-1 leading-relaxed">
                       Telas naturales y cueros genuinos de primera selección para una experiencia táctil inigualable.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3.5">
-                  <CheckCircle2 className="w-4 h-4 text-[#ECC880] mt-1 shrink-0" />
+                <div className="flex items-start gap-4">
+                  <CheckCircle2 className="w-5 h-5 text-[#ECC880] mt-0.5 shrink-0" />
                   <div>
-                    <h4 className="text-sm font-serif-luxury font-medium text-[#FDFCF9]">
+                    <h4 className="text-base sm:text-lg font-serif-luxury font-medium text-[#FDFCF9]">
                       Hot Stamping en Oro
                     </h4>
-                    <p className="text-xs text-[#A89F91] font-light mt-0.5">
+                    <p className="text-xs sm:text-sm text-[#C7BFA8] font-light mt-1 leading-relaxed">
                       Grabado artesanal térmico en bajorrelieve para títulos y monogramas en la tapa.
                     </p>
                   </div>

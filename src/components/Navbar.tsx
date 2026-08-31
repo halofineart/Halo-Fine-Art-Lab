@@ -41,7 +41,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Navigation Links: Formatos, Procesos, Calidad, Historias, Seguimiento */}
-          <nav className="hidden md:flex items-center gap-7 lg:gap-9 text-xs uppercase tracking-[0.14em] font-medium text-[#736B60]">
+          <nav className="hidden md:flex items-center gap-7 lg:gap-9 text-xs sm:text-sm uppercase tracking-[0.16em] font-semibold text-[#595248]">
             <button 
               type="button"
               onClick={() => onNavigateSection('catalog')} 
@@ -85,7 +85,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={onOpenBuilder}
-              className="px-5 sm:px-6 py-2.5 rounded-none bg-[#735E38] hover:bg-[#5C4A2C] text-[#FDFCF9] text-[11px] uppercase tracking-[0.18em] font-semibold transition-all shadow-sm cursor-pointer whitespace-nowrap"
+              className="px-5 sm:px-6 py-2.5 rounded-none bg-[#735E38] hover:bg-[#5C4A2C] text-[#FDFCF9] text-xs uppercase tracking-[0.18em] font-semibold transition-all shadow-sm cursor-pointer whitespace-nowrap"
             >
               Diseñar mi libro
             </button>
@@ -97,9 +97,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="relative p-2 text-[#2B2621] hover:text-[#735E38] transition-colors cursor-pointer"
               title="Ver Bolsa de Pedido"
             >
-              <ShoppingBag className="w-4 h-4 text-[#1F1C18]" strokeWidth={1.5} />
+              <ShoppingBag className="w-5 h-5 text-[#1F1C18]" strokeWidth={1.5} />
               {cartCount > 0 && (
-                <span className="absolute 0 right-0 w-3.5 h-3.5 bg-[#735E38] text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#735E38] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   {cartCount}
                 </span>
               )}
@@ -113,7 +113,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="p-2 text-[#1F1C18] hover:text-[#735E38] transition-colors cursor-pointer"
                 title="Mi Cuenta HALO"
               >
-                <div className="w-5 h-5 rounded-full bg-[#735E38] text-white flex items-center justify-center text-[10px] font-bold">
+                <div className="w-6 h-6 rounded-full bg-[#735E38] text-white flex items-center justify-center text-xs font-bold">
                   {(profile?.fullName || user?.email || 'U').charAt(0).toUpperCase()}
                 </div>
               </button>
@@ -124,7 +124,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="p-2 text-[#1F1C18] hover:text-[#735E38] transition-colors cursor-pointer"
                 title="Iniciar Sesión"
               >
-                <User className="w-4 h-4 text-[#1F1C18]" strokeWidth={1.5} />
+                <User className="w-5 h-5 text-[#1F1C18]" strokeWidth={1.5} />
               </button>
             )}
           </div>
