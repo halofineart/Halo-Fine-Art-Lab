@@ -69,6 +69,7 @@ import {
   Maximize,
   Minimize,
   GripVertical,
+  GripHorizontal,
   ChevronUp,
   Loader2
 } from 'lucide-react';
@@ -248,11 +249,36 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   const [rightSidebarWidth, setRightSidebarWidth] = useState<number>(320);
   const [isDraggingLeftResizer, setIsDraggingLeftResizer] = useState<boolean>(false);
   const [isDraggingRightResizer, setIsDraggingRightResizer] = useState<boolean>(false);
+  const [isDraggingTopResizer, setIsDraggingTopResizer] = useState<boolean>(false);
+  const [topLayoutsSpacing, setTopLayoutsSpacing] = useState<number>(12);
   const [isPredefinedLayoutsCollapsed, setIsPredefinedLayoutsCollapsed] = useState<boolean>(false);
   const [canvasZoomLevel, setCanvasZoomLevel] = useState<number>(1);
   const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
 
-  // Resize Guide Handlers for Left and Right Panels
+  // Resize Guide Handlers for Left, Right, and Top Predefined Panels
+  const handleStartResizeTop = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingTopResizer(true);
+    const startY = e.clientY;
+    const startSpacing = topLayoutsSpacing;
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const delta = moveEvent.clientY - startY;
+      const newSpacing = Math.max(6, Math.min(48, startSpacing + delta));
+      setTopLayoutsSpacing(newSpacing);
+    };
+
+    const onPointerUp = () => {
+      setIsDraggingTopResizer(false);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
   const handleStartResizeLeft = (e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -4451,7 +4477,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
             )}
 
             {/* Center Area: Double Page Spread Canvas (Zno CXEditor Style) */}
-            <div className="flex-1 flex flex-col overflow-y-auto p-2 sm:p-3 bg-[#EFECE3] items-center min-h-0 gap-2.5 relative">
+            <div className="flex-1 flex flex-col overflow-y-auto p-2 sm:p-3.5 bg-[#EFECE3] items-center min-h-0 relative">
               {/* TOP BAR: DISEÑOS PREDEFINIDOS (Predefined Layouts Strip) */}
               <div className="w-full max-w-[1500px] 2xl:max-w-[1750px] bg-[#FDFCF9] rounded-2xl border border-[#D6CEBE] p-2 sm:p-2.5 shadow-xs select-none space-y-2 shrink-0 z-10">
                 {/* Header with Title, Photo Count Filters, and Full Modal Button */}
@@ -4816,8 +4842,26 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 )}
               </div>
 
+              {/* Top Horizontal Resizer / Drag Guide between Predefined Layouts & Canvas */}
+              <div
+                onPointerDown={handleStartResizeTop}
+                onDoubleClick={() => setIsPredefinedLayoutsCollapsed(!isPredefinedLayoutsCollapsed)}
+                style={{ 
+                  marginTop: `${Math.max(2, topLayoutsSpacing / 2)}px`, 
+                  marginBottom: `${Math.max(2, topLayoutsSpacing / 2)}px` 
+                }}
+                className={`w-full max-w-[1500px] 2xl:max-w-[1750px] py-1 cursor-row-resize z-20 flex items-center justify-center group relative select-none shrink-0 transition-all ${
+                  isDraggingTopResizer ? 'bg-[#8C6D37]/30 ring-2 ring-[#8C6D37] rounded-full' : 'hover:bg-[#8C6D37]/15 rounded-full'
+                }`}
+                title="Arrastra verticalmente para ajustar la separación entre los diseños y el lienzo (Doble clic para plegar/desplegar)"
+              >
+                <div className="h-[3px] w-28 bg-[#C5A059] group-hover:bg-[#8C6D37] rounded-full group-hover:w-44 transition-all flex items-center justify-center shadow-xs">
+                  <div className="w-8 h-1 bg-[#8C6D37] rounded-full opacity-70 group-hover:opacity-100" />
+                </div>
+              </div>
+
               {/* Canvas Stage Wrapper */}
-              <div className="w-full flex-1 flex flex-col items-center justify-center relative min-h-0 py-1">
+              <div className="w-full flex-1 flex flex-col items-center justify-start relative min-h-0 pb-6 overflow-visible">
                 {/* Floating Canvas Top Bar Controls */}
                 <div className="w-full max-w-[1500px] 2xl:max-w-[1750px] flex items-center justify-between px-1 mb-1 text-[11px] text-[#736B60]">
                   <div className="flex items-center gap-2">
@@ -4907,7 +4951,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     transformOrigin: 'center center',
                     transition: 'transform 0.2s ease-out'
                   }}
-                  className="w-full max-w-[1500px] 2xl:max-w-[1750px] flex items-center justify-center"
+                  className="w-full max-w-[1500px] 2xl:max-w-[1750px] flex items-center justify-center pt-1"
                 >
                   <div 
                     ref={spreadCanvasRef}
@@ -4917,7 +4961,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     }}
                     onDragLeave={() => setIsCanvasDragOver(false)}
                     onDrop={(e) => handleDropPhotosOnTarget('spread', e)}
-                    className={`w-full aspect-[16/10] rounded-2xl shadow-2xl border overflow-hidden flex relative paper-texture select-none transition-all duration-200 ${
+                    className={`w-full aspect-[16/10] max-h-[calc(100vh-260px)] min-h-[340px] rounded-2xl shadow-2xl border overflow-hidden flex relative paper-texture select-none transition-all duration-200 ${
                       isCanvasDragOver
                         ? 'border-[#8C6D37] ring-4 ring-[#8C6D37]/40'
                         : 'border-[#D6CEBE]'
