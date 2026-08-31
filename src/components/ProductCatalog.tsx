@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { BookOpen, Sparkles, Check, ArrowRight, ShieldCheck, Layers, Gift, Clock, Truck } from 'lucide-react';
-import { BOOK_FORMATS, COVER_MATERIALS, PAPER_FINISHES, formatPriceARS } from '../data/mockData';
-import { BookFormatId, CoverMaterial } from '../types';
-import { BookSizeScaleComparison } from './BookSizeScaleComparison';
-import layflatImg from '../assets/images/layflat_paper_texture_1788109298366.jpg';
-import bookbindingImg from '../assets/images/artisan_bookbinding_macro_1788109266332.jpg';
-import goldFoilImg from '../assets/images/gold_foil_stamping_1788109282366.jpg';
-import archivalBoxImg from '../assets/images/archival_box_luxury_1788109342591.jpg';
+import React from 'react';
+import { BookFormatId } from '../types';
+import { formatPriceARS } from '../data/mockData';
+import layflatSpreadImg from '../assets/images/layflat_paper_texture_1788109298366.jpg';
+import greenLandscapeImg from '../assets/images/artisan_bookbinding_macro_1788109266332.jpg';
+import pocketMiniImg from '../assets/images/archival_box_luxury_1788109342591.jpg';
+import linenMacroImg from '../assets/images/linen_swatches_box_1788109313568.jpg';
+import pressMacroImg from '../assets/images/gold_foil_stamping_1788109282366.jpg';
+import { CheckCircle2 } from 'lucide-react';
 
 interface ProductCatalogProps {
   onSelectFormatToBuild: (formatId: BookFormatId) => void;
@@ -17,233 +17,272 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   onSelectFormatToBuild,
   onOpenConcierge,
 }) => {
-  const [selectedFormatTab, setSelectedFormatTab] = useState<BookFormatId>('square-30');
-  const [activeMaterialCategory, setActiveMaterialCategory] = useState<'all' | 'lino' | 'cuero' | 'terciopelo' | 'fotografica'>('all');
-
-  const currentFmt = BOOK_FORMATS.find((f) => f.id === selectedFormatTab) || BOOK_FORMATS[0];
-
-  const filteredMaterials = activeMaterialCategory === 'all'
-    ? COVER_MATERIALS
-    : COVER_MATERIALS.filter((m) => m.category === activeMaterialCategory);
-
   return (
-    <section id="catalog" className="py-20 bg-[#FDFCF9] border-b border-[#E8E2D5]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Title */}
-        <div className="text-center max-w-3xl mx-auto mb-14">
-          <span className="text-xs font-bold tracking-[0.25em] text-[#8C6D37] uppercase">
-            FORMATOS & DIMENSIONES FINE ART
-          </span>
-          <h2 className="font-serif-luxury text-3xl sm:text-5xl text-[#1F1C18] mt-2 mb-4 font-normal">
-            Encuentra el tamaño perfecto para tu historia
-          </h2>
-          <div className="w-16 h-0.5 bg-[#C5A059] mx-auto mb-4"></div>
-          <p className="text-sm sm:text-base text-[#595248] font-light">
-            Desde el colosal Gran Cuadrado 30×30 hasta ediciones apaisadas cinematográficas y pocket para souvenirs. Todos con hojas rígidas y apertura 180° Layflat en auténtico papel químico Fuji.
-          </p>
+    <div id="catalog" className="bg-[#FAF8F5]">
+      
+      {/* 1. Formatos & Dimensiones (Section matching Stitch) */}
+      <section className="py-24 border-b border-[#E8E2D5]/70">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <span className="text-[10px] font-medium tracking-[0.25em] text-[#8C8275] uppercase block mb-2">
+              FORMATOS & DIMENSIONES
+            </span>
+            <h2 className="font-serif-luxury text-3xl sm:text-5xl text-[#1F1C18] font-normal leading-tight">
+              Encuentra el tamaño perfecto para tu historia
+            </h2>
+            <p className="text-xs sm:text-sm text-[#736B60] font-light mt-3">
+              Ediciones apaisadas, cinematográficas y pocket para souvenirs. Todos con hojas rígidas y apertura 180° Layflat.
+            </p>
+          </div>
+
+          {/* Asymmetric Showcase Grid from the mockup */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            {/* Left Big Card (Featured): Gran Cuadrado Fine Art (Col 7) */}
+            <div className="lg:col-span-7 bg-[#FDFCF9] border border-[#E8E2D5] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
+              <div>
+                {/* Photo of Open Book with Couple */}
+                <div className="aspect-[16/10] overflow-hidden bg-[#EAE5D9] mb-8 border border-[#E8E2D5]/60">
+                  <img
+                    src={layflatSpreadImg}
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80';
+                    }}
+                    alt="Gran Cuadrado Fine Art 30x30 cm"
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+
+                <span className="inline-block text-[9px] uppercase tracking-[0.16em] text-[#736B60] bg-[#FAF8F5] border border-[#E8E2D5] px-2.5 py-0.5 rounded-none font-medium mb-3">
+                  El más elegido
+                </span>
+
+                <h3 className="font-serif-luxury text-3xl sm:text-4xl text-[#1F1C18] font-normal">
+                  Gran Cuadrado Fine Art
+                </h3>
+                <p className="text-xs text-[#8C8275] font-mono mt-1">
+                  30 x 30 cm | 40 a 120 fotos
+                </p>
+
+                <p className="text-xs sm:text-sm text-[#736B60] font-light leading-relaxed mt-4">
+                  El formato insignia y más solicitado para bodas, aniversarios y grandes hitos de vida. Presencia imponente y fotos panorámicas espectaculares.
+                </p>
+
+                <div className="mt-6">
+                  <span className="text-[10px] text-[#A89F91] uppercase tracking-wider block">Precio desde</span>
+                  <span className="font-serif-luxury text-2xl font-bold text-[#1F1C18]">
+                    {formatPriceARS(145000)} ARS
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-8">
+                <button
+                  type="button"
+                  onClick={() => onSelectFormatToBuild('square-30')}
+                  className="w-full py-3.5 bg-[#1F1C18] hover:bg-[#3D352E] text-[#FDFCF9] text-xs uppercase tracking-[0.18em] font-semibold transition-all text-center cursor-pointer"
+                >
+                  Ver Detalles
+                </button>
+              </div>
+            </div>
+
+            {/* Right Column: Clásico Apaisado + Pocket Souvenir (Col 5) */}
+            <div className="lg:col-span-5 space-y-8">
+              
+              {/* Card 2: Clásico Apaisado */}
+              <div className="bg-[#FDFCF9] border border-[#E8E2D5] p-6 sm:p-7 shadow-xs">
+                <div className="aspect-[16/9] overflow-hidden bg-[#EAE5D9] mb-5 border border-[#E8E2D5]/60">
+                  <img
+                    src={greenLandscapeImg}
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80';
+                    }}
+                    alt="Clásico Apaisado Verde Oliva"
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+
+                <h3 className="font-serif-luxury text-2xl text-[#1F1C18] font-normal">
+                  Clásico Apaisado
+                </h3>
+                <p className="text-[11px] text-[#8C8275] font-mono mt-0.5">
+                  28 x 21 cm | 30 a 80 fotos
+                </p>
+                <p className="text-xs text-[#736B60] font-light leading-relaxed mt-2">
+                  Ideal para fotografía de viajes y paisajes. Formato cinematográfico.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => onSelectFormatToBuild('landscape-30-20')}
+                  className="mt-5 w-full py-2.5 border border-[#D6CEBE] hover:bg-[#FAF8F5] text-[#1F1C18] text-[11px] uppercase tracking-[0.18em] font-medium transition-all text-center cursor-pointer"
+                >
+                  Explorar
+                </button>
+              </div>
+
+              {/* Card 3: Pocket Souvenir */}
+              <div className="bg-[#FDFCF9] border border-[#E8E2D5] p-6 sm:p-7 shadow-xs">
+                <div className="aspect-[16/9] overflow-hidden bg-[#EAE5D9] mb-5 border border-[#E8E2D5]/60">
+                  <img
+                    src={pocketMiniImg}
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=800&q=80';
+                    }}
+                    alt="Pocket Souvenir en manos"
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+
+                <h3 className="font-serif-luxury text-2xl text-[#1F1C18] font-normal">
+                  Pocket Souvenir
+                </h3>
+                <p className="text-[11px] text-[#8C8275] font-mono mt-0.5">
+                  15 x 15 cm | 20 a 50 fotos
+                </p>
+                <p className="text-xs text-[#736B60] font-light leading-relaxed mt-2">
+                  Perfecto para regalar a abuelos o padrinos. Compacto pero premium.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => onSelectFormatToBuild('square-15')}
+                  className="mt-5 w-full py-2.5 border border-[#D6CEBE] hover:bg-[#FAF8F5] text-[#1F1C18] text-[11px] uppercase tracking-[0.18em] font-medium transition-all text-center cursor-pointer"
+                >
+                  Explorar
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+
         </div>
+      </section>
 
-        {/* Interactive Real Scale Desk Simulator */}
-        <BookSizeScaleComparison
-          selectedFormatId={selectedFormatTab}
-          onSelectFormat={setSelectedFormatTab}
-          onSelectFormatToBuild={onSelectFormatToBuild}
-        />
+      {/* 2. Materiales Nobles (Dark Contrast Section matching Stitch) */}
+      <section id="quality" className="py-24 bg-[#262422] text-[#FDFCF9] border-b border-[#3D352E]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+            
+            {/* Left Narrative Text (Col 6) */}
+            <div className="lg:col-span-6 space-y-6">
+              <div className="flex items-center gap-2 text-[10px] tracking-[0.25em] text-[#C5A059] uppercase font-medium">
+                <span>✦</span>
+                <span>CALIDAD DE ARCHIVO</span>
+              </div>
 
-        {/* Format Selector Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
-          {BOOK_FORMATS.map((fmt) => (
-            <button
-              key={fmt.id}
-              type="button"
-              onClick={() => setSelectedFormatTab(fmt.id)}
-              className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-full text-xs uppercase tracking-wider font-semibold transition-all ${
-                selectedFormatTab === fmt.id
-                  ? 'bg-[#1F1C18] text-[#FDFCF9] shadow-md scale-105'
-                  : 'bg-[#F2ECE1] text-[#736B60] hover:bg-[#E8E0D0] hover:text-[#1F1C18]'
-              }`}
-            >
-              {fmt.name} ({fmt.dimensions.split(' ')[0]} cm)
-            </button>
-          ))}
-        </div>
+              <h2 className="font-serif-luxury text-4xl sm:text-5xl lg:text-6xl text-[#FDFCF9] font-normal leading-[1.12]">
+                Materiales nobles para historias que trascienden.
+              </h2>
 
-        {/* Spotlight Card for Selected Format */}
-        <div className="rounded-3xl border border-[#D6CEBE] bg-[#F4EFE6]/70 p-6 sm:p-10 shadow-lg mb-16">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            {/* Left Photo & Realistic Scale Visualizer */}
-            <div className="lg:col-span-6 flex flex-col items-center">
-              <div className="relative w-full max-w-md aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl border border-[#D6CEBE] bg-[#EFE9DE]">
+              <p className="text-xs sm:text-sm text-[#A89F91] font-light leading-relaxed max-w-xl">
+                Cada ejemplar es una pieza de arte irrepetible. Desde el corte milimétrico del bloque de páginas hasta el grabado térmico de la tipografía, ensamblamos cada fotolibro a mano en nuestro laboratorio en Pilar.
+              </p>
+
+              {/* 3 Pillars with Checkmarks */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-start gap-3.5">
+                  <CheckCircle2 className="w-4 h-4 text-[#ECC880] mt-1 shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-serif-luxury font-medium text-[#FDFCF9]">
+                      Papel Fotográfico Químico Layflat
+                    </h4>
+                    <p className="text-xs text-[#A89F91] font-light mt-0.5">
+                      Hojas rígidas de 650 g/m² con alma central. Tono continuo sin trama de puntos para negros puros.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3.5">
+                  <CheckCircle2 className="w-4 h-4 text-[#ECC880] mt-1 shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-serif-luxury font-medium text-[#FDFCF9]">
+                      Linos Puros y Cueros Italianos
+                    </h4>
+                    <p className="text-xs text-[#A89F91] font-light mt-0.5">
+                      Telas naturales y cueros genuinos de primera selección para una experiencia táctil inigualable.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3.5">
+                  <CheckCircle2 className="w-4 h-4 text-[#ECC880] mt-1 shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-serif-luxury font-medium text-[#FDFCF9]">
+                      Hot Stamping en Oro
+                    </h4>
+                    <p className="text-xs text-[#A89F91] font-light mt-0.5">
+                      Grabado artesanal térmico en bajorrelieve para títulos y monogramas en la tapa.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Photo Mosaic (Col 6) */}
+            <div className="lg:col-span-6 grid grid-cols-2 gap-4">
+              
+              {/* Image 1: Linen Fabric Macro */}
+              <div className="aspect-[4/5] overflow-hidden bg-[#1A1816] rounded-none border border-white/10">
                 <img
-                  src={
-                    selectedFormatTab === 'square-30'
-                      ? layflatImg
-                      : selectedFormatTab === 'landscape-30-20' || selectedFormatTab === 'landscape-40-30'
-                      ? bookbindingImg
-                      : selectedFormatTab === 'portrait-20-30'
-                      ? goldFoilImg
-                      : archivalBoxImg
-                  }
+                  src={linenMacroImg}
                   onError={(e) => {
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80';
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&w=800&q=80';
                   }}
-                  alt={currentFmt.name}
+                  alt="Textura de lino crudo artesanal"
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />
-                <div className="absolute top-3 left-3 bg-[#1F1C18]/85 text-[#ECC880] px-3 py-1 rounded-full text-[10px] font-mono tracking-wider">
-                  DIMENSIONES: {currentFmt.dimensions}
-                </div>
-                {currentFmt.popular && (
-                  <div className="absolute top-3 right-3 bg-[#8C6D37] text-white px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider">
-                    MÁS ELEGIDO
-                  </div>
-                )}
               </div>
-            </div>
 
-            {/* Right Details & Direct Customization Action */}
-            <div className="lg:col-span-6 space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-                <div>
-                  <span className="text-[11px] font-bold tracking-widest text-[#8C6D37] uppercase block">
-                    DETALLES DEL FORMATO
-                  </span>
-                  <h3 className="font-serif-luxury text-3xl font-bold text-[#1F1C18] mt-1">
-                    {currentFmt.name}
-                  </h3>
-                  <p className="text-sm font-mono text-[#8C6D37] font-semibold mt-1">
-                    {currentFmt.dimensions}
-                  </p>
+              {/* Stacked Images Column */}
+              <div className="space-y-4">
+                <div className="aspect-[4/3] overflow-hidden bg-[#1A1816] rounded-none border border-white/10">
+                  <img
+                    src="https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80"
+                    alt="Libros apilados en lino blanco"
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
                 </div>
-                <div className="sm:text-right">
-                  <span className="text-[10px] uppercase tracking-wider text-[#736B60] block">Precio Base</span>
-                  <span className="font-serif-luxury text-2xl sm:text-3xl font-bold text-[#1F1C18]">
-                    {formatPriceARS(currentFmt.basePrice)} ARS
-                  </span>
+                <div className="aspect-[4/3] overflow-hidden bg-[#1A1816] rounded-none border border-white/10">
+                  <img
+                    src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80"
+                    alt="Libro abierto sobre mesa junto a ventana"
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
                 </div>
               </div>
 
-              <p className="text-sm text-[#595248] leading-relaxed">
-                {currentFmt.description}
-              </p>
-
-              {/* Specs Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 rounded-2xl border border-[#D6CEBE] bg-[#FDFCF9] p-4 text-xs">
-                <div>
-                  <span className="text-[#736B60] block mb-0.5">Páginas incluidas:</span>
-                  <strong className="text-[#1F1C18]">{currentFmt.basePages} páginas rígidas (10 pliegos)</strong>
-                </div>
-                <div>
-                  <span className="text-[#736B60] block mb-0.5">Fotos recomendadas:</span>
-                  <strong className="text-[#1F1C18]">{currentFmt.idealPhotos}</strong>
-                </div>
-                <div>
-                  <span className="text-[#736B60] block mb-0.5">Pliego adicional (+2 pág):</span>
-                  <strong className="text-[#1F1C18]">+{formatPriceARS(currentFmt.extraSpreadPrice)} ARS</strong>
-                </div>
-                <div>
-                  <span className="text-[#736B60] block mb-0.5">Apertura:</span>
-                  <strong className="text-[#1F1C18]">100% Plana Layflat 180°</strong>
-                </div>
-              </div>
-
-              {/* Production & Logistics Highlights */}
-              <div className="flex flex-wrap items-center gap-4 text-xs text-[#736B60] pt-1">
-                <span className="flex items-center gap-1.5 font-medium text-[#1F1C18]">
-                  <Clock className="w-3.5 h-3.5 text-[#8C6D37]" />
-                  Producción: 4 a 6 días hábiles
-                </span>
-                <span className="flex items-center gap-1.5 font-medium text-[#1F1C18]">
-                  <Truck className="w-3.5 h-3.5 text-[#8C6D37]" />
-                  Entrega sin cargo en Pilar (radio 20 km)
-                </span>
-              </div>
-
-              {/* Dual Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => onSelectFormatToBuild(currentFmt.id)}
-                  className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-bold hover:bg-[#3D352E] flex items-center justify-center gap-2 shadow-md"
-                >
-                  <BookOpen className="w-4 h-4 text-[#ECC880]" />
-                  <span>Diseñar en este Formato</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onOpenConcierge(currentFmt.id)}
-                  className="w-full sm:w-auto px-6 py-3.5 rounded-full border border-[#8C6D37] bg-[#FDFCF9] text-[#1F1C18] text-xs uppercase tracking-wider font-semibold hover:bg-[#EFE9DE] flex items-center justify-center gap-2"
-                >
-                  <Sparkles className="w-4 h-4 text-[#8C6D37]" />
-                  <span>Pedir que HALO lo Diseñe</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Materials Swatches Showcase */}
-        <div className="rounded-3xl border border-[#D6CEBE] bg-[#FDFCF9] p-8 sm:p-10">
-          <div className="text-center max-w-2xl mx-auto mb-8">
-            <span className="text-xs font-bold tracking-widest text-[#8C6D37] uppercase">
-              CATÁLOGO DE TAPAS & TEXTURAS
-            </span>
-            <h3 className="font-serif-luxury text-2xl sm:text-3xl text-[#1F1C18] mt-1">
-              Linos Puros, Cueros Artisan & Terciopelos Italianos
-            </h3>
-            <p className="text-xs sm:text-sm text-[#595248] mt-2">
-              Explora nuestra paleta completa de telas y cueros con grabado Hot Stamping en relieve térmico de oro, bronce o plata.
-            </p>
-
-            {/* Material Category Tabs */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-6">
-              {[
-                { id: 'all', label: 'Todos los Materiales' },
-                { id: 'lino', label: 'Linos Naturales' },
-                { id: 'cuero', label: 'Cueros Artisan' },
-                { id: 'terciopelo', label: 'Terciopelos' },
-                { id: 'fotografica', label: 'Tapa Fotográfica' },
-              ].map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setActiveMaterialCategory(cat.id as any)}
-                  className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${
-                    activeMaterialCategory === cat.id
-                      ? 'bg-[#8C6D37] text-white shadow-sm font-semibold'
-                      : 'bg-[#F4EFE6] text-[#736B60] hover:bg-[#E8E2D5]'
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredMaterials.map((cov) => (
-              <div 
-                key={cov.id} 
-                className="group rounded-2xl border border-[#D6CEBE] bg-[#F4EFE6]/40 p-4 text-center space-y-2 hover:bg-[#F4EFE6] transition-colors"
-              >
-                <div
-                  className="w-12 h-12 rounded-full border border-black/15 mx-auto shadow-inner group-hover:scale-110 transition-transform"
-                  style={{ backgroundColor: cov.colorHex }}
+              {/* Bottom Image 3: Hand Press */}
+              <div className="col-span-2 aspect-[16/9] overflow-hidden bg-[#1A1816] rounded-none border border-white/10">
+                <img
+                  src={pressMacroImg}
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=1000&q=80';
+                  }}
+                  alt="Prensa manual de encuadernación en taller"
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
                 />
-                <h4 className="font-serif-luxury text-sm font-bold text-[#1F1C18]">{cov.name}</h4>
-                <p className="text-[11px] text-[#595248] leading-tight">{cov.description}</p>
-                {cov.priceDelta > 0 && (
-                  <span className="inline-block text-[10px] font-mono text-[#8C6D37] font-semibold">
-                    +{formatPriceARS(cov.priceDelta)} ARS
-                  </span>
-                )}
               </div>
-            ))}
+
+            </div>
+
           </div>
+
         </div>
-      </div>
-    </section>
+      </section>
+
+    </div>
   );
 };
+

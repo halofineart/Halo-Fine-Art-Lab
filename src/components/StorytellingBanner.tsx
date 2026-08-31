@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Heart, Clock, ArrowRight, BookOpen, ShieldCheck } from 'lucide-react';
+import { PenTool } from 'lucide-react';
 import linenSwatchesImg from '../assets/images/linen_swatches_box_1788109313568.jpg';
 
 interface StorytellingBannerProps {
@@ -12,113 +12,90 @@ export const StorytellingBanner: React.FC<StorytellingBannerProps> = ({
   onOpenConcierge,
 }) => {
   return (
-    <section className="py-20 bg-[#24201C] text-[#FDFCF9] relative overflow-hidden border-y border-[#3D352E]">
-      {/* Subtle warm glow elements */}
-      <div className="absolute top-1/2 left-0 -translate-y-1/2 w-96 h-96 bg-[#C5A059]/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-1/2 right-0 -translate-y-1/2 w-96 h-96 bg-[#8C6D37]/15 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          {/* Left Editorial Text matching the user's uploaded banner copy */}
+    <section className="py-24 bg-[#1F1C18] text-[#FDFCF9] border-b border-[#3D352E]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+          
+          {/* Left Narrative Text */}
           <div className="lg:col-span-7 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-[#C5A059]/40 bg-[#C5A059]/10 text-[#ECC880] text-xs font-semibold tracking-widest uppercase">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>EL VALOR DE LO TANGIBLE</span>
-            </div>
+            <span className="text-[10px] font-medium tracking-[0.25em] text-[#C5A059] uppercase block">
+              EL VALOR DE LO TANGIBLE
+            </span>
 
-            <h2 className="font-serif-luxury text-3xl sm:text-5xl lg:text-6xl font-normal leading-[1.15] text-[#FDFCF9]">
+            <h2 className="font-serif-luxury text-3xl sm:text-5xl lg:text-6xl font-normal leading-[1.12] text-[#FDFCF9]">
               ¿Cuántas fotos tenés guardadas y nunca volvés a mirar?
             </h2>
 
-            <p className="font-serif-luxury text-xl sm:text-2xl text-[#D6CEBE] italic font-light">
+            <p className="font-serif-luxury text-xl sm:text-2xl text-[#C7BFA8] italic font-light">
               Transformalas en algo que puedas volver a vivir.
             </p>
 
-            <div className="w-16 h-0.5 bg-[#C5A059]"></div>
-
-            <p className="text-sm sm:text-base text-[#A89F91] leading-relaxed max-w-xl font-light">
-              Pequeños momentos. Grandes recuerdos. Fotolibros hechos para durar y emocionar siempre. No dejes que los recuerdos más importantes de tu vida queden atrapados en la nube o en la memoria del teléfono.
+            <p className="text-xs sm:text-sm text-[#A89F91] font-light leading-relaxed max-w-xl">
+              Pequeños momentos. Grandes recuerdos. Fotolibros hechos para durar y emocionar siempre. No dejes que las imágenes más importantes de tu vida queden sepultadas en la nube o en la memoria del teléfono.
             </p>
 
-            {/* Quick Benefits Checklist */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs text-[#E8E2D5]">
-              <div className="flex items-center gap-2">
+            {/* Micro Pillars */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 text-xs text-[#E8E2D5] font-light">
+              <div className="flex items-center gap-2.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#ECC880]" />
-                <span>Apertura Layflat 180° sin cortes centrales</span>
+                <span>Apertura Layflat 180° sin cortes</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#ECC880]" />
-                <span>Papel fotográfico químico de 650 g/m²</span>
+                <span>Papel químico fotográfico de 650 g/m²</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#ECC880]" />
-                <span>Tapas de lino europeo con hot stamping</span>
+                <span>Tapas de lino con hot stamping oro</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#ECC880]" />
-                <span>Garantía de conservación de más de 100 años</span>
+                <span>Garantía de archivo +100 años</span>
               </div>
             </div>
 
             {/* Buttons */}
-            <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
+            <div className="pt-4 flex flex-col sm:flex-row items-center gap-3.5">
               <button
                 type="button"
                 onClick={onOpenBuilder}
-                className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-[#ECC880] text-[#1F1C18] text-xs uppercase tracking-widest font-bold hover:bg-[#F2D79E] transition-all flex items-center justify-center gap-2 shadow-lg"
+                className="w-full sm:w-auto px-8 py-3.5 bg-[#ECC880] text-[#1F1C18] text-xs uppercase tracking-[0.18em] font-semibold hover:bg-[#F2D79E] transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <BookOpen className="w-4 h-4" />
-                <span>Crear mi Fotolibro</span>
+                <PenTool className="w-3.5 h-3.5" />
+                <span>Diseñar mi fotolibro</span>
               </button>
 
               <button
                 type="button"
                 onClick={onOpenConcierge}
-                className="w-full sm:w-auto px-7 py-3.5 rounded-full border border-[#D6CEBE]/40 text-[#FDFCF9] text-xs uppercase tracking-widest font-semibold hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-3.5 border border-[#6E6458] text-[#FDFCF9] text-xs uppercase tracking-[0.18em] font-medium hover:bg-white/5 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Sparkles className="w-4 h-4 text-[#ECC880]" />
-                <span>Elegí tus fotos. Nosotros hacemos el resto.</span>
+                <span>Solo subí tus fotos</span>
               </button>
             </div>
           </div>
 
-          {/* Right Visual Composition */}
-          <div className="lg:col-span-5 relative">
-            <div className="relative mx-auto max-w-md">
-              {/* Background tilt card */}
-              <div className="absolute inset-0 bg-[#38312A] rounded-3xl transform rotate-3 scale-95 border border-[#52493F] opacity-70" />
-              
-              {/* Main Card */}
-              <div className="relative rounded-3xl overflow-hidden border border-[#52493F] bg-[#2B2621] p-6 shadow-2xl space-y-4">
-                <div className="aspect-[4/3] rounded-2xl overflow-hidden relative shadow-inner">
-                  <img
-                    src={linenSwatchesImg}
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80';
-                    }}
-                    alt="Muestrario de linos y álbum Fine Art HALO"
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute bottom-3 left-3 bg-[#1F1C18]/80 backdrop-blur-md px-3 py-1 rounded-full text-[10px] text-[#ECC880] font-mono tracking-wider">
-                    HALO ARTISAN BINDING
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <span className="text-[11px] font-bold tracking-widest text-[#ECC880] uppercase">
-                    LABORATORIO FINE ART
-                  </span>
-                  <h3 className="font-serif-luxury text-2xl font-medium text-[#FDFCF9]">
-                    Cada página, una emoción tangible.
-                  </h3>
-                  <p className="text-xs text-[#A89F91] leading-relaxed">
-                    Siente el peso del lino crudo en tus manos, el brillo del bajo relieve dorado y la suavidad del papel fotográfico de máxima resolución.
-                  </p>
-                </div>
+          {/* Right Visual Image */}
+          <div className="lg:col-span-5">
+            <div className="border border-white/10 bg-[#292521] p-4 sm:p-6 shadow-2xl">
+              <div className="aspect-[4/3] overflow-hidden bg-[#1A1816]">
+                <img
+                  src={linenSwatchesImg}
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80';
+                  }}
+                  alt="Muestrario de linos y álbum Fine Art HALO"
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] text-[#A89F91]">
+                <span className="font-serif-luxury text-white">Lino Crudo & Grabado Oro</span>
+                <span className="font-mono text-[#ECC880]">Producción Artesanal</span>
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </section>
