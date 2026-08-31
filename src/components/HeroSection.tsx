@@ -70,8 +70,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               onClick={onOpenConcierge}
               className="w-full sm:w-auto px-8 py-3.5 rounded-none border border-[#D6CEBE] bg-[#FDFCF9]/95 backdrop-blur-sm text-[#1F1C18] text-xs uppercase tracking-[0.18em] font-medium hover:bg-[#F4EFE6] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
             >
-              <span className="text-[#8C6D37] text-sm">↑</span>
-              <span>Solo subí tus fotos</span>
+              <span className="text-[#8C6D37] text-sm">✦</span>
+              <span>Nosotros te lo diseñamos</span>
             </button>
           </div>
 

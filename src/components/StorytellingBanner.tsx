@@ -70,7 +70,7 @@ export const StorytellingBanner: React.FC<StorytellingBannerProps> = ({
                 onClick={onOpenConcierge}
                 className="w-full sm:w-auto px-8 py-3.5 border border-[#6E6458] text-[#FDFCF9] text-xs uppercase tracking-[0.18em] font-medium hover:bg-white/5 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>Solo subí tus fotos</span>
+                <span>Nosotros te lo diseñamos</span>
               </button>
             </div>
           </div>
