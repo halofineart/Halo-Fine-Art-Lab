@@ -210,7 +210,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   const [activeEditorTab, setActiveEditorTab] = useState<'photos' | 'layouts' | 'text'>('photos');
 
   // Zno Designer Toolbar & Customization State
-  const [bottomBarMode, setBottomBarMode] = useState<'layouts' | 'pages'>('layouts');
+  const [bottomBarMode, setBottomBarMode] = useState<'photos' | 'pages'>('photos');
   const [layoutPhotoFilter, setLayoutPhotoFilter] = useState<'all' | '1' | '2' | '3' | '4' | '5+' | 'panoramic' | 'text'>('all');
   const [spreadBgColor, setSpreadBgColor] = useState<string>('#FDFCFA');
   const [spreadPhotoGap, setSpreadPhotoGap] = useState<number>(8);
