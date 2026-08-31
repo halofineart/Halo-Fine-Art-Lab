@@ -338,6 +338,8 @@ export interface UserProfile {
   postalCode?: string;
   createdAt?: string;
   avatarUrl?: string;
+  /** Set only in the database (profiles.is_admin), never writable from the client. */
+  isAdmin?: boolean;
 }
 
 export interface SavedProject {

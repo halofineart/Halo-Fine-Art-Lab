@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
 import { StorytellingBanner } from './components/StorytellingBanner';
@@ -6,19 +6,42 @@ import { ProductCatalog } from './components/ProductCatalog';
 import { QualityShowcase } from './components/QualityShowcase';
 import { ReviewsAndFAQ } from './components/ReviewsAndFAQ';
 import { Footer } from './components/Footer';
-import { PhotobookBuilder } from './components/PhotobookBuilder';
-import { ConciergeDesignModal } from './components/ConciergeDesignModal';
-import { CartCheckoutModal, CartItem } from './components/CartCheckoutModal';
-import { OrderTrackerModal } from './components/OrderTrackerModal';
 import { OrderTrackerSection } from './components/OrderTrackerSection';
 import { EmailNotificationToast } from './components/EmailNotificationToast';
-import { EmailViewerModal } from './components/EmailViewerModal';
-import { AuthModal } from './components/AuthModal';
-import { UserProfileModal } from './components/UserProfileModal';
-import { AdminWorkshopModal } from './components/AdminWorkshopModal';
+import type { CartItem } from './components/CartCheckoutModal';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { 
-  BookFormatId, 
+
+// Everything below is a modal that only appears after a user action (open
+// the builder, open the cart, open the admin panel, etc). Lazy-loading them
+// keeps the heaviest code — PhotobookBuilder (~7k lines), and the jsPDF /
+// JSZip powered admin & invoice tooling — out of the bundle everyone
+// downloads just to see the landing page.
+const PhotobookBuilder = lazy(() =>
+  import('./components/PhotobookBuilder').then((m) => ({ default: m.PhotobookBuilder }))
+);
+const ConciergeDesignModal = lazy(() =>
+  import('./components/ConciergeDesignModal').then((m) => ({ default: m.ConciergeDesignModal }))
+);
+const CartCheckoutModal = lazy(() =>
+  import('./components/CartCheckoutModal').then((m) => ({ default: m.CartCheckoutModal }))
+);
+const OrderTrackerModal = lazy(() =>
+  import('./components/OrderTrackerModal').then((m) => ({ default: m.OrderTrackerModal }))
+);
+const EmailViewerModal = lazy(() =>
+  import('./components/EmailViewerModal').then((m) => ({ default: m.EmailViewerModal }))
+);
+const AuthModal = lazy(() =>
+  import('./components/AuthModal').then((m) => ({ default: m.AuthModal }))
+);
+const UserProfileModal = lazy(() =>
+  import('./components/UserProfileModal').then((m) => ({ default: m.UserProfileModal }))
+);
+const AdminWorkshopModal = lazy(() =>
+  import('./components/AdminWorkshopModal').then((m) => ({ default: m.AdminWorkshopModal }))
+);
+import {
+  BookFormatId,
   PhotobookProject, 
   DesignServiceRequest, 
   TrackedOrder, 
@@ -28,6 +51,16 @@ import {
 import { SAMPLE_ORDERS } from './data/mockData';
 import { generateStatusEmail } from './lib/emailNotificationService';
 import { Sparkles, MessageCircle, BookOpen, Package, Mail } from 'lucide-react';
+
+// Lightweight placeholder shown for the brief moment a lazy-loaded modal's
+// code is still downloading.
+function ModalLoadingFallback() {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="w-10 h-10 rounded-full border-2 border-[#ECC880] border-t-transparent animate-spin" />
+    </div>
+  );
+}
 
 function MainAppContent() {
   const { user, profile, isLoggedIn } = useAuth();
@@ -316,105 +349,128 @@ function MainAppContent() {
 
       {/* Interactive Photobook Builder Modal */}
       {isBuilderOpen && (
-        <PhotobookBuilder
-          initialProject={builderInitialProject}
-          onClose={() => {
-            setIsBuilderOpen(false);
-            setBuilderInitialProject(null);
-          }}
-          onAddToCart={handleAddProjectToCart}
-          onOpenAuth={() => setIsAuthModalOpen(true)}
-        />
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <PhotobookBuilder
+            initialProject={builderInitialProject}
+            onClose={() => {
+              setIsBuilderOpen(false);
+              setBuilderInitialProject(null);
+            }}
+            onAddToCart={handleAddProjectToCart}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+          />
+        </Suspense>
       )}
 
       {/* Concierge "Nosotros lo Diseñamos" Modal */}
       {isConciergeOpen && (
-        <ConciergeDesignModal
-          onClose={() => setIsConciergeOpen(false)}
-          onSubmitRequest={handleAddConciergeRequest}
-          onOrderPlaced={handleOrderPlaced}
-          onOpenTracker={handleOpenTrackerForOrder}
-        />
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <ConciergeDesignModal
+            onClose={() => setIsConciergeOpen(false)}
+            onSubmitRequest={handleAddConciergeRequest}
+            onOrderPlaced={handleOrderPlaced}
+            onOpenTracker={handleOpenTrackerForOrder}
+          />
+        </Suspense>
       )}
 
       {/* Shopping Cart & Checkout Modal */}
       {isCartOpen && (
-        <CartCheckoutModal
-          cartItems={cartItems}
-          onClose={() => setIsCartOpen(false)}
-          onRemoveItem={handleRemoveCartItem}
-          onClearCart={handleClearCart}
-          onOrderPlaced={handleOrderPlaced}
-          onOpenTracker={handleOpenTrackerForOrder}
-        />
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <CartCheckoutModal
+            cartItems={cartItems}
+            onClose={() => setIsCartOpen(false)}
+            onRemoveItem={handleRemoveCartItem}
+            onClearCart={handleClearCart}
+            onOrderPlaced={handleOrderPlaced}
+            onOpenTracker={handleOpenTrackerForOrder}
+          />
+        </Suspense>
       )}
 
       {/* Order Tracker & History Modal */}
       {isTrackerOpen && (
-        <OrderTrackerModal
-          orders={trackedOrders}
-          selectedOrderId={selectedTrackerOrderId}
-          onClose={() => setIsTrackerOpen(false)}
-          onSelectOrder={(id) => setSelectedTrackerOrderId(id)}
-          onUpdateOrderStatus={handleUpdateOrderStatus}
-        />
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <OrderTrackerModal
+            orders={trackedOrders}
+            selectedOrderId={selectedTrackerOrderId}
+            onClose={() => setIsTrackerOpen(false)}
+            onSelectOrder={(id) => setSelectedTrackerOrderId(id)}
+            onUpdateOrderStatus={handleUpdateOrderStatus}
+          />
+        </Suspense>
       )}
 
       {/* Full Email Notification Viewer Modal */}
       {selectedEmailModal && (
-        <EmailViewerModal
-          notification={selectedEmailModal.notification}
-          order={selectedEmailModal.order}
-          emailHistory={selectedEmailModal.order?.emailHistory || [selectedEmailModal.notification]}
-          onClose={() => setSelectedEmailModal(null)}
-          onSelectHistoricalEmail={(histEmail) => {
-            setSelectedEmailModal({
-              ...selectedEmailModal,
-              notification: histEmail,
-            });
-          }}
-          onOpenTracker={(ordId) => {
-            setSelectedEmailModal(null);
-            handleOpenTrackerForOrder(ordId);
-          }}
-        />
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <EmailViewerModal
+            notification={selectedEmailModal.notification}
+            order={selectedEmailModal.order}
+            emailHistory={selectedEmailModal.order?.emailHistory || [selectedEmailModal.notification]}
+            onClose={() => setSelectedEmailModal(null)}
+            onSelectHistoricalEmail={(histEmail) => {
+              setSelectedEmailModal({
+                ...selectedEmailModal,
+                notification: histEmail,
+              });
+            }}
+            onOpenTracker={(ordId) => {
+              setSelectedEmailModal(null);
+              handleOpenTrackerForOrder(ordId);
+            }}
+          />
+        </Suspense>
       )}
 
       {/* User Auth Modal (Login / Sign Up / Forgot Password) */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onSuccess={() => {
-          setIsAuthModalOpen(false);
-          setIsProfileModalOpen(true);
-        }}
-      />
+      {isAuthModalOpen && (
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            onSuccess={() => {
+              setIsAuthModalOpen(false);
+              setIsProfileModalOpen(true);
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* User Profile & Projects Account Portal Modal */}
-      <UserProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        onOpenTrackerForOrder={(orderCode) => {
-          handleOpenTrackerForOrder(orderCode);
-        }}
-        onResumeProject={(project) => {
-          handleOpenBuilderWithProject(project);
-        }}
-        onOpenAuth={() => {
-          setIsProfileModalOpen(false);
-          setIsAuthModalOpen(true);
-        }}
-      />
+      {isProfileModalOpen && (
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <UserProfileModal
+            isOpen={isProfileModalOpen}
+            onClose={() => setIsProfileModalOpen(false)}
+            onOpenTrackerForOrder={(orderCode) => {
+              handleOpenTrackerForOrder(orderCode);
+            }}
+            onResumeProject={(project) => {
+              handleOpenBuilderWithProject(project);
+            }}
+            onOpenAuth={() => {
+              setIsProfileModalOpen(false);
+              setIsAuthModalOpen(true);
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* Admin Workshop & Production Orders Portal */}
-      <AdminWorkshopModal
-        isOpen={isAdminWorkshopOpen}
-        onClose={() => setIsAdminWorkshopOpen(false)}
-        onViewOrderInTracker={(orderCode) => {
-          setIsAdminWorkshopOpen(false);
-          handleOpenTrackerForOrder(orderCode);
-        }}
-      />
+      {isAdminWorkshopOpen && (
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <AdminWorkshopModal
+            isOpen={isAdminWorkshopOpen}
+            onClose={() => setIsAdminWorkshopOpen(false)}
+            onViewOrderInTracker={(orderCode) => {
+              setIsAdminWorkshopOpen(false);
+              handleOpenTrackerForOrder(orderCode);
+            }}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
