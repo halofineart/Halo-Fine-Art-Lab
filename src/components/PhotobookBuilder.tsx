@@ -67,7 +67,10 @@ import {
   PanelRightOpen,
   Scan,
   Maximize,
-  Minimize
+  Minimize,
+  GripVertical,
+  ChevronUp,
+  Loader2
 } from 'lucide-react';
 import { 
   BookFormatId, 
@@ -237,12 +240,70 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   const [photoUsageFilter, setPhotoUsageFilter] = useState<'all' | 'unused' | 'used'>('all');
   const [isCanvasDragOver, setIsCanvasDragOver] = useState<boolean>(false);
 
-  // Pro Studio Workspace Paneling & Zoom State
+  // Pro Studio Workspace Paneling, Zoom & Resizable Guides State
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState<boolean>(false);
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState<boolean>(false);
   const [leftSidebarTab, setLeftSidebarTab] = useState<'photos' | 'spreads'>('photos');
+  const [leftSidebarWidth, setLeftSidebarWidth] = useState<number>(310);
+  const [rightSidebarWidth, setRightSidebarWidth] = useState<number>(320);
+  const [isDraggingLeftResizer, setIsDraggingLeftResizer] = useState<boolean>(false);
+  const [isDraggingRightResizer, setIsDraggingRightResizer] = useState<boolean>(false);
+  const [isPredefinedLayoutsCollapsed, setIsPredefinedLayoutsCollapsed] = useState<boolean>(false);
   const [canvasZoomLevel, setCanvasZoomLevel] = useState<number>(1);
   const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
+
+  // Resize Guide Handlers for Left and Right Panels
+  const handleStartResizeLeft = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingLeftResizer(true);
+    const startX = e.clientX;
+    const startWidth = leftSidebarWidth;
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const newWidth = Math.max(220, Math.min(540, startWidth + delta));
+      setLeftSidebarWidth(newWidth);
+      if (isLeftSidebarCollapsed && newWidth > 120) {
+        setIsLeftSidebarCollapsed(false);
+      }
+    };
+
+    const onPointerUp = () => {
+      setIsDraggingLeftResizer(false);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
+  const handleStartResizeRight = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingRightResizer(true);
+    const startX = e.clientX;
+    const startWidth = rightSidebarWidth;
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const delta = startX - moveEvent.clientX; // moving left expands right panel
+      const newWidth = Math.max(240, Math.min(540, startWidth + delta));
+      setRightSidebarWidth(newWidth);
+      if (isRightSidebarCollapsed && newWidth > 120) {
+        setIsRightSidebarCollapsed(false);
+      }
+    };
+
+    const onPointerUp = () => {
+      setIsDraggingRightResizer(false);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
 
   // Template 4-Squares [ < ] [ ⊞ ] [ > ] Popover & Hover Preview State
   const [showTemplateGridModal, setShowTemplateGridModal] = useState<boolean>(false);
@@ -3916,8 +3977,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
             {/* LEFT SIDEBAR: BANCO DE FOTOS & TIRA DE PLIEGOS (Pro Studio Panel) */}
             <div
-              className={`transition-all duration-300 border-r border-[#E0D8C8] bg-[#FDFCF9] flex flex-col shrink-0 z-20 ${
-                isLeftSidebarCollapsed ? 'w-14 items-center' : 'w-72 2xl:w-80'
+              style={{ width: isLeftSidebarCollapsed ? undefined : `${leftSidebarWidth}px` }}
+              className={`transition-all duration-200 border-r border-[#E0D8C8] bg-[#FDFCF9] flex flex-col shrink-0 z-20 ${
+                isLeftSidebarCollapsed ? 'w-14 items-center' : ''
               }`}
             >
               {isLeftSidebarCollapsed ? (
@@ -3971,6 +4033,20 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     </span>
                   </button>
 
+                  {isOptimizingPhotos && (
+                    <button
+                      type="button"
+                      onClick={() => setIsLeftSidebarCollapsed(false)}
+                      className="p-2 rounded-xl bg-[#FAF6EF] border border-[#8C6D37]/40 flex flex-col items-center gap-1 shadow-xs animate-pulse cursor-pointer"
+                      title="Optimizando fotos... Clic para ver progreso"
+                    >
+                      <Loader2 className="w-4 h-4 animate-spin text-[#8C6D37]" />
+                      <span className="text-[8px] font-bold font-mono text-[#8C6D37]">
+                        {optimizingProgress ? `${Math.round((optimizingProgress.current / Math.max(1, optimizingProgress.total)) * 100)}%` : '...'}
+                      </span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
@@ -3983,7 +4059,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               ) : (
                 <div className="flex flex-col h-full overflow-hidden">
                   {/* Header Tabs */}
-                  <div className="p-2.5 border-b border-[#E0D8C8] bg-[#F9F6EE] flex items-center justify-between gap-1.5">
+                  <div className="p-2.5 border-b border-[#E0D8C8] bg-[#F9F6EE] flex items-center justify-between gap-1.5 shrink-0">
                     <div className="flex items-center gap-1 bg-[#EFE9DE] p-0.5 rounded-xl">
                       <button
                         type="button"
@@ -4021,6 +4097,40 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       <PanelLeftClose className="w-4 h-4" />
                     </button>
                   </div>
+
+                  {/* Photo Upload & Processing Progress Bar */}
+                  {isOptimizingPhotos && (
+                    <div className="p-3 bg-[#FAF6EF] border-b border-[#C5A059]/40 flex flex-col gap-1.5 shrink-0">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-[#8C6D37]">
+                        <div className="flex items-center gap-1.5">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-[#8C6D37]" />
+                          <span>Subiendo y Optimizando Fotos</span>
+                        </div>
+                        <span className="font-mono">
+                          {optimizingProgress ? `${optimizingProgress.current}/${optimizingProgress.total}` : 'Iniciando...'}
+                        </span>
+                      </div>
+                      
+                      <div className="w-full h-2 bg-[#EFE9DE] rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-[#8C6D37] via-[#C5A059] to-[#8C6D37] transition-all duration-200 rounded-full"
+                          style={{
+                            width: optimizingProgress 
+                              ? `${Math.max(5, Math.round((optimizingProgress.current / Math.max(1, optimizingProgress.total)) * 100))}%` 
+                              : '15%'
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[9px] text-[#736B60]">
+                        <span>Generando miniaturas HD...</span>
+                        <span className="font-bold text-[#8C6D37]">
+                          {optimizingProgress 
+                            ? `${Math.round((optimizingProgress.current / Math.max(1, optimizingProgress.total)) * 100)}%` 
+                            : '0%'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Tab 1: Fotos Panel */}
                   {leftSidebarTab === 'photos' && (
@@ -4326,12 +4436,26 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               )}
             </div>
 
+            {/* Left Draggable Resizer Guide / Splitter */}
+            {!isLeftSidebarCollapsed && (
+              <div
+                onPointerDown={handleStartResizeLeft}
+                onDoubleClick={() => setLeftSidebarWidth(310)}
+                className={`hidden lg:flex w-2.5 hover:w-3 -mx-1 cursor-col-resize z-30 transition-all items-center justify-center group relative select-none shrink-0 ${
+                  isDraggingLeftResizer ? 'bg-[#8C6D37]/30 ring-2 ring-[#8C6D37]' : 'hover:bg-[#8C6D37]/20'
+                }`}
+                title="Arrastra para cambiar el ancho del panel izquierdo (Doble clic para 310px)"
+              >
+                <div className="w-[2px] h-12 bg-[#C5A059] group-hover:bg-[#8C6D37] rounded-full group-hover:h-16 transition-all flex flex-col items-center justify-center" />
+              </div>
+            )}
+
             {/* Center Area: Double Page Spread Canvas (Zno CXEditor Style) */}
-            <div className="flex-1 flex flex-col overflow-y-auto p-2 sm:p-3 bg-[#EFECE3] items-center justify-between min-h-0 gap-2 relative">
+            <div className="flex-1 flex flex-col overflow-y-auto p-2 sm:p-3 bg-[#EFECE3] items-center min-h-0 gap-2.5 relative">
               {/* TOP BAR: DISEÑOS PREDEFINIDOS (Predefined Layouts Strip) */}
-              <div className="w-full max-w-[1500px] 2xl:max-w-[1750px] bg-[#FDFCF9] rounded-2xl border border-[#D6CEBE] p-2 sm:p-2.5 shadow-xs select-none space-y-2 shrink-0">
+              <div className="w-full max-w-[1500px] 2xl:max-w-[1750px] bg-[#FDFCF9] rounded-2xl border border-[#D6CEBE] p-2 sm:p-2.5 shadow-xs select-none space-y-2 shrink-0 z-10">
                 {/* Header with Title, Photo Count Filters, and Full Modal Button */}
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E8E2D5] pb-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E8E2D5] pb-1.5">
                   <div className="flex items-center gap-2">
                     <Layout className="w-4 h-4 text-[#8C6D37]" />
                     <span className="font-serif-luxury font-bold text-xs sm:text-sm text-[#1F1C18]">
@@ -4342,48 +4466,73 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     </span>
                   </div>
 
-                  {/* Filter chips */}
-                  <div className="flex flex-wrap items-center gap-1 text-[10px]">
-                    <span className="text-[#736B60] font-semibold mr-1 hidden md:inline">Filtrar:</span>
-                    {[
-                      { id: 'all', label: 'Todo' },
-                      { id: '1', label: '1 foto' },
-                      { id: '2', label: '2 fotos' },
-                      { id: '3', label: '3 fotos' },
-                      { id: '4', label: '4 fotos' },
-                      { id: '5+', label: '5+ fotos' },
-                      { id: 'panoramic', label: 'Panorámica' },
-                      { id: 'text', label: 'Texto' },
-                    ].map((tab) => (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => setLayoutPhotoFilter(tab.id as any)}
-                        className={`px-2 py-0.5 rounded-full font-medium transition-colors ${
-                          layoutPhotoFilter === tab.id
-                            ? 'bg-[#8C6D37] text-white font-bold'
-                            : 'bg-[#EFE9DE] text-[#595248] hover:bg-[#E2D8C7]'
-                        }`}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
+                  {/* Filter chips & Actions */}
+                  <div className="flex items-center gap-2">
+                    {!isPredefinedLayoutsCollapsed && (
+                      <div className="flex flex-wrap items-center gap-1 text-[10px]">
+                        <span className="text-[#736B60] font-semibold mr-1 hidden md:inline">Filtrar:</span>
+                        {[
+                          { id: 'all', label: 'Todo' },
+                          { id: '1', label: '1 foto' },
+                          { id: '2', label: '2 fotos' },
+                          { id: '3', label: '3 fotos' },
+                          { id: '4', label: '4 fotos' },
+                          { id: '5+', label: '5+ fotos' },
+                          { id: 'panoramic', label: 'Panorámica' },
+                          { id: 'text', label: 'Texto' },
+                        ].map((tab) => (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setLayoutPhotoFilter(tab.id as any)}
+                            className={`px-2 py-0.5 rounded-full font-medium transition-colors ${
+                              layoutPhotoFilter === tab.id
+                                ? 'bg-[#8C6D37] text-white font-bold'
+                                : 'bg-[#EFE9DE] text-[#595248] hover:bg-[#E2D8C7]'
+                            }`}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
-                  {/* Open full modal button */}
-                  <button
-                    type="button"
-                    onClick={() => setShowTemplateGridModal(true)}
-                    className="px-2.5 py-1 rounded-lg bg-[#FAF7F2] border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[11px] font-bold text-[#8C6D37] flex items-center gap-1 transition-colors"
-                    title="Ver catálogo completo de plantillas de pliego"
-                  >
-                    <LayoutGrid className="w-3.5 h-3.5" />
-                    <span>Catálogo Completo</span>
-                  </button>
+                    {/* Open full modal button */}
+                    <button
+                      type="button"
+                      onClick={() => setShowTemplateGridModal(true)}
+                      className="px-2 py-1 rounded-lg bg-[#FAF7F2] border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[10px] sm:text-[11px] font-bold text-[#8C6D37] flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Ver catálogo completo de plantillas de pliego"
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Catálogo</span>
+                    </button>
+
+                    {/* Collapse / Expand Toggle Button */}
+                    <button
+                      type="button"
+                      onClick={() => setIsPredefinedLayoutsCollapsed(!isPredefinedLayoutsCollapsed)}
+                      className="p-1 rounded-lg bg-[#EFE9DE] hover:bg-[#D6CEBE] text-[#1F1C18] text-xs transition-colors cursor-pointer flex items-center gap-1 px-2 font-semibold"
+                      title={isPredefinedLayoutsCollapsed ? 'Mostrar catálogo de diseños' : 'Ocultar catálogo de diseños para más espacio'}
+                    >
+                      {isPredefinedLayoutsCollapsed ? (
+                        <>
+                          <ChevronDown className="w-3.5 h-3.5 text-[#8C6D37]" />
+                          <span className="text-[10px] text-[#8C6D37]">Ver Diseños</span>
+                        </>
+                      ) : (
+                        <>
+                          <ChevronUp className="w-3.5 h-3.5 text-[#736B60]" />
+                          <span className="text-[10px] text-[#736B60]">Plegar</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Horizontal Scrollable Predefined Layouts Cards */}
-                <div className="flex items-center gap-2 overflow-x-auto py-1 px-0.5 scrollbar-thin">
+                {!isPredefinedLayoutsCollapsed && (
+                  <div className="flex items-center gap-2 overflow-x-auto py-1 px-0.5 scrollbar-thin">
                   {[
                     {
                       id: 'five-photo-editorial',
@@ -4663,11 +4812,12 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         </div>
                       </div>
                     ))}
-                </div>
+                  </div>
+                )}
               </div>
 
               {/* Canvas Stage Wrapper */}
-              <div className="w-full flex-1 flex flex-col items-center justify-center relative min-h-0 my-auto">
+              <div className="w-full flex-1 flex flex-col items-center justify-center relative min-h-0 py-1">
                 {/* Floating Canvas Top Bar Controls */}
                 <div className="w-full max-w-[1500px] 2xl:max-w-[1750px] flex items-center justify-between px-1 mb-1 text-[11px] text-[#736B60]">
                   <div className="flex items-center gap-2">
@@ -5298,10 +5448,25 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               </div>
             </div>
 
+            {/* Right Draggable Resizer Guide / Splitter */}
+            {!isRightSidebarCollapsed && (
+              <div
+                onPointerDown={handleStartResizeRight}
+                onDoubleClick={() => setRightSidebarWidth(320)}
+                className={`hidden lg:flex w-2.5 hover:w-3 -mx-1 cursor-col-resize z-30 transition-all items-center justify-center group relative select-none shrink-0 ${
+                  isDraggingRightResizer ? 'bg-[#8C6D37]/30 ring-2 ring-[#8C6D37]' : 'hover:bg-[#8C6D37]/20'
+                }`}
+                title="Arrastra para cambiar el ancho del panel de herramientas (Doble clic para 320px)"
+              >
+                <div className="w-[2px] h-12 bg-[#C5A059] group-hover:bg-[#8C6D37] rounded-full group-hover:h-16 transition-all flex flex-col items-center justify-center" />
+              </div>
+            )}
+
             {/* Right Sidebar: Permanent Inspector & Tool Sliders Panel (Collapsible) */}
             <div
-              className={`transition-all duration-300 border-t lg:border-t-0 lg:border-l border-[#E0D8C8] bg-[#FDFCF9] flex flex-col shrink-0 z-20 ${
-                isRightSidebarCollapsed ? 'w-full lg:w-14 items-center overflow-hidden' : 'w-full lg:w-80 overflow-y-auto'
+              style={{ width: isRightSidebarCollapsed ? undefined : `${rightSidebarWidth}px` }}
+              className={`transition-all duration-200 border-t lg:border-t-0 lg:border-l border-[#E0D8C8] bg-[#FDFCF9] flex flex-col shrink-0 z-20 ${
+                isRightSidebarCollapsed ? 'w-full lg:w-14 items-center overflow-hidden' : 'w-full overflow-y-auto'
               }`}
             >
               {isRightSidebarCollapsed ? (
