@@ -478,6 +478,84 @@ export const SAMPLE_PHOTO_PACKS: Record<string, { name: string; description: str
         caption: '1.200 km de música, paisajes y libertad.',
       }
     ]
+  },
+  bebe: {
+    name: 'Bebé & Maternidad Botánica',
+    description: 'Manitos, piecitos, primeros abrazos y detalles íntimos del recién nacido.',
+    photos: [
+      {
+        id: 'b-1',
+        url: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&w=1200&q=80',
+        name: 'Piecitos en Manos de Papás',
+        caption: 'Mi todo en este mundo.'
+      },
+      {
+        id: 'b-2',
+        url: 'https://images.unsplash.com/photo-1555252333-9f8e92e65df9?auto=format&fit=crop&w=1200&q=80',
+        name: 'Primer Sueño Dulce',
+        caption: 'Durmiendo en calma.'
+      },
+      {
+        id: 'b-3',
+        url: 'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&w=1200&q=80',
+        name: 'Detalle de Pies de Bebé',
+        caption: 'Pasitos que recién comienzan.'
+      },
+      {
+        id: 'b-4',
+        url: 'https://images.unsplash.com/photo-1544126592-807daa2b567b?auto=format&fit=crop&w=1200&q=80',
+        name: 'Abrazo de Mamá',
+        caption: 'El refugio más cálido.'
+      },
+      {
+        id: 'b-5',
+        url: 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=1200&q=80',
+        name: 'Sosteniendo su Manito',
+        caption: 'Amor incondicional.'
+      }
+    ]
+  },
+  lifestyle: {
+    name: 'Editorial Lifestyle & Wellness',
+    description: 'Estética contemporánea, texturas naturales, spa y momentos de autocuidado.',
+    photos: [
+      { id: 'l-1', url: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=1200&q=80', name: 'Ritual de Cuidado' },
+      { id: 'l-2', url: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1200&q=80', name: 'Reflejos en el Espejo' },
+      { id: 'l-3', url: 'https://images.unsplash.com/photo-1512290900672-1f4163488730?auto=format&fit=crop&w=1200&q=80', name: 'Piel & Calma' },
+      { id: 'l-4', url: 'https://images.unsplash.com/photo-1608248597359-58a3641215b5?auto=format&fit=crop&w=1200&q=80', name: 'Texturas Orgánicas' },
+      { id: 'l-5', url: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=1200&q=80', name: 'Botánicos & Sombras' },
+      { id: 'l-6', url: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=1200&q=80', name: 'Baño de Cerámica' },
+      { id: 'l-7', url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1200&q=80', name: 'Mascarilla Facial' },
+      { id: 'l-8', url: 'https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?auto=format&fit=crop&w=1200&q=80', name: 'Aceites Esenciales' },
+      { id: 'l-9', url: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80', name: 'Cesta Artisan' },
+      { id: 'l-10', url: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80', name: 'Eucalipto & Rodillo de Jade' }
+    ]
+  },
+  gourmet: {
+    name: 'Gastronomía & Cena Celebración',
+    description: 'Platos de autor, velas de noche, brindis y mesas de fiesta.',
+    photos: [
+      { id: 'g-1', url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=1200&q=80', name: 'Ensalada Fresca & Pollo Glaseado' },
+      { id: 'g-2', url: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=1200&q=80', name: 'Mesa con Velas y Granadas' },
+      { id: 'g-3', url: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1200&q=80', name: 'Pollo Teriyaki Crocante' },
+      { id: 'g-4', url: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=1200&q=80', name: 'Langostinos Salteados con Zucchini' }
+    ]
+  },
+  romance: {
+    name: 'Romance Golden Hour & Atardecer',
+    description: 'Parejas a contraluz, playa, globos aerostáticos y montañas al atardecer.',
+    photos: [
+      { id: 'r-p1', url: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80', name: 'Caminando en la Montaña' },
+      { id: 'r-p2', url: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=80', name: 'Bailando en la Orilla' },
+      { id: 'r-p3', url: 'https://images.unsplash.com/photo-1529636798458-92182e662485?auto=format&fit=crop&w=1200&q=80', name: 'Mirando el Horizonte' },
+      { id: 'r-p4', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80', name: 'Atardecer en el Lago' },
+      { id: 'r-p5', url: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1200&q=80', name: 'Paseo en la Playa' },
+      { id: 'r-p6', url: 'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=1200&q=80', name: 'Silueta al Ocaso' },
+      { id: 'r-p7', url: 'https://images.unsplash.com/photo-1474552226712-ac0f0961a954?auto=format&fit=crop&w=1200&q=80', name: 'Cálido Abrazo' },
+      { id: 'r-p8', url: 'https://images.unsplash.com/photo-1507038772120-7fff76f79d74?auto=format&fit=crop&w=1200&q=80', name: 'Globos en Capadocia' },
+      { id: 'r-p9', url: 'https://images.unsplash.com/photo-1516726817505-f5ed825624d8?auto=format&fit=crop&w=1200&q=80', name: 'Sonrisas de Cerca' },
+      { id: 'r-p10', url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80', name: 'Votos Frente al Lago' }
+    ]
   }
 };
 

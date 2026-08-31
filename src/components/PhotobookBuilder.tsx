@@ -53,6 +53,7 @@ import {
   PaperFinishId, 
   PhotobookProject, 
   PhotobookSpread, 
+  PhotobookPage,
   PageLayoutId, 
   PhotoAsset,
   PhotoFilterMode,
@@ -972,19 +973,31 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
         { id: `slot-${Date.now()}-1` },
         { id: `slot-${Date.now()}-2` }
       ];
-    } else if (newLayout === 'three-collage') {
+    } else if (newLayout === 'three-collage' || newLayout === 'asymmetric-split' || newLayout === 'three-vertical-triptych') {
       newSlots = [
         { id: `slot-${Date.now()}-1` },
         { id: `slot-${Date.now()}-2` },
         { id: `slot-${Date.now()}-3` }
       ];
-    } else if (newLayout === 'four-grid') {
+    } else if (newLayout === 'four-grid' || newLayout === 'editorial-magazine-polaroid') {
       newSlots = [
         { id: `slot-${Date.now()}-1` },
         { id: `slot-${Date.now()}-2` },
         { id: `slot-${Date.now()}-3` },
         { id: `slot-${Date.now()}-4` }
       ];
+    } else if (newLayout === 'five-photo-editorial' || newLayout === 'botanical-floral-scrapbook') {
+      newSlots = [
+        { id: `slot-${Date.now()}-1` },
+        { id: `slot-${Date.now()}-2` },
+        { id: `slot-${Date.now()}-3` },
+        { id: `slot-${Date.now()}-4` },
+        { id: `slot-${Date.now()}-5` }
+      ];
+    } else if (newLayout === 'moodboard-mosaic-9') {
+      newSlots = Array.from({ length: 9 }, (_, i) => ({ id: `slot-${Date.now()}-${i + 1}` }));
+    } else if (newLayout === 'lifestyle-bento-10') {
+      newSlots = Array.from({ length: 10 }, (_, i) => ({ id: `slot-${Date.now()}-${i + 1}` }));
     } else if (newLayout === 'full-bleed-spread') {
       // Makes both pages full bleed with one photo
       const updatedSpread: PhotobookSpread = {
@@ -1672,6 +1685,281 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
             )}
           </>
         )}
+      </div>
+    );
+  };
+
+  // Helper to render layout content for any page (left or right)
+  const renderPageLayoutContent = (page: PhotobookPage, isRight: boolean) => {
+    if (!page) return null;
+
+    // 1. EDITORIAL TEXT & HEADING
+    if (page.layout === 'editorial-text-photo') {
+      return (
+        <div className="w-full h-full flex flex-col justify-center text-center px-4 py-2">
+          <input
+            type="text"
+            value={page.customTextHeading || ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSpreads((prev) =>
+                prev.map((s, i) => {
+                  if (i !== activeSpreadIndex) return s;
+                  return isRight
+                    ? { ...s, rightPage: { ...s.rightPage, customTextHeading: val } }
+                    : { ...s, leftPage: { ...s.leftPage, customTextHeading: val } };
+                })
+              );
+            }}
+            placeholder="Título del Pliego"
+            className="font-serif-luxury text-xl sm:text-2xl text-center text-[#1F1C18] font-bold bg-transparent border-b border-dashed border-[#D6CEBE] mb-2 focus:outline-none focus:border-[#8C6D37]"
+          />
+          <textarea
+            value={page.customTextBody || ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSpreads((prev) =>
+                prev.map((s, i) => {
+                  if (i !== activeSpreadIndex) return s;
+                  return isRight
+                    ? { ...s, rightPage: { ...s.rightPage, customTextBody: val } }
+                    : { ...s, leftPage: { ...s.leftPage, customTextBody: val } };
+                })
+              );
+            }}
+            placeholder="Escribe una memoria, dedicatoria o poesía aquí..."
+            className="text-[11px] sm:text-xs text-[#595248] text-center italic bg-transparent border border-dashed border-[#D6CEBE] p-2 rounded-lg resize-none focus:outline-none focus:border-[#8C6D37]"
+            rows={4}
+          />
+        </div>
+      );
+    }
+
+    // 2. SINGLE FULL (FULL BLEED SINGLE PAGE)
+    if (page.layout === 'single-full') {
+      return (
+        <div className="w-full h-full">
+          {page.slots[0] && renderSlotInteractive(page.slots[0], 'w-full h-full')}
+        </div>
+      );
+    }
+
+    // 3. SINGLE BORDERED / PASSEPARTOUT
+    if (page.layout === 'single-bordered') {
+      return (
+        <div className="w-5/6 h-5/6 shadow-lg bg-[#EFE9DE] border border-[#D6CEBE] p-2.5 rounded-lg flex items-center justify-center">
+          {page.slots[0] && renderSlotInteractive(page.slots[0], 'w-full h-full rounded')}
+        </div>
+      );
+    }
+
+    // 4. TWO VERTICAL
+    if (page.layout === 'two-vertical') {
+      return (
+        <div className="w-full h-full grid grid-cols-2" style={{ gap: `${spreadPhotoGap}px` }}>
+          {page.slots.map((slot) => renderSlotInteractive(slot, 'h-full'))}
+        </div>
+      );
+    }
+
+    // 5. TWO HORIZONTAL
+    if (page.layout === 'two-horizontal') {
+      return (
+        <div className="w-full h-full grid grid-rows-2" style={{ gap: `${spreadPhotoGap}px` }}>
+          {page.slots.map((slot) => renderSlotInteractive(slot, 'w-full h-full'))}
+        </div>
+      );
+    }
+
+    // 6. THREE COLLAGE (1 Hero + 2 Stacked)
+    if (page.layout === 'three-collage') {
+      return (
+        <div className="w-full h-full grid grid-cols-2" style={{ gap: `${spreadPhotoGap}px` }}>
+          <div className="h-full">
+            {page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full')}
+          </div>
+          <div className="h-full grid grid-rows-2" style={{ gap: `${spreadPhotoGap}px` }}>
+            {page.slots[1] && renderSlotInteractive(page.slots[1], 'h-full')}
+            {page.slots[2] && renderSlotInteractive(page.slots[2], 'h-full')}
+          </div>
+        </div>
+      );
+    }
+
+    // 7. THREE VERTICAL TRIPTYCH
+    if (page.layout === 'three-vertical-triptych') {
+      return (
+        <div className="w-full h-full grid grid-cols-3" style={{ gap: `${spreadPhotoGap}px` }}>
+          {page.slots.slice(0, 3).map((slot) => renderSlotInteractive(slot, 'h-full'))}
+        </div>
+      );
+    }
+
+    // 8. ASYMMETRIC SPLIT (2 Stacked + 1 Tall)
+    if (page.layout === 'asymmetric-split') {
+      return (
+        <div className="w-full h-full grid grid-cols-2" style={{ gap: `${spreadPhotoGap}px` }}>
+          <div className="h-full grid grid-rows-2" style={{ gap: `${spreadPhotoGap}px` }}>
+            {page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full')}
+            {page.slots[1] && renderSlotInteractive(page.slots[1], 'h-full')}
+          </div>
+          <div className="h-full">
+            {page.slots[2] && renderSlotInteractive(page.slots[2], 'h-full')}
+          </div>
+        </div>
+      );
+    }
+
+    // 9. FOUR GRID (2x2)
+    if (page.layout === 'four-grid') {
+      return (
+        <div className="w-full h-full grid grid-cols-2 grid-rows-2" style={{ gap: `${spreadPhotoGap}px` }}>
+          {page.slots.map((slot) => renderSlotInteractive(slot, 'h-full'))}
+        </div>
+      );
+    }
+
+    // 10. FIVE PHOTO EDITORIAL (2 Top + 3 Bottom)
+    if (page.layout === 'five-photo-editorial') {
+      return (
+        <div className="w-full h-full flex flex-col" style={{ gap: `${spreadPhotoGap}px` }}>
+          <div className="flex-1 grid grid-cols-2" style={{ gap: `${spreadPhotoGap}px` }}>
+            {page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full')}
+            {page.slots[1] && renderSlotInteractive(page.slots[1], 'h-full')}
+          </div>
+          <div className="flex-1 grid grid-cols-3" style={{ gap: `${spreadPhotoGap}px` }}>
+            {page.slots[2] && renderSlotInteractive(page.slots[2], 'h-full')}
+            {page.slots[3] && renderSlotInteractive(page.slots[3], 'h-full')}
+            {page.slots[4] && renderSlotInteractive(page.slots[4], 'h-full')}
+          </div>
+        </div>
+      );
+    }
+
+    // 11. EDITORIAL MAGAZINE & POLAROID (4 Photos + Editorial styling)
+    if (page.layout === 'editorial-magazine-polaroid') {
+      return (
+        <div className="w-full h-full flex gap-3 p-1">
+          {/* Left Hero Column */}
+          <div className="w-5/12 h-full flex flex-col justify-between">
+            <div className="flex-1 h-4/5">
+              {page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full rounded-md shadow-xs')}
+            </div>
+            <div className="pt-2 text-center">
+              <span className="text-[10px] font-serif tracking-widest uppercase text-[#8C6D37] block font-bold">
+                Editorial Moments
+              </span>
+              <span className="text-[8px] text-[#736B60] italic">Colección Especial</span>
+            </div>
+          </div>
+
+          {/* Right Column: 1 Landscape + 2 Mini Polaroids */}
+          <div className="w-7/12 h-full flex flex-col" style={{ gap: `${spreadPhotoGap}px` }}>
+            <div className="h-1/2">
+              {page.slots[1] && renderSlotInteractive(page.slots[1], 'h-full rounded-md')}
+            </div>
+            <div className="h-1/2 grid grid-cols-2 gap-2">
+              <div className="bg-white p-1.5 rounded-lg border border-[#E8E2D5] shadow-xs flex flex-col">
+                <div className="flex-1">
+                  {page.slots[2] && renderSlotInteractive(page.slots[2], 'h-full rounded-xs')}
+                </div>
+                <span className="text-[7px] text-center text-[#736B60] font-mono mt-1">polaroid 01</span>
+              </div>
+              <div className="bg-white p-1.5 rounded-lg border border-[#E8E2D5] shadow-xs flex flex-col">
+                <div className="flex-1">
+                  {page.slots[3] && renderSlotInteractive(page.slots[3], 'h-full rounded-xs')}
+                </div>
+                <span className="text-[7px] text-center text-[#736B60] font-mono mt-1">polaroid 02</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 12. BOTANICAL FLORAL SCRAPBOOK (5 Photos + Botanical Embellishments)
+    if (page.layout === 'botanical-floral-scrapbook') {
+      return (
+        <div className="w-full h-full flex flex-col justify-between p-1 bg-[#FAF7F2] rounded-xl border border-[#EAE4D8]/80 relative overflow-hidden">
+          {/* Botanical Header */}
+          <div className="text-center py-0.5 border-b border-[#E8E2D5]/60 flex items-center justify-center gap-1">
+            <Sparkles className="w-2.5 h-2.5 text-[#8C6D37]" />
+            <span className="font-serif italic text-[11px] text-[#556B2F] font-bold">
+              🌿 fleur & sweet memories 🌿
+            </span>
+            <Sparkles className="w-2.5 h-2.5 text-[#8C6D37]" />
+          </div>
+
+          {/* Top Hero Photo with subtle frame */}
+          <div className="flex-1 my-1.5 bg-white p-1.5 rounded-lg border border-[#E0D8C8] shadow-xs">
+            {page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full rounded')}
+          </div>
+
+          {/* Bottom 4 Mini Stamp Slots */}
+          <div className="grid grid-cols-4 gap-1.5 h-24">
+            {page.slots.slice(1, 5).map((slot, idx) => (
+              <div key={slot.id} className="bg-white p-1 rounded-md border border-[#E8E2D5] shadow-2xs flex flex-col">
+                <div className="flex-1">
+                  {renderSlotInteractive(slot, 'h-full rounded-xs')}
+                </div>
+                <span className="text-[6px] text-center text-[#8C6D37] font-mono mt-0.5">#{idx + 1}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // 13. MOODBOARD MOSAIC 9 (9 Photos Grid)
+    if (page.layout === 'moodboard-mosaic-9') {
+      const gap = Math.max(2, Math.floor(spreadPhotoGap / 2));
+      return (
+        <div className="w-full h-full grid grid-cols-3 grid-rows-3" style={{ gap: `${gap}px` }}>
+          <div className="col-span-1">{page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full')}</div>
+          <div className="col-span-2">{page.slots[1] && renderSlotInteractive(page.slots[1], 'h-full')}</div>
+          <div className="row-span-2">{page.slots[2] && renderSlotInteractive(page.slots[2], 'h-full')}</div>
+          <div className="col-span-1">{page.slots[3] && renderSlotInteractive(page.slots[3], 'h-full')}</div>
+          <div className="col-span-1">{page.slots[4] && renderSlotInteractive(page.slots[4], 'h-full')}</div>
+          <div className="col-span-1">{page.slots[5] && renderSlotInteractive(page.slots[5], 'h-full')}</div>
+          <div className="col-span-1">{page.slots[6] && renderSlotInteractive(page.slots[6], 'h-full')}</div>
+          <div className="col-span-2">{page.slots[7] && renderSlotInteractive(page.slots[7], 'h-full')}</div>
+          <div className="col-span-1">{page.slots[8] && renderSlotInteractive(page.slots[8], 'h-full')}</div>
+        </div>
+      );
+    }
+
+    // 14. LIFESTYLE BENTO 10 (10 Micro-detail Photos)
+    if (page.layout === 'lifestyle-bento-10') {
+      const gap = Math.max(2, Math.floor(spreadPhotoGap / 2));
+      return (
+        <div className="w-full h-full flex flex-col justify-between" style={{ gap: `${gap}px` }}>
+          <div className="flex-1 grid grid-cols-3" style={{ gap: `${gap}px` }}>
+            {page.slots.slice(0, 3).map((slot) => renderSlotInteractive(slot, 'h-full'))}
+          </div>
+          <div className="flex-1 grid grid-cols-4" style={{ gap: `${gap}px` }}>
+            {page.slots.slice(3, 7).map((slot) => renderSlotInteractive(slot, 'h-full'))}
+          </div>
+          <div className="flex-1 grid grid-cols-3" style={{ gap: `${gap}px` }}>
+            {page.slots.slice(7, 10).map((slot) => renderSlotInteractive(slot, 'h-full'))}
+          </div>
+        </div>
+      );
+    }
+
+    // 15. BLANK PAGE
+    if (page.layout === 'blank') {
+      return (
+        <div className="w-full h-full flex flex-col items-center justify-center text-[#A89F91] text-xs italic gap-1">
+          <Sparkles className="w-4 h-4 text-[#D6CEBE]" />
+          <span>Página en Blanco Fine Art</span>
+        </div>
+      );
+    }
+
+    // Default fallback
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        {page.slots[0] && renderSlotInteractive(page.slots[0], 'w-full h-full')}
       </div>
     );
   };
@@ -2850,98 +3138,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
                       {/* Content of Left Page */}
                       <div className="flex-1 flex flex-col justify-center items-center h-full w-full">
-                        {/* 1. EDITORIAL TEXT */}
-                        {activeSpread.leftPage.layout === 'editorial-text-photo' && (
-                          <div className="w-full h-full flex flex-col justify-center text-center px-4">
-                            <input
-                              type="text"
-                              value={activeSpread.leftPage.customTextHeading || ''}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setSpreads((prev) =>
-                                  prev.map((s, i) =>
-                                    i === activeSpreadIndex
-                                      ? { ...s, leftPage: { ...s.leftPage, customTextHeading: val } }
-                                      : s
-                                  )
-                                );
-                              }}
-                              placeholder="Título del Pliego"
-                              className="font-serif-luxury text-xl sm:text-2xl text-center text-[#1F1C18] font-bold bg-transparent border-b border-dashed border-[#D6CEBE] mb-2 focus:outline-none focus:border-[#8C6D37]"
-                            />
-                            <textarea
-                              value={activeSpread.leftPage.customTextBody || ''}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setSpreads((prev) =>
-                                  prev.map((s, i) =>
-                                    i === activeSpreadIndex
-                                      ? { ...s, leftPage: { ...s.leftPage, customTextBody: val } }
-                                      : s
-                                  )
-                                );
-                              }}
-                              placeholder="Escribe una memoria, dedicatoria o poesía aquí..."
-                              className="text-[11px] sm:text-xs text-[#595248] text-center italic bg-transparent border border-dashed border-[#D6CEBE] p-2 rounded-lg resize-none focus:outline-none focus:border-[#8C6D37]"
-                              rows={3}
-                            />
-                          </div>
-                        )}
-
-                        {/* 2. SINGLE FULL */}
-                        {activeSpread.leftPage.layout === 'single-full' && (
-                          <div className="w-full h-full">
-                            {renderSlotInteractive(activeSpread.leftPage.slots[0], 'w-full h-full')}
-                          </div>
-                        )}
-
-                        {/* 3. SINGLE BORDERED / PASSEPARTOUT */}
-                        {activeSpread.leftPage.layout === 'single-bordered' && (
-                          <div className="w-5/6 h-5/6 shadow-lg bg-[#EFE9DE] border border-[#D6CEBE] p-2.5 rounded-lg flex items-center justify-center">
-                            {renderSlotInteractive(activeSpread.leftPage.slots[0], 'w-full h-full rounded')}
-                          </div>
-                        )}
-
-                        {/* 4. TWO VERTICAL */}
-                        {activeSpread.leftPage.layout === 'two-vertical' && (
-                          <div className="w-full h-full grid grid-cols-2" style={{ gap: `${spreadPhotoGap}px` }}>
-                            {activeSpread.leftPage.slots.map((slot) => renderSlotInteractive(slot, 'h-full'))}
-                          </div>
-                        )}
-
-                        {/* 5. TWO HORIZONTAL */}
-                        {activeSpread.leftPage.layout === 'two-horizontal' && (
-                          <div className="w-full h-full grid grid-rows-2" style={{ gap: `${spreadPhotoGap}px` }}>
-                            {activeSpread.leftPage.slots.map((slot) => renderSlotInteractive(slot, 'w-full h-full'))}
-                          </div>
-                        )}
-
-                        {/* 6. THREE COLLAGE */}
-                        {activeSpread.leftPage.layout === 'three-collage' && (
-                          <div className="w-full h-full grid grid-cols-2" style={{ gap: `${spreadPhotoGap}px` }}>
-                            <div className="h-full">
-                              {renderSlotInteractive(activeSpread.leftPage.slots[0], 'h-full')}
-                            </div>
-                            <div className="h-full grid grid-rows-2" style={{ gap: `${spreadPhotoGap}px` }}>
-                              {renderSlotInteractive(activeSpread.leftPage.slots[1], 'h-full')}
-                              {renderSlotInteractive(activeSpread.leftPage.slots[2], 'h-full')}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 7. FOUR GRID */}
-                        {activeSpread.leftPage.layout === 'four-grid' && (
-                          <div className="w-full h-full grid grid-cols-2 grid-rows-2" style={{ gap: `${spreadPhotoGap}px` }}>
-                            {activeSpread.leftPage.slots.map((slot) => renderSlotInteractive(slot, 'h-full'))}
-                          </div>
-                        )}
-
-                        {/* 8. BLANK */}
-                        {activeSpread.leftPage.layout === 'blank' && (
-                          <div className="w-full h-full flex items-center justify-center text-[#A89F91] text-xs italic">
-                            Espacio en blanco Fine Art
-                          </div>
-                        )}
+                        {renderPageLayoutContent(activeSpread.leftPage, false)}
                       </div>
 
                       {/* Page number */}
@@ -2966,98 +3163,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
                       {/* Content of Right Page */}
                       <div className="flex-1 flex flex-col justify-center items-center h-full w-full">
-                        {/* 1. EDITORIAL TEXT */}
-                        {activeSpread.rightPage.layout === 'editorial-text-photo' && (
-                          <div className="w-full h-full flex flex-col justify-center text-center px-4">
-                            <input
-                              type="text"
-                              value={activeSpread.rightPage.customTextHeading || ''}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setSpreads((prev) =>
-                                  prev.map((s, i) =>
-                                    i === activeSpreadIndex
-                                      ? { ...s, rightPage: { ...s.rightPage, customTextHeading: val } }
-                                      : s
-                                  )
-                                );
-                              }}
-                              placeholder="Título de la Página"
-                              className="font-serif-luxury text-xl sm:text-2xl text-center text-[#1F1C18] font-bold bg-transparent border-b border-dashed border-[#D6CEBE] mb-2 focus:outline-none focus:border-[#8C6D37]"
-                            />
-                            <textarea
-                              value={activeSpread.rightPage.customTextBody || ''}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setSpreads((prev) =>
-                                  prev.map((s, i) =>
-                                    i === activeSpreadIndex
-                                      ? { ...s, rightPage: { ...s.rightPage, customTextBody: val } }
-                                      : s
-                                  )
-                                );
-                              }}
-                              placeholder="Escribe una dedicatoria o texto..."
-                              className="text-[11px] sm:text-xs text-[#595248] text-center italic bg-transparent border border-dashed border-[#D6CEBE] p-2 rounded-lg resize-none focus:outline-none focus:border-[#8C6D37]"
-                              rows={3}
-                            />
-                          </div>
-                        )}
-
-                        {/* 2. SINGLE FULL */}
-                        {activeSpread.rightPage.layout === 'single-full' && (
-                          <div className="w-full h-full">
-                            {renderSlotInteractive(activeSpread.rightPage.slots[0], 'w-full h-full')}
-                          </div>
-                        )}
-
-                        {/* 3. SINGLE BORDERED */}
-                        {activeSpread.rightPage.layout === 'single-bordered' && (
-                          <div className="w-5/6 h-5/6 shadow-lg bg-[#EFE9DE] border border-[#D6CEBE] p-2.5 rounded-lg flex items-center justify-center">
-                            {renderSlotInteractive(activeSpread.rightPage.slots[0], 'w-full h-full rounded')}
-                          </div>
-                        )}
-
-                        {/* 4. TWO VERTICAL */}
-                        {activeSpread.rightPage.layout === 'two-vertical' && (
-                          <div className="w-full h-full grid grid-cols-2" style={{ gap: `${spreadPhotoGap}px` }}>
-                            {activeSpread.rightPage.slots.map((slot) => renderSlotInteractive(slot, 'h-full'))}
-                          </div>
-                        )}
-
-                        {/* 5. TWO HORIZONTAL */}
-                        {activeSpread.rightPage.layout === 'two-horizontal' && (
-                          <div className="w-full h-full grid grid-rows-2" style={{ gap: `${spreadPhotoGap}px` }}>
-                            {activeSpread.rightPage.slots.map((slot) => renderSlotInteractive(slot, 'w-full h-full'))}
-                          </div>
-                        )}
-
-                        {/* 6. THREE COLLAGE */}
-                        {activeSpread.rightPage.layout === 'three-collage' && (
-                          <div className="w-full h-full grid grid-cols-2" style={{ gap: `${spreadPhotoGap}px` }}>
-                            <div className="h-full">
-                              {renderSlotInteractive(activeSpread.rightPage.slots[0], 'h-full')}
-                            </div>
-                            <div className="h-full grid grid-rows-2" style={{ gap: `${spreadPhotoGap}px` }}>
-                              {renderSlotInteractive(activeSpread.rightPage.slots[1], 'h-full')}
-                              {renderSlotInteractive(activeSpread.rightPage.slots[2], 'h-full')}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 7. FOUR GRID */}
-                        {activeSpread.rightPage.layout === 'four-grid' && (
-                          <div className="w-full h-full grid grid-cols-2 grid-rows-2" style={{ gap: `${spreadPhotoGap}px` }}>
-                            {activeSpread.rightPage.slots.map((slot) => renderSlotInteractive(slot, 'h-full'))}
-                          </div>
-                        )}
-
-                        {/* 8. BLANK */}
-                        {activeSpread.rightPage.layout === 'blank' && (
-                          <div className="w-full h-full flex items-center justify-center text-[#A89F91] text-xs italic">
-                            Espacio en blanco Fine Art
-                          </div>
-                        )}
+                        {renderPageLayoutContent(activeSpread.rightPage, true)}
                       </div>
 
                       {/* Page number */}
@@ -3073,78 +3179,220 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   <div
                     className={`absolute top-10 ${
                       activeLayoutMenuSide === 'left' ? 'left-4' : 'right-4'
-                    } z-30 w-72 rounded-2xl border border-[#D6CEBE] bg-[#FDFCF9] p-3 shadow-2xl`}
+                    } z-30 w-80 max-h-[460px] overflow-y-auto rounded-2xl border border-[#D6CEBE] bg-[#FDFCF9] p-3.5 shadow-2xl scrollbar-thin`}
                   >
-                    <div className="flex items-center justify-between border-b border-[#E8E2D5] pb-2 mb-2">
-                      <span className="text-xs font-bold uppercase text-[#1F1C18]">
-                        Layout Página {activeLayoutMenuSide === 'left' ? 'Izquierda' : 'Derecha'}
-                      </span>
+                    <div className="flex items-center justify-between border-b border-[#E8E2D5] pb-2 mb-2.5">
+                      <div>
+                        <span className="text-xs font-bold uppercase text-[#1F1C18] block">
+                          Diseño de Página {activeLayoutMenuSide === 'left' ? 'Izquierda' : 'Derecha'}
+                        </span>
+                        <span className="text-[10px] text-[#736B60]">Selecciona una plantilla de diseño</span>
+                      </div>
                       <button
                         type="button"
                         onClick={() => setActiveLayoutMenuSide(null)}
-                        className="text-[#736B60] hover:text-[#1F1C18]"
+                        className="text-[#736B60] hover:text-[#1F1C18] p-1 rounded-md hover:bg-[#EFE9DE]"
                       >
                         <X className="w-4 h-4" />
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-                      <button
-                        type="button"
-                        onClick={() => handleChangePageLayout(activeLayoutMenuSide, 'single-full')}
-                        className="p-2 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] text-left font-medium"
-                      >
-                        1 Foto Sangrada
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleChangePageLayout(activeLayoutMenuSide, 'single-bordered')}
-                        className="p-2 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] text-left font-medium"
-                      >
-                        1 Foto c/ Passepartout
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleChangePageLayout(activeLayoutMenuSide, 'two-vertical')}
-                        className="p-2 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] text-left font-medium"
-                      >
-                        2 Fotos Verticales
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleChangePageLayout(activeLayoutMenuSide, 'two-horizontal')}
-                        className="p-2 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] text-left font-medium"
-                      >
-                        2 Fotos Horizontales
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleChangePageLayout(activeLayoutMenuSide, 'three-collage')}
-                        className="p-2 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] text-left font-medium"
-                      >
-                        3 Fotos Mosaico
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleChangePageLayout(activeLayoutMenuSide, 'four-grid')}
-                        className="p-2 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] text-left font-medium"
-                      >
-                        4 Fotos Grilla
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleChangePageLayout(activeLayoutMenuSide, 'editorial-text-photo')}
-                        className="p-2 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] text-left font-medium"
-                      >
-                        Página de Texto
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleChangePageLayout(activeLayoutMenuSide, 'blank')}
-                        className="p-2 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] text-left font-medium"
-                      >
-                        Página en Blanco
-                      </button>
+                    {/* Quick Category Sections */}
+                    <div className="space-y-3">
+                      <div>
+                        <div className="text-[10px] font-bold uppercase text-[#8C6D37] tracking-wider mb-1.5 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          <span>Nuevos Estilos Editoriales</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              recordHistorySnapshot(spreads);
+                              handleChangePageLayout(activeLayoutMenuSide, 'five-photo-editorial');
+                              setActiveLayoutMenuSide(null);
+                            }}
+                            className="p-2 rounded-lg border border-[#8C6D37]/40 bg-[#FAF7F2] hover:bg-[#F4EFE6] text-left font-medium flex flex-col"
+                          >
+                            <span className="font-bold text-[#1F1C18]">5 Fotos Editorial</span>
+                            <span className="text-[9px] text-[#736B60]">2 arriba + 3 abajo</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              recordHistorySnapshot(spreads);
+                              handleChangePageLayout(activeLayoutMenuSide, 'asymmetric-split');
+                              setActiveLayoutMenuSide(null);
+                            }}
+                            className="p-2 rounded-lg border border-[#8C6D37]/40 bg-[#FAF7F2] hover:bg-[#F4EFE6] text-left font-medium flex flex-col"
+                          >
+                            <span className="font-bold text-[#1F1C18]">3 Asimétrico 2+1</span>
+                            <span className="text-[9px] text-[#736B60]">2 apiladas + 1 vertical</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              recordHistorySnapshot(spreads);
+                              handleChangePageLayout(activeLayoutMenuSide, 'three-vertical-triptych');
+                              setActiveLayoutMenuSide(null);
+                            }}
+                            className="p-2 rounded-lg border border-[#8C6D37]/40 bg-[#FAF7F2] hover:bg-[#F4EFE6] text-left font-medium flex flex-col"
+                          >
+                            <span className="font-bold text-[#1F1C18]">Tríptico Vertical</span>
+                            <span className="text-[9px] text-[#736B60]">3 fotos esbeltas</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              recordHistorySnapshot(spreads);
+                              handleChangePageLayout(activeLayoutMenuSide, 'editorial-magazine-polaroid');
+                              setActiveLayoutMenuSide(null);
+                            }}
+                            className="p-2 rounded-lg border border-[#8C6D37]/40 bg-[#FAF7F2] hover:bg-[#F4EFE6] text-left font-medium flex flex-col"
+                          >
+                            <span className="font-bold text-[#1F1C18]">Revista & Polaroids</span>
+                            <span className="text-[9px] text-[#736B60]">Hero + 2 marcos mini</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              recordHistorySnapshot(spreads);
+                              handleChangePageLayout(activeLayoutMenuSide, 'moodboard-mosaic-9');
+                              setActiveLayoutMenuSide(null);
+                            }}
+                            className="p-2 rounded-lg border border-[#8C6D37]/40 bg-[#FAF7F2] hover:bg-[#F4EFE6] text-left font-medium flex flex-col"
+                          >
+                            <span className="font-bold text-[#1F1C18]">Moodboard 9 Fotos</span>
+                            <span className="text-[9px] text-[#736B60]">Mosaico romántico</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              recordHistorySnapshot(spreads);
+                              handleChangePageLayout(activeLayoutMenuSide, 'lifestyle-bento-10');
+                              setActiveLayoutMenuSide(null);
+                            }}
+                            className="p-2 rounded-lg border border-[#8C6D37]/40 bg-[#FAF7F2] hover:bg-[#F4EFE6] text-left font-medium flex flex-col"
+                          >
+                            <span className="font-bold text-[#1F1C18]">Bento Lifestyle 10</span>
+                            <span className="text-[9px] text-[#736B60]">Cuadrícula moderna</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              recordHistorySnapshot(spreads);
+                              handleChangePageLayout(activeLayoutMenuSide, 'botanical-floral-scrapbook');
+                              setActiveLayoutMenuSide(null);
+                            }}
+                            className="p-2 col-span-2 rounded-lg border border-[#8C6D37]/40 bg-[#FAF7F2] hover:bg-[#F4EFE6] text-left font-medium flex flex-col"
+                          >
+                            <span className="font-bold text-[#1F1C18]">Scrapbook Botánico Floral 5 Fotos</span>
+                            <span className="text-[9px] text-[#736B60]">Ilustraciones de acuarela botánica y caligrafía</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] font-bold uppercase text-[#736B60] tracking-wider mb-1.5">
+                          Diseños Clásicos
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              recordHistorySnapshot(spreads);
+                              handleChangePageLayout(activeLayoutMenuSide, 'single-full');
+                              setActiveLayoutMenuSide(null);
+                            }}
+                            className="p-2 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] text-left font-medium"
+                          >
+                            1 Foto Sangrada
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              recordHistorySnapshot(spreads);
+                              handleChangePageLayout(activeLayoutMenuSide, 'single-bordered');
+                              setActiveLayoutMenuSide(null);
+                            }}
+                            className="p-2 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] text-left font-medium"
+                          >
+                            1 c/ Passepartout
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              recordHistorySnapshot(spreads);
+                              handleChangePageLayout(activeLayoutMenuSide, 'two-vertical');
+                              setActiveLayoutMenuSide(null);
+                            }}
+                            className="p-2 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] text-left font-medium"
+                          >
+                            2 Fotos Verticales
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              recordHistorySnapshot(spreads);
+                              handleChangePageLayout(activeLayoutMenuSide, 'two-horizontal');
+                              setActiveLayoutMenuSide(null);
+                            }}
+                            className="p-2 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] text-left font-medium"
+                          >
+                            2 Horizontales
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              recordHistorySnapshot(spreads);
+                              handleChangePageLayout(activeLayoutMenuSide, 'three-collage');
+                              setActiveLayoutMenuSide(null);
+                            }}
+                            className="p-2 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] text-left font-medium"
+                          >
+                            3 Fotos Mosaico
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              recordHistorySnapshot(spreads);
+                              handleChangePageLayout(activeLayoutMenuSide, 'four-grid');
+                              setActiveLayoutMenuSide(null);
+                            }}
+                            className="p-2 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] text-left font-medium"
+                          >
+                            4 Fotos Grilla
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              recordHistorySnapshot(spreads);
+                              handleChangePageLayout(activeLayoutMenuSide, 'editorial-text-photo');
+                              setActiveLayoutMenuSide(null);
+                            }}
+                            className="p-2 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] text-left font-medium"
+                          >
+                            Página de Texto
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              recordHistorySnapshot(spreads);
+                              handleChangePageLayout(activeLayoutMenuSide, 'blank');
+                              setActiveLayoutMenuSide(null);
+                            }}
+                            className="p-2 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] text-left font-medium"
+                          >
+                            Página en Blanco
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -3165,7 +3413,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       }`}
                     >
                       <Layout className="w-3.5 h-3.5 text-[#ECC880]" />
-                      <span>Diseños Predefinidos</span>
+                      <span>Diseños Predefinidos ({15})</span>
                     </button>
 
                     <button
@@ -3192,6 +3440,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         { id: '2', label: '2 fotos' },
                         { id: '3', label: '3 fotos' },
                         { id: '4', label: '4 fotos' },
+                        { id: '5+', label: '5+ fotos' },
                         { id: 'panoramic', label: 'Panorámica' },
                         { id: 'text', label: 'Texto' },
                       ].map((tab) => (
@@ -3239,9 +3488,144 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   <div className="flex items-center gap-2.5 overflow-x-auto py-1.5 px-1 scrollbar-thin">
                     {[
                       {
+                        id: 'five-photo-editorial',
+                        title: '5 Fotos Editorial',
+                        subtitle: '2 Arriba + 3 Abajo',
+                        photos: '5+',
+                        numPhotos: 5,
+                        badge: 'Nuevo',
+                        diagram: (
+                          <div className="w-full h-full flex flex-col gap-0.5 p-0.5 bg-[#FAF7F2]">
+                            <div className="flex-1 grid grid-cols-2 gap-0.5">
+                              <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                              <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            </div>
+                            <div className="flex-1 grid grid-cols-3 gap-0.5">
+                              <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                              <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                              <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            </div>
+                          </div>
+                        ),
+                      },
+                      {
+                        id: 'asymmetric-split',
+                        title: '3 Asimétrico 2+1',
+                        subtitle: '2 Horiz + 1 Vertical',
+                        photos: 3,
+                        numPhotos: 3,
+                        badge: 'Nuevo',
+                        diagram: (
+                          <div className="w-full h-full grid grid-cols-2 gap-0.5 p-0.5 bg-[#FAF7F2]">
+                            <div className="grid grid-rows-2 gap-0.5">
+                              <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                              <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            </div>
+                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          </div>
+                        ),
+                      },
+                      {
+                        id: 'three-vertical-triptych',
+                        title: 'Tríptico 3 Vert',
+                        subtitle: '3 Columnas Altas',
+                        photos: 3,
+                        numPhotos: 3,
+                        badge: 'Nuevo',
+                        diagram: (
+                          <div className="w-full h-full grid grid-cols-3 gap-0.5 p-0.5 bg-[#FAF7F2]">
+                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          </div>
+                        ),
+                      },
+                      {
+                        id: 'editorial-magazine-polaroid',
+                        title: 'Revista & Polaroid',
+                        subtitle: '4 Fotos + Título',
+                        photos: 4,
+                        numPhotos: 4,
+                        badge: 'Nuevo',
+                        diagram: (
+                          <div className="w-full h-full flex gap-0.5 p-0.5 bg-[#FAF7F2]">
+                            <div className="w-5/12 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs flex flex-col justify-end p-0.5">
+                              <div className="h-1 bg-[#1F1C18]/30 rounded-full" />
+                            </div>
+                            <div className="w-7/12 flex flex-col gap-0.5">
+                              <div className="h-2/5 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                              <div className="h-3/5 grid grid-cols-2 gap-0.5">
+                                <div className="bg-white border border-[#D6CEBE] p-0.5 flex flex-col">
+                                  <div className="flex-1 bg-[#8C6D37]/40 rounded-xs" />
+                                </div>
+                                <div className="bg-white border border-[#D6CEBE] p-0.5 flex flex-col">
+                                  <div className="flex-1 bg-[#8C6D37]/40 rounded-xs" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ),
+                      },
+                      {
+                        id: 'moodboard-mosaic-9',
+                        title: 'Moodboard Romántico',
+                        subtitle: '9 Fotos Mosaico',
+                        photos: '5+',
+                        numPhotos: 9,
+                        badge: 'Nuevo',
+                        diagram: (
+                          <div className="w-full h-full grid grid-cols-3 grid-rows-3 gap-0.5 p-0.5 bg-[#FAF7F2]">
+                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="col-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="col-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          </div>
+                        ),
+                      },
+                      {
+                        id: 'lifestyle-bento-10',
+                        title: 'Bento Lifestyle',
+                        subtitle: '10 Fotos Detalle',
+                        photos: '5+',
+                        numPhotos: 10,
+                        badge: 'Nuevo',
+                        diagram: (
+                          <div className="w-full h-full grid grid-cols-6 grid-rows-4 gap-0.5 p-0.5 bg-[#FAF7F2]">
+                            <div className="col-span-2 row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="col-span-2 row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="col-span-2 row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="col-span-3 row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                            <div className="col-span-3 row-span-2 bg-[#8C6D37]/40 border border-[#8C6D37] rounded-xs" />
+                          </div>
+                        ),
+                      },
+                      {
+                        id: 'botanical-floral-scrapbook',
+                        title: 'Scrapbook Botánico',
+                        subtitle: '5 Fotos + Floral',
+                        photos: '5+',
+                        numPhotos: 5,
+                        badge: 'Floral',
+                        diagram: (
+                          <div className="w-full h-full bg-[#FAF7F2] border border-[#E8E2D5] p-0.5 flex flex-col justify-between relative overflow-hidden">
+                            <div className="text-[5px] text-[#607D62] text-center italic font-serif">♡ my everything ♡</div>
+                            <div className="flex-1 grid grid-cols-3 gap-0.5 mt-0.5">
+                              <div className="col-span-2 bg-white border border-[#D6CEBE] p-0.5"><div className="w-full h-full bg-[#8C6D37]/40" /></div>
+                              <div className="bg-white border border-[#D6CEBE] p-0.5"><div className="w-full h-full bg-[#8C6D37]/40" /></div>
+                            </div>
+                          </div>
+                        ),
+                      },
+                      {
                         id: 'single-full',
                         title: '1 Foto Sangrada',
+                        subtitle: 'Página Completa',
                         photos: 1,
+                        numPhotos: 1,
                         diagram: (
                           <div className="w-full h-full bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs flex items-center justify-center text-[9px] font-bold text-[#8C6D37]">
                             1
@@ -3251,7 +3635,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       {
                         id: 'single-bordered',
                         title: 'Passepartout',
+                        subtitle: '1 Foto con Marco',
                         photos: 1,
+                        numPhotos: 1,
                         diagram: (
                           <div className="w-full h-full bg-white border border-[#D6CEBE] p-1 flex items-center justify-center">
                             <div className="w-4/5 h-4/5 bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs flex items-center justify-center text-[8px] font-bold text-[#8C6D37]">
@@ -3263,7 +3649,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       {
                         id: 'two-vertical',
                         title: '2 Verticales',
+                        subtitle: 'Paralelas',
                         photos: 2,
+                        numPhotos: 2,
                         diagram: (
                           <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5">
                             <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
@@ -3274,7 +3662,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       {
                         id: 'two-horizontal',
                         title: '2 Horizontales',
+                        subtitle: 'Apiladas',
                         photos: 2,
+                        numPhotos: 2,
                         diagram: (
                           <div className="w-full h-full grid grid-rows-2 gap-1 p-0.5">
                             <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
@@ -3284,8 +3674,10 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       },
                       {
                         id: 'three-collage',
-                        title: '3 Mosaico',
+                        title: '3 Mosaico Clásico',
+                        subtitle: '1 Grande + 2 Pequeñas',
                         photos: 3,
+                        numPhotos: 3,
                         diagram: (
                           <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5">
                             <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
@@ -3299,7 +3691,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       {
                         id: 'four-grid',
                         title: '4 Grilla 2x2',
+                        subtitle: 'Cuadrícula Equitativa',
                         photos: 4,
+                        numPhotos: 4,
                         diagram: (
                           <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-1 p-0.5">
                             <div className="bg-[#8C6D37]/30 border border-[#8C6D37] rounded-xs" />
@@ -3312,7 +3706,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       {
                         id: 'full-bleed-spread',
                         title: 'Panorámica 180°',
+                        subtitle: 'Doble Pliego',
                         photos: 'panoramic',
+                        numPhotos: 1,
                         diagram: (
                           <div className="w-full h-full bg-[#1F1C18] text-[#ECC880] flex items-center justify-center text-[8px] font-bold rounded-xs">
                             Panorámica
@@ -3321,8 +3717,10 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       },
                       {
                         id: 'editorial-text-photo',
-                        title: 'Editorial / Texto',
+                        title: 'Página de Texto',
+                        subtitle: 'Dedicatoria / Poesía',
                         photos: 'text',
+                        numPhotos: 0,
                         diagram: (
                           <div className="w-full h-full bg-[#F4EFE6] border border-[#D6CEBE] p-1 flex flex-col items-center justify-center text-[7px] text-[#595248] italic font-serif">
                             <span>“Título”</span>
@@ -3333,7 +3731,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       {
                         id: 'blank',
                         title: 'Blanco Fine Art',
+                        subtitle: 'Minimalista',
                         photos: 0,
+                        numPhotos: 0,
                         diagram: (
                           <div className="w-full h-full bg-white border border-[#D6CEBE] flex items-center justify-center text-[7px] text-[#A89F91]">
                             Vacío
@@ -3345,21 +3745,33 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         if (layoutPhotoFilter === 'all') return true;
                         if (layoutPhotoFilter === 'panoramic') return tmpl.id === 'full-bleed-spread';
                         if (layoutPhotoFilter === 'text') return tmpl.id === 'editorial-text-photo';
+                        if (layoutPhotoFilter === '5+') return tmpl.photos === '5+' || (typeof tmpl.photos === 'number' && tmpl.photos >= 5);
                         return String(tmpl.photos) === layoutPhotoFilter;
                       })
                       .map((tmpl) => (
                         <div
                           key={tmpl.id}
-                          className="flex-shrink-0 group/card bg-white rounded-xl border border-[#D6CEBE] hover:border-[#8C6D37] hover:shadow-md transition-all p-1.5 flex flex-col items-center gap-1 w-28"
+                          className="flex-shrink-0 group/card bg-white rounded-xl border border-[#D6CEBE] hover:border-[#8C6D37] hover:shadow-md transition-all p-2 flex flex-col items-center gap-1.5 w-32 relative"
                         >
+                          {tmpl.badge && (
+                            <span className="absolute top-1 right-1 bg-[#8C6D37] text-white text-[8px] font-bold px-1.5 py-0.2 rounded-full uppercase tracking-wider shadow-xs">
+                              {tmpl.badge}
+                            </span>
+                          )}
+
                           {/* Miniature Wireframe Diagram */}
-                          <div className="w-24 h-16 rounded bg-[#EFE9DE] overflow-hidden border border-[#D6CEBE]/50">
+                          <div className="w-28 h-18 rounded-lg bg-[#EFE9DE] overflow-hidden border border-[#D6CEBE]/50">
                             {tmpl.diagram}
                           </div>
 
-                          <span className="text-[10px] font-bold text-[#1F1C18] truncate w-full text-center">
-                            {tmpl.title}
-                          </span>
+                          <div className="w-full text-center">
+                            <span className="text-[10px] font-bold text-[#1F1C18] truncate block">
+                              {tmpl.title}
+                            </span>
+                            <span className="text-[8px] text-[#736B60] truncate block">
+                              {tmpl.subtitle}
+                            </span>
+                          </div>
 
                           {/* Quick Apply Buttons (Izq, Der, or Spread) */}
                           <div className="w-full flex gap-1 mt-0.5">
@@ -3370,7 +3782,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                                   recordHistorySnapshot(spreads);
                                   handleChangePageLayout('left', 'full-bleed-spread');
                                 }}
-                                className="w-full py-1 rounded bg-[#8C6D37] text-white text-[9px] font-bold hover:bg-[#73582A]"
+                                className="w-full py-1 rounded-lg bg-[#8C6D37] text-white text-[9px] font-bold hover:bg-[#73582A]"
                               >
                                 Aplicar a Pliego
                               </button>
@@ -3382,7 +3794,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                                     recordHistorySnapshot(spreads);
                                     handleChangePageLayout('left', tmpl.id as PageLayoutId);
                                   }}
-                                  className="flex-1 py-0.5 rounded bg-[#EFE9DE] hover:bg-[#1F1C18] hover:text-white text-[9px] font-bold transition-colors"
+                                  className="flex-1 py-1 rounded-lg bg-[#EFE9DE] hover:bg-[#1F1C18] hover:text-white text-[9px] font-bold transition-colors"
                                 >
                                   Izq
                                 </button>
@@ -3392,7 +3804,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                                     recordHistorySnapshot(spreads);
                                     handleChangePageLayout('right', tmpl.id as PageLayoutId);
                                   }}
-                                  className="flex-1 py-0.5 rounded bg-[#EFE9DE] hover:bg-[#1F1C18] hover:text-white text-[9px] font-bold transition-colors"
+                                  className="flex-1 py-1 rounded-lg bg-[#EFE9DE] hover:bg-[#1F1C18] hover:text-white text-[9px] font-bold transition-colors"
                                 >
                                   Der
                                 </button>

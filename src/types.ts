@@ -115,6 +115,13 @@ export type PageLayoutId =
   | 'two-horizontal' 
   | 'three-collage' 
   | 'four-grid' 
+  | 'five-photo-editorial'
+  | 'asymmetric-split'
+  | 'three-vertical-triptych'
+  | 'editorial-magazine-polaroid'
+  | 'moodboard-mosaic-9'
+  | 'lifestyle-bento-10'
+  | 'botanical-floral-scrapbook'
   | 'editorial-text-photo'
   | 'full-bleed-spread'
   | 'blank';
