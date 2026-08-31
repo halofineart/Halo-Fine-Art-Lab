@@ -42,7 +42,9 @@ import {
   Hand,
   SlidersHorizontal,
   Palette,
-  Crop
+  Crop,
+  MousePointerClick,
+  RotateCcw
 } from 'lucide-react';
 import { 
   BookFormatId, 
@@ -378,12 +380,91 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     });
   };
 
+  const handleSlotSetScale = (slotId: string, scale: number) => {
+    const nextScale = Math.min(3, Math.max(1, +(scale).toFixed(2)));
+    setSpreads((prevSpreads) => {
+      const activeSpread = prevSpreads[activeSpreadIndex];
+      if (!activeSpread) return prevSpreads;
+
+      const updateSlots = (page: any) => ({
+        ...page,
+        slots: page.slots.map((s: PageSlot) => (s.id === slotId ? { ...s, customScale: nextScale } : s))
+      });
+
+      return prevSpreads.map((s, i) =>
+        i === activeSpreadIndex
+          ? {
+              ...s,
+              leftPage: updateSlots(s.leftPage),
+              rightPage: updateSlots(s.rightPage),
+            }
+          : s
+      );
+    });
+  };
+
+  const handleSlotSetPositionX = (slotId: string, x: number) => {
+    setSpreads((prevSpreads) => {
+      const activeSpread = prevSpreads[activeSpreadIndex];
+      if (!activeSpread) return prevSpreads;
+
+      const updateSlots = (page: any) => ({
+        ...page,
+        slots: page.slots.map((s: PageSlot) => {
+          if (s.id !== slotId) return s;
+          const cur = s.customPosition || { x: 0, y: 0 };
+          return { ...s, customPosition: { ...cur, x } };
+        })
+      });
+
+      return prevSpreads.map((s, i) =>
+        i === activeSpreadIndex
+          ? {
+              ...s,
+              leftPage: updateSlots(s.leftPage),
+              rightPage: updateSlots(s.rightPage),
+            }
+          : s
+      );
+    });
+  };
+
+  const handleSlotSetPositionY = (slotId: string, y: number) => {
+    setSpreads((prevSpreads) => {
+      const activeSpread = prevSpreads[activeSpreadIndex];
+      if (!activeSpread) return prevSpreads;
+
+      const updateSlots = (page: any) => ({
+        ...page,
+        slots: page.slots.map((s: PageSlot) => {
+          if (s.id !== slotId) return s;
+          const cur = s.customPosition || { x: 0, y: 0 };
+          return { ...s, customPosition: { ...cur, y } };
+        })
+      });
+
+      return prevSpreads.map((s, i) =>
+        i === activeSpreadIndex
+          ? {
+              ...s,
+              leftPage: updateSlots(s.leftPage),
+              rightPage: updateSlots(s.rightPage),
+            }
+          : s
+      );
+    });
+  };
+
   const handleSlotRotate = (slotId: string) => {
     updateActiveSlot(slotId, (slot) => {
       const currentRot = slot.rotation || 0;
       const nextRot = (currentRot + 90) % 360;
       return { ...slot, rotation: nextRot };
     });
+  };
+
+  const handleSlotSetRotation = (slotId: string, rot: number) => {
+    updateActiveSlot(slotId, (slot) => ({ ...slot, rotation: rot % 360 }));
   };
 
   const handleSlotFlipH = (slotId: string) => {
@@ -836,6 +917,19 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
             handleAssignPhotoToSlot(slot.id, draggedPhotoId);
           }
         }}
+        onWheel={(e) => {
+          if (photo) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (selectedSlotId !== slot.id) {
+              setSelectedSlotId(slot.id);
+            }
+            const delta = e.deltaY < 0 ? 0.08 : -0.08;
+            const currentScale = slot.customScale || 1;
+            const nextScale = Math.min(3, Math.max(1, +(currentScale + delta).toFixed(2)));
+            handleSlotSetScale(slot.id, nextScale);
+          }
+        }}
         style={{
           borderWidth: borderWidth > 0 ? `${borderWidth}px` : undefined,
           borderColor: borderWidth > 0 ? borderColor : undefined,
@@ -1216,6 +1310,39 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       </div>
     );
   };
+
+  const selectedSlotData = (() => {
+    if (!selectedSlotId) return null;
+    const activeSpread = spreads[activeSpreadIndex];
+    if (!activeSpread) return null;
+    const leftSlots = activeSpread.leftPage?.slots || [];
+    const rightSlots = activeSpread.rightPage?.slots || [];
+    const leftSlotIndex = leftSlots.findIndex((s) => s.id === selectedSlotId);
+    if (leftSlotIndex !== -1) {
+      const slot = leftSlots[leftSlotIndex];
+      const photo = uploadedPhotos.find((p) => p.id === slot.photoId);
+      return {
+        slot,
+        photo,
+        pageSide: 'left' as const,
+        pageNumber: activeSpreadIndex * 2 + 1,
+        slotIndex: leftSlotIndex + 1,
+      };
+    }
+    const rightSlotIndex = rightSlots.findIndex((s) => s.id === selectedSlotId);
+    if (rightSlotIndex !== -1) {
+      const slot = rightSlots[rightSlotIndex];
+      const photo = uploadedPhotos.find((p) => p.id === slot.photoId);
+      return {
+        slot,
+        photo,
+        pageSide: 'right' as const,
+        pageNumber: activeSpreadIndex * 2 + 2,
+        slotIndex: rightSlotIndex + 1,
+      };
+    }
+    return null;
+  })();
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#F7F5EE] text-[#1F1C18] select-none overflow-hidden">
@@ -2999,6 +3126,549 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Right Sidebar: Permanent Inspector & Tool Sliders Panel */}
+            <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-[#E0D8C8] bg-[#FDFCF9] flex flex-col overflow-y-auto shrink-0 z-20">
+              {/* Panel Header */}
+              <div className="p-3.5 border-b border-[#E0D8C8] bg-[#F9F6EE] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal className="w-4 h-4 text-[#8C6D37]" />
+                  <span className="font-bold text-xs uppercase tracking-wider text-[#1F1C18]">
+                    Herramientas & Ajustes
+                  </span>
+                </div>
+                {selectedSlotData ? (
+                  <span className="px-2 py-0.5 rounded-full bg-[#0091FF]/10 text-[#0091FF] font-bold text-[10px] border border-[#0091FF]/30">
+                    Pág. {selectedSlotData.pageNumber}
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full bg-[#8C6D37]/10 text-[#8C6D37] font-bold text-[10px] border border-[#8C6D37]/30">
+                    Pliego {activeSpreadIndex + 1}
+                  </span>
+                )}
+              </div>
+
+              {/* Panel Body: Mode 1 - Selected Slot Inspector & Sliders */}
+              {selectedSlotData ? (
+                <div className="p-4 space-y-5">
+                  {/* Photo Header Card */}
+                  <div className="p-2.5 rounded-xl border border-[#D6CEBE] bg-[#F4EFE6]/70 flex items-center justify-between gap-2.5">
+                    {selectedSlotData.photo ? (
+                      <>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <img
+                            src={getThumbnailSrc(selectedSlotData.photo)}
+                            alt=""
+                            className="w-11 h-11 rounded-lg object-cover border border-[#D6CEBE] shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <span className="text-[11px] font-bold text-[#1F1C18] truncate block">
+                              {selectedSlotData.photo.name}
+                            </span>
+                            <span className="text-[9px] text-emerald-700 font-semibold flex items-center gap-1">
+                              <Check className="w-2.5 h-2.5" />
+                              Calidad Óptima (300 DPI)
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setShowSwapPickerSlotId(selectedSlotData.slot.id)}
+                            className="p-1.5 rounded-lg bg-white hover:bg-[#E2D8C7] border border-[#D6CEBE] text-[#1F1C18] text-[10px] font-semibold"
+                            title="Cambiar foto"
+                          >
+                            <ArrowLeftRight className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePhotoFromSlot(selectedSlotData.slot.id)}
+                            className="p-1.5 rounded-lg bg-white hover:bg-rose-50 border border-[#D6CEBE] text-rose-600 text-[10px] font-semibold"
+                            title="Quitar foto"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-full text-center py-1">
+                        <span className="text-xs font-semibold text-[#736B60] block">Ranura sin Foto</span>
+                        <span className="text-[10px] text-[#A89F91]">Arrastra una foto de la izquierda</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 1. CONTROL DESLIZANTE: ZOOM DEL ENCUADRE */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1.5">
+                        <ZoomIn className="w-3.5 h-3.5 text-[#8C6D37]" />
+                        <span>Zoom del Encuadre</span>
+                      </label>
+                      <span className="font-mono font-bold text-xs text-[#8C6D37] bg-[#8C6D37]/10 px-2 py-0.5 rounded-md">
+                        {Math.round((selectedSlotData.slot.customScale || 1) * 100)}% ({((selectedSlotData.slot.customScale || 1)).toFixed(1)}x)
+                      </span>
+                    </div>
+
+                    {/* Range Slider */}
+                    <input
+                      type="range"
+                      min="1.0"
+                      max="3.0"
+                      step="0.05"
+                      value={selectedSlotData.slot.customScale || 1}
+                      onChange={(e) => handleSlotSetScale(selectedSlotData.slot.id, parseFloat(e.target.value))}
+                      className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
+                    />
+
+                    {/* Quick Presets & Precision Steppers */}
+                    <div className="flex items-center justify-between gap-1 pt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => handleSlotZoom(selectedSlotData.slot.id, -0.1)}
+                        className="px-2.5 py-1 rounded bg-[#EFE9DE] hover:bg-[#E2D8C7] text-xs font-bold text-[#1F1C18]"
+                        title="Reducir zoom 10%"
+                      >
+                        -
+                      </button>
+                      <div className="flex items-center gap-1">
+                        {[1, 1.25, 1.5, 2, 3].map((val) => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => handleSlotSetScale(selectedSlotData.slot.id, val)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all ${
+                              Math.abs((selectedSlotData.slot.customScale || 1) - val) < 0.05
+                                ? 'bg-[#8C6D37] text-white shadow-xs'
+                                : 'bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#595248]'
+                            }`}
+                          >
+                            {val === 1 ? '1x' : `${val}x`}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleSlotZoom(selectedSlotData.slot.id, 0.1)}
+                        className="px-2.5 py-1 rounded bg-[#EFE9DE] hover:bg-[#E2D8C7] text-xs font-bold text-[#1F1C18]"
+                        title="Aumentar zoom 10%"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <p className="text-[10px] text-[#736B60] italic bg-[#FAF6EF] p-1.5 rounded-lg border border-[#E8E0D2] flex items-center gap-1.5">
+                      <span className="text-xs">🖱️</span>
+                      <span>Puedes hacer zoom con la rueda (scroll) del ratón sobre la foto.</span>
+                    </p>
+                  </div>
+
+                  {/* 2. CONTROLES DESLIZANTES: DESPLAZAMIENTO / ENCUADRE (X & Y) */}
+                  <div className="space-y-2 pt-1 border-t border-[#E8E2D5]">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1.5">
+                        <Move className="w-3.5 h-3.5 text-[#8C6D37]" />
+                        <span>Desplazamiento del Encuadre</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handleResetSlotPosition(selectedSlotData.slot.id)}
+                        className="text-[10px] font-bold text-[#8C6D37] hover:underline"
+                      >
+                        Centrar
+                      </button>
+                    </div>
+
+                    {/* Horizontal X Slider */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[10px] text-[#736B60]">
+                        <span>Horizontal (Eje X)</span>
+                        <span className="font-mono font-bold text-[#1F1C18]">
+                          {selectedSlotData.slot.customPosition?.x || 0} px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-150"
+                        max="150"
+                        step="2"
+                        value={selectedSlotData.slot.customPosition?.x || 0}
+                        onChange={(e) => handleSlotSetPositionX(selectedSlotData.slot.id, parseInt(e.target.value))}
+                        className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
+                      />
+                    </div>
+
+                    {/* Vertical Y Slider */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[10px] text-[#736B60]">
+                        <span>Vertical (Eje Y)</span>
+                        <span className="font-mono font-bold text-[#1F1C18]">
+                          {selectedSlotData.slot.customPosition?.y || 0} px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-150"
+                        max="150"
+                        step="2"
+                        value={selectedSlotData.slot.customPosition?.y || 0}
+                        onChange={(e) => handleSlotSetPositionY(selectedSlotData.slot.id, parseInt(e.target.value))}
+                        className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
+                      />
+                    </div>
+
+                    <p className="text-[10px] text-[#736B60] italic bg-[#FAF6EF] p-1.5 rounded-lg border border-[#E8E0D2] flex items-center gap-1.5">
+                      <span className="text-xs">✋</span>
+                      <span>También puedes arrastrar directamente con el ratón sobre la foto.</span>
+                    </p>
+                  </div>
+
+                  {/* 3. CONTROL DESLIZANTE: BORDE & PASSEPARTOUT */}
+                  <div className="space-y-2 pt-1 border-t border-[#E8E2D5]">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1.5">
+                        <Crop className="w-3.5 h-3.5 text-[#8C6D37]" />
+                        <span>Borde & Passepartout</span>
+                      </label>
+                      <span className="font-mono font-bold text-xs text-[#1F1C18]">
+                        {selectedSlotData.slot.borderWidth || 0} px
+                      </span>
+                    </div>
+
+                    <input
+                      type="range"
+                      min="0"
+                      max="20"
+                      step="1"
+                      value={selectedSlotData.slot.borderWidth || 0}
+                      onChange={(e) =>
+                        handleSlotBorder(
+                          selectedSlotData.slot.id,
+                          parseInt(e.target.value),
+                          selectedSlotData.slot.borderColor || '#FFFFFF'
+                        )
+                      }
+                      className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
+                    />
+
+                    {/* Border Color Swatches */}
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[10px] text-[#736B60]">Color del Borde:</span>
+                      <div className="flex items-center gap-1.5">
+                        {[
+                          { color: '#FFFFFF', name: 'Blanco' },
+                          { color: '#C5A059', name: 'Oro Fine Art' },
+                          { color: '#1F1C18', name: 'Negro Carbón' },
+                          { color: '#EFE9DE', name: 'Marfil' },
+                          { color: '#D6CEBE', name: 'Lino' },
+                        ].map((c) => (
+                          <button
+                            key={c.color}
+                            type="button"
+                            onClick={() =>
+                              handleSlotBorder(
+                                selectedSlotData.slot.id,
+                                (selectedSlotData.slot.borderWidth || 0) > 0 ? selectedSlotData.slot.borderWidth! : 4,
+                                c.color
+                              )
+                            }
+                            className={`w-5 h-5 rounded-full border-2 transition-transform hover:scale-110 shadow-xs ${
+                              selectedSlotData.slot.borderColor === c.color && (selectedSlotData.slot.borderWidth || 0) > 0
+                                ? 'ring-2 ring-[#8C6D37] scale-110'
+                                : 'border-[#D6CEBE]'
+                            }`}
+                            style={{ backgroundColor: c.color }}
+                            title={c.name}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 4. MODO DE RELLENO (FIT / COVER) */}
+                  <div className="space-y-1.5 pt-1 border-t border-[#E8E2D5]">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
+                      Ajuste de Proporción
+                    </span>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (selectedSlotData.slot.fitMode === 'contain') {
+                            handleSlotFitMode(selectedSlotData.slot.id);
+                          }
+                        }}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all border ${
+                          selectedSlotData.slot.fitMode !== 'contain'
+                            ? 'bg-[#1F1C18] text-[#FDFCF9] border-[#1F1C18] shadow-xs'
+                            : 'bg-white text-[#736B60] border-[#D6CEBE] hover:text-[#1F1C18]'
+                        }`}
+                      >
+                        Llenar Marco
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (selectedSlotData.slot.fitMode !== 'contain') {
+                            handleSlotFitMode(selectedSlotData.slot.id);
+                          }
+                        }}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all border ${
+                          selectedSlotData.slot.fitMode === 'contain'
+                            ? 'bg-[#1F1C18] text-[#FDFCF9] border-[#1F1C18] shadow-xs'
+                            : 'bg-white text-[#736B60] border-[#D6CEBE] hover:text-[#1F1C18]'
+                        }`}
+                      >
+                        Foto Completa
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 5. ROTACIÓN Y REFLEJO */}
+                  <div className="space-y-1.5 pt-1 border-t border-[#E8E2D5]">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
+                      Transformación
+                    </span>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleSlotRotate(selectedSlotData.slot.id)}
+                        className="py-1.5 px-1 rounded-lg bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[10px] font-bold flex flex-col items-center gap-1 shadow-xs"
+                      >
+                        <RotateCw className="w-3.5 h-3.5" />
+                        <span>Girar 90°</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSlotFlipH(selectedSlotData.slot.id)}
+                        className={`py-1.5 px-1 rounded-lg border text-[10px] font-bold flex flex-col items-center gap-1 shadow-xs ${
+                          selectedSlotData.slot.flipH
+                            ? 'bg-[#8C6D37] text-white border-[#8C6D37]'
+                            : 'bg-white border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18]'
+                        }`}
+                      >
+                        <FlipHorizontal className="w-3.5 h-3.5" />
+                        <span>Espejo</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleSlotSetRotation(
+                            selectedSlotData.slot.id,
+                            ((selectedSlotData.slot.rotation || 0) + 180) % 360
+                          )
+                        }
+                        className="py-1.5 px-1 rounded-lg bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[10px] font-bold flex flex-col items-center gap-1 shadow-xs"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Girar 180°</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 6. FILTROS FINE ART */}
+                  <div className="space-y-1.5 pt-1 border-t border-[#E8E2D5]">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
+                      Filtros Fine Art Emulsión
+                    </span>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {[
+                        { id: 'none', label: 'Original' },
+                        { id: 'fine-art-bw', label: 'B&N Fine Art' },
+                        { id: 'warm-vintage', label: 'Warm Vintage' },
+                        { id: 'high-contrast', label: 'Alto Contraste' },
+                        { id: 'fuji-film', label: 'Fuji Astia' },
+                        { id: 'kodak-chrome', label: 'Kodak Portra' },
+                        { id: 'matte-portrait', label: 'Matte Portrait' },
+                      ].map((f) => {
+                        const isCurrent = (selectedSlotData.slot.filter || 'none') === f.id;
+                        return (
+                          <button
+                            key={f.id}
+                            type="button"
+                            onClick={() => handleSlotFilter(selectedSlotData.slot.id, f.id as any)}
+                            className={`py-1.5 px-2 rounded-lg text-[10px] font-bold transition-all text-left truncate border ${
+                              isCurrent
+                                ? 'bg-[#8C6D37] text-white border-[#8C6D37] shadow-xs'
+                                : 'bg-white text-[#595248] border-[#D6CEBE] hover:bg-[#EFE9DE]'
+                            }`}
+                          >
+                            {f.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 7. DESELECCIONAR */}
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSlotId(null)}
+                      className="w-full py-2 rounded-xl bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#595248] text-xs font-bold transition-colors"
+                    >
+                      Cerrar Ajustes de Foto
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Mode 2 - General Spread Controls */
+                <div className="p-4 space-y-5">
+                  {/* Active Spread Info Card */}
+                  <div className="p-3 rounded-xl border border-[#D6CEBE] bg-[#F4EFE6]/80 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-[#1F1C18] block">
+                        Pliego {activeSpreadIndex + 1} de {spreads.length}
+                      </span>
+                      <span className="text-[10px] text-[#736B60]">
+                        Páginas {activeSpreadIndex * 2 + 1} y {activeSpreadIndex * 2 + 2}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold text-[#8C6D37] uppercase bg-[#8C6D37]/10 px-2 py-0.5 rounded-full">
+                      Activo
+                    </span>
+                  </div>
+
+                  {/* Interactive Tip Banner */}
+                  <div className="p-3 rounded-xl border border-[#C5A059]/40 bg-[#FAF6EF] space-y-1.5">
+                    <div className="flex items-center gap-1.5 font-bold text-xs text-[#8C6D37]">
+                      <MousePointerClick className="w-4 h-4" />
+                      <span>Controles Deslizantes de Foto</span>
+                    </div>
+                    <p className="text-[11px] text-[#595248] leading-relaxed">
+                      Haz clic en cualquier fotografía o marco del pliego para abrir los deslizadores de <strong>Zoom</strong>, <strong>Encuadre X/Y</strong>, <strong>Filtros</strong> y <strong>Passepartout</strong>.
+                    </p>
+                  </div>
+
+                  {/* CONTROL DESLIZANTE: SEPARACIÓN ENTRE FOTOS (GAP) */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1.5">
+                        <Grid className="w-3.5 h-3.5 text-[#8C6D37]" />
+                        <span>Separación entre Fotos (Gap)</span>
+                      </label>
+                      <span className="font-mono font-bold text-xs text-[#8C6D37] bg-[#8C6D37]/10 px-2 py-0.5 rounded-md">
+                        {spreadPhotoGap} px
+                      </span>
+                    </div>
+
+                    <input
+                      type="range"
+                      min="0"
+                      max="32"
+                      step="2"
+                      value={spreadPhotoGap}
+                      onChange={(e) => setSpreadPhotoGap(Number(e.target.value))}
+                      className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
+                    />
+
+                    <div className="grid grid-cols-4 gap-1 pt-0.5">
+                      {[
+                        { val: 0, label: '0px' },
+                        { val: 8, label: '8px' },
+                        { val: 16, label: '16px' },
+                        { val: 24, label: '24px' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.val}
+                          type="button"
+                          onClick={() => setSpreadPhotoGap(preset.val)}
+                          className={`py-1 rounded text-[10px] font-bold transition-all ${
+                            spreadPhotoGap === preset.val
+                              ? 'bg-[#8C6D37] text-white shadow-xs'
+                              : 'bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#595248]'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* FONDOS FINE ART PARA EL PLIEGO */}
+                  <div className="space-y-2 pt-1 border-t border-[#E8E2D5]">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1.5">
+                      <Palette className="w-3.5 h-3.5 text-[#8C6D37]" />
+                      <span>Fondo de Papel del Pliego</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      {[
+                        { color: '#FFFFFF', name: 'Blanco Puro' },
+                        { color: '#FDFCFA', name: 'Lino Cálido' },
+                        { color: '#FAF6EF', name: 'Marfil Algodón' },
+                        { color: '#F2F4F0', name: 'Salvia Editorial' },
+                        { color: '#2B2B2B', name: 'Gris Carbón' },
+                      ].map((bg) => (
+                        <button
+                          key={bg.color}
+                          type="button"
+                          onClick={() => {
+                            setSpreads((prev) =>
+                              prev.map((s, i) =>
+                                i === activeSpreadIndex
+                                  ? {
+                                      ...s,
+                                      leftPage: { ...s.leftPage, backgroundColor: bg.color },
+                                      rightPage: { ...s.rightPage, backgroundColor: bg.color },
+                                    }
+                                  : s
+                              )
+                            );
+                          }}
+                          className="w-7 h-7 rounded-full border-2 border-[#D6CEBE] hover:scale-110 transition-transform shadow-xs flex items-center justify-center"
+                          style={{ backgroundColor: bg.color }}
+                          title={bg.name}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* HERRAMIENTAS DE COMPOSICIÓN */}
+                  <div className="space-y-2 pt-1 border-t border-[#E8E2D5]">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
+                      Composición del Pliego
+                    </span>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleAddPhotoSlotToPage('left')}
+                        className="p-2 rounded-xl bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-[#8C6D37]" />
+                        <span>+ Marco Izq</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddPhotoSlotToPage('right')}
+                        className="p-2 rounded-xl bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-[#8C6D37]" />
+                        <span>+ Marco Der</span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleFlipSpreadSides}
+                      className="w-full p-2 rounded-xl bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-xs"
+                    >
+                      <ArrowLeftRight className="w-3.5 h-3.5 text-[#8C6D37]" />
+                      <span>Invertir Pliego (Swap Izq / Der)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleAutoLayout}
+                      className="w-full p-2.5 rounded-xl bg-[#8C6D37] text-white hover:bg-[#73582A] text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Auto-Fill Inteligente</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
