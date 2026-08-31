@@ -256,12 +256,17 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   } | null>(null);
 
   // Undo / Redo History Stack (Deshacer / Rehacer con Ctrl+Z y Ctrl+Y)
+  const spreadsRef = useRef<PhotobookSpread[]>(spreads);
+  useEffect(() => {
+    spreadsRef.current = spreads;
+  }, [spreads]);
+
   const historyRef = useRef<PhotobookSpread[][]>([]);
   const historyIndexRef = useRef<number>(-1);
   const [historyCount, setHistoryCount] = useState<number>(0);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
 
-  // Initialize history on mount
+  // Initialize history with initial state on mount
   useEffect(() => {
     if (historyRef.current.length === 0 && spreads.length > 0) {
       const initialSnapshot = JSON.parse(JSON.stringify(spreads));
@@ -272,20 +277,35 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     }
   }, []);
 
-  // Save history snapshot before or after making changes
-  const recordHistorySnapshot = useCallback((stateToSnapshot?: PhotobookSpread[]) => {
-    const currentSpreadState = stateToSnapshot || spreads;
+  // Save new state snapshot to history (discards redo forward branch, prevents duplicate states)
+  const pushStateToHistory = useCallback((nextSpreads: PhotobookSpread[]) => {
     const currentIdx = historyIndexRef.current;
     const nextHistory = historyRef.current.slice(0, currentIdx + 1);
-    nextHistory.push(JSON.parse(JSON.stringify(currentSpreadState)));
-    if (nextHistory.length > 35) {
+    const serialized = JSON.stringify(nextSpreads);
+
+    if (nextHistory.length > 0) {
+      const lastSerialized = JSON.stringify(nextHistory[nextHistory.length - 1]);
+      if (lastSerialized === serialized) {
+        return;
+      }
+    }
+
+    nextHistory.push(JSON.parse(serialized));
+    if (nextHistory.length > 50) {
       nextHistory.shift();
     }
     historyRef.current = nextHistory;
-    historyIndexRef.current = nextHistory.length - 1;
+    const newIdx = nextHistory.length - 1;
+    historyIndexRef.current = newIdx;
     setHistoryCount(nextHistory.length);
-    setHistoryIndex(nextHistory.length - 1);
-  }, [spreads]);
+    setHistoryIndex(newIdx);
+  }, []);
+
+  // Snapshot recording helper (accepts explicit state or falls back to latest ref)
+  const recordHistorySnapshot = useCallback((stateToSnapshot?: PhotobookSpread[]) => {
+    const targetState = stateToSnapshot || spreadsRef.current;
+    pushStateToHistory(targetState);
+  }, [pushStateToHistory]);
 
   const handleUndo = useCallback(() => {
     if (historyIndexRef.current > 0) {
@@ -294,7 +314,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       if (targetState) {
         historyIndexRef.current = targetIndex;
         setHistoryIndex(targetIndex);
-        setSpreads(JSON.parse(JSON.stringify(targetState)));
+        const restored = JSON.parse(JSON.stringify(targetState));
+        spreadsRef.current = restored;
+        setSpreads(restored);
       }
     }
   }, []);
@@ -306,7 +328,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       if (targetState) {
         historyIndexRef.current = targetIndex;
         setHistoryIndex(targetIndex);
-        setSpreads(JSON.parse(JSON.stringify(targetState)));
+        const restored = JSON.parse(JSON.stringify(targetState));
+        spreadsRef.current = restored;
+        setSpreads(restored);
       }
     }
   }, []);
@@ -422,7 +446,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
       if (panDragRef.current?.hasMoved) {
-        recordHistorySnapshot(spreads);
+        pushStateToHistory(spreadsRef.current);
       }
       setPanningSlotId(null);
       panDragRef.current = null;
@@ -895,10 +919,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
   // Add photo slot dynamically to active page (Zno "Agregar Marco")
   const handleAddPhotoSlotToPage = (side: 'left' | 'right') => {
-    const activeSpread = spreads[activeSpreadIndex];
+    const current = spreadsRef.current.length > 0 ? spreadsRef.current : spreads;
+    const activeSpread = current[activeSpreadIndex];
     if (!activeSpread) return;
-
-    recordHistorySnapshot(spreads);
 
     const targetPage = side === 'left' ? activeSpread.leftPage : activeSpread.rightPage;
     const newSlotId = `slot-add-${Date.now()}`;
@@ -914,16 +937,18 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       [side === 'left' ? 'leftPage' : 'rightPage']: updatedPage
     };
 
-    setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+    const nextSpreads = current.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s));
+    spreadsRef.current = nextSpreads;
+    setSpreads(nextSpreads);
+    pushStateToHistory(nextSpreads);
     setSelectedSlotId(newSlotId);
   };
 
   // Invert left and right pages in current spread (Zno "Voltear")
   const handleFlipSpreadSides = () => {
-    const activeSpread = spreads[activeSpreadIndex];
+    const current = spreadsRef.current.length > 0 ? spreadsRef.current : spreads;
+    const activeSpread = current[activeSpreadIndex];
     if (!activeSpread) return;
-
-    recordHistorySnapshot(spreads);
 
     const updatedSpread: PhotobookSpread = {
       ...activeSpread,
@@ -931,17 +956,21 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       rightPage: { ...activeSpread.leftPage, id: `p-${Date.now()}-R` }
     };
 
-    setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+    const nextSpreads = current.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s));
+    spreadsRef.current = nextSpreads;
+    setSpreads(nextSpreads);
+    pushStateToHistory(nextSpreads);
   };
 
   const handleDuplicateSpread = (index: number) => {
-    const spreadToCopy = spreads[index];
+    const current = spreadsRef.current.length > 0 ? spreadsRef.current : spreads;
+    const spreadToCopy = current[index];
     if (!spreadToCopy) return;
 
     const newSpread: PhotobookSpread = {
       ...spreadToCopy,
       id: `spread-dup-${Date.now()}`,
-      spreadNumber: spreads.length + 1,
+      spreadNumber: current.length + 1,
       leftPage: {
         ...spreadToCopy.leftPage,
         id: `p-dup-L-${Date.now()}`,
@@ -954,16 +983,19 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       }
     };
 
-    const newSpreads = [...spreads];
+    const newSpreads = [...current];
     newSpreads.splice(index + 1, 0, newSpread);
     const renumbered = newSpreads.map((s, idx) => ({ ...s, spreadNumber: idx + 1 }));
+    spreadsRef.current = renumbered;
     setSpreads(renumbered);
+    pushStateToHistory(renumbered);
     setActiveSpreadIndex(index + 1);
   };
 
   // Swap photos between two slots
   const handleSwapSlots = (slotIdA: string, slotIdB: string) => {
-    const activeSpread = spreads[activeSpreadIndex];
+    const current = spreadsRef.current.length > 0 ? spreadsRef.current : spreads;
+    const activeSpread = current[activeSpreadIndex];
     if (!activeSpread) return;
 
     const allSlots = [...activeSpread.leftPage.slots, ...activeSpread.rightPage.slots];
@@ -989,7 +1021,10 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       rightPage: swapInPage(activeSpread.rightPage),
     };
 
-    setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+    const nextSpreads = current.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s));
+    spreadsRef.current = nextSpreads;
+    setSpreads(nextSpreads);
+    pushStateToHistory(nextSpreads);
   };
 
   // Calculate pricing
@@ -1043,7 +1078,8 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
   // Spread manipulations
   const handleAddSpread = () => {
-    const newSpreadNumber = spreads.length + 1;
+    const current = spreadsRef.current.length > 0 ? spreadsRef.current : spreads;
+    const newSpreadNumber = current.length + 1;
     const newSpread: PhotobookSpread = {
       id: `spread-${Date.now()}`,
       spreadNumber: newSpreadNumber,
@@ -1058,16 +1094,22 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
         slots: [{ id: `s-${Date.now()}-2` }, { id: `s-${Date.now()}-3` }],
       }
     };
-    setSpreads((prev) => [...prev, newSpread]);
-    setActiveSpreadIndex(spreads.length);
+    const nextSpreads = [...current, newSpread];
+    spreadsRef.current = nextSpreads;
+    setSpreads(nextSpreads);
+    pushStateToHistory(nextSpreads);
+    setActiveSpreadIndex(nextSpreads.length - 1);
   };
 
   const handleDeleteSpread = (index: number) => {
-    if (spreads.length <= 1) return;
-    const filtered = spreads.filter((_, i) => i !== index);
+    const current = spreadsRef.current.length > 0 ? spreadsRef.current : spreads;
+    if (current.length <= 1) return;
+    const filtered = current.filter((_, i) => i !== index);
     // re-number
     const renumbered = filtered.map((s, idx) => ({ ...s, spreadNumber: idx + 1 }));
+    spreadsRef.current = renumbered;
     setSpreads(renumbered);
+    pushStateToHistory(renumbered);
     setActiveSpreadIndex(Math.max(0, Math.min(index, renumbered.length - 1)));
   };
 
@@ -3424,57 +3466,59 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* STEP 1: FORMAT & SIZES */}
         {currentStep === 'format' && (
-          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col">
-            <div className="max-w-6xl w-full mx-auto p-3.5 sm:p-6 my-auto flex flex-col">
-              <div className="text-center max-w-2xl mx-auto mb-3 sm:mb-5">
-                <span className="text-[10px] sm:text-xs font-bold tracking-widest text-[#8C6D37] uppercase">Paso 1 de 5</span>
-                <h2 className="font-serif-luxury text-2xl sm:text-3xl text-[#1F1C18] mt-0.5">
+          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col justify-center">
+            <div className="max-w-5xl w-full mx-auto px-3 sm:px-6 py-2 sm:py-4 my-auto flex flex-col justify-between">
+              <div className="text-center max-w-xl mx-auto mb-2 sm:mb-3">
+                <span className="text-[10px] font-bold tracking-widest text-[#8C6D37] uppercase">Paso 1 de 5</span>
+                <h2 className="font-serif-luxury text-xl sm:text-2xl text-[#1F1C18] mt-0.5">
                   Elegí el formato y tamaño de tu libro
                 </h2>
-                <p className="text-[11px] sm:text-xs text-[#595248] mt-1 max-w-xl mx-auto">
+                <p className="text-[11px] text-[#595248] mt-0.5 max-w-md mx-auto">
                   Todos nuestros álbumes cuentan con encuadernación rígida 100% Layflat de apertura plana a 180°.
                 </p>
               </div>
 
-              {/* 6 Formats in 3 Columns (2 neat rows on desktop/tablet) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3.5">
+              {/* 6 Formats in 3 Columns x 2 Rows (Ultra-clean, compact, zero-scroll) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5">
                 {BOOK_FORMATS.map((fmt) => {
                   const isSelected = fmt.id === formatId;
                   return (
                     <div
                       key={fmt.id}
                       onClick={() => setFormatId(fmt.id)}
-                      className={`cursor-pointer rounded-xl border p-3 sm:p-4 transition-all relative flex flex-col justify-between ${
+                      className={`cursor-pointer rounded-xl border p-2.5 sm:p-3 transition-all relative flex flex-col justify-between ${
                         isSelected
                           ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-md ring-2 ring-[#8C6D37]/30'
                           : 'border-[#D6CEBE] bg-[#F4EFE6]/60 hover:bg-[#FDFCF9] hover:border-[#B8AB98]'
                       }`}
                     >
                       {fmt.popular && (
-                        <span className="absolute top-2.5 right-2.5 bg-[#8C6D37] text-white text-[9px] tracking-wider uppercase font-bold px-2 py-0.5 rounded-full shadow-xs">
+                        <span className="absolute top-2 right-2 bg-[#8C6D37] text-white text-[8px] tracking-wider uppercase font-bold px-1.5 py-0.5 rounded-full shadow-xs">
                           Más Elegido
                         </span>
                       )}
 
                       <div>
-                        <div className="flex items-start justify-between gap-2 pr-14 mb-1">
-                          <div>
-                            <h3 className="font-serif-luxury text-base sm:text-lg font-bold text-[#1F1C18] leading-tight">
-                              {fmt.name}
-                            </h3>
-                            <p className="font-mono text-[11px] text-[#8C6D37] font-semibold mt-0.5">{fmt.dimensions}</p>
-                          </div>
+                        <div className="flex items-baseline justify-between gap-1 mb-0.5 pr-14">
+                          <h3 className="font-serif-luxury text-sm sm:text-base font-bold text-[#1F1C18] leading-tight">
+                            {fmt.name}
+                          </h3>
                         </div>
 
-                        <div className="font-serif-luxury text-base sm:text-lg font-bold text-[#1F1C18] my-1">
-                          {formatPriceARS(fmt.basePrice)}
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="font-mono text-[10.5px] text-[#8C6D37] font-semibold">{fmt.dimensions}</span>
+                          <span className="font-serif-luxury text-sm sm:text-base font-bold text-[#1F1C18]">
+                            {formatPriceARS(fmt.basePrice)}
+                          </span>
                         </div>
 
-                        <p className="text-[11px] text-[#595248] leading-snug line-clamp-2 mb-2">{fmt.description}</p>
+                        <p className="text-[10px] sm:text-[10.5px] text-[#595248] leading-snug line-clamp-2 mb-1.5">
+                          {fmt.description}
+                        </p>
                       </div>
 
-                      <div className="flex items-center justify-between border-t border-[#E8E2D5] pt-2 text-[10px] text-[#736B60]">
-                        <span>Incluye {fmt.basePages} páginas</span>
+                      <div className="flex items-center justify-between border-t border-[#E8E2D5] pt-1.5 text-[9.5px] text-[#736B60]">
+                        <span>{fmt.basePages} páginas rígidas</span>
                         <span className="font-semibold text-[#1F1C18]">Recom: {fmt.idealPhotos}</span>
                       </div>
                     </div>
@@ -3483,7 +3527,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               </div>
 
               {/* Bottom Continue Action Bar */}
-              <div className="mt-3 sm:mt-5 flex justify-end">
+              <div className="mt-2.5 sm:mt-4 flex justify-end">
                 <button
                   type="button"
                   onClick={() => setCurrentStep('cover')}
@@ -3499,28 +3543,28 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
         {/* STEP 2: COVER, MATERIAL & FOIL STAMPING */}
         {currentStep === 'cover' && (
-          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col">
-            <div className="max-w-6xl w-full mx-auto p-3.5 sm:p-5 my-auto grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-center">
-              {/* Left Column: Live 3D Cover Mockup (Compact & Balanced) */}
+          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col justify-center">
+            <div className="max-w-5xl w-full mx-auto px-3 sm:px-6 py-2 sm:py-3 my-auto grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-5 items-center">
+              {/* Left Column: Live 3D Cover Mockup (Slim & Compact) */}
               <div className="lg:col-span-5 flex flex-col items-center justify-center">
-                <div className="w-full max-w-[280px] sm:max-w-[320px]">
-                  <span className="text-[10px] font-bold tracking-widest text-[#8C6D37] uppercase mb-1.5 block text-center">
-                    VISTA PREVIA DE PORTADA REAL
+                <div className="w-full max-w-[210px] sm:max-w-[240px]">
+                  <span className="text-[9.5px] font-bold tracking-widest text-[#8C6D37] uppercase mb-1 block text-center">
+                    VISTA PREVIA DE PORTADA
                   </span>
 
                   {/* The Luxury Book Cover Card */}
                   <div 
-                    className={`aspect-[4/5] rounded-xl p-5 sm:p-6 flex flex-col justify-between shadow-xl relative border-2 border-black/10 transition-all duration-500 overflow-hidden ${currentCover.textureClass}`}
+                    className={`aspect-[4/5] rounded-xl p-4 flex flex-col justify-between shadow-xl relative border border-black/10 transition-all duration-500 overflow-hidden ${currentCover.textureClass}`}
                     style={{ backgroundColor: currentCover.colorHex }}
                   >
                     <div className="absolute inset-0 linen-texture opacity-30 pointer-events-none" />
 
                     {/* Left Spine Crease Shadow */}
-                    <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-black/25 via-black/10 to-transparent pointer-events-none" />
+                    <div className="absolute left-0 top-0 bottom-0 w-5 bg-gradient-to-r from-black/25 via-black/10 to-transparent pointer-events-none" />
 
                     {/* Optional Cover Photo Window */}
                     {hasCoverWindow ? (
-                      <div className="w-24 h-24 mx-auto my-auto rounded-lg border-2 border-[#C5A059]/40 overflow-hidden shadow-xl relative bg-white">
+                      <div className="w-16 h-16 mx-auto my-auto rounded border border-[#C5A059]/40 overflow-hidden shadow-md relative bg-white">
                         <img
                           src={uploadedPhotos[0]?.url || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=600&q=80'}
                           alt="Foto de Portada"
@@ -3528,13 +3572,13 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         />
                       </div>
                     ) : (
-                      <div className="h-6" />
+                      <div className="h-4" />
                     )}
 
                     {/* Embossed & Stamped Hot Foil Title */}
-                    <div className="text-center relative z-10 my-auto px-2">
+                    <div className="text-center relative z-10 my-auto px-1">
                       <span 
-                        className="font-brand text-lg sm:text-2xl font-bold tracking-[0.2em] block uppercase foil-stamping-emboss drop-shadow-xs"
+                        className="font-brand text-base sm:text-lg font-bold tracking-[0.2em] block uppercase foil-stamping-emboss drop-shadow-xs"
                         style={{
                           color: FOIL_OPTIONS.find(f => f.id === foilColor)?.colorHex || '#D4AF37',
                         }}
@@ -3543,7 +3587,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       </span>
 
                       <span 
-                        className="font-serif-luxury text-xs tracking-[0.15em] block uppercase mt-1.5 font-medium opacity-90 foil-stamping-emboss"
+                        className="font-serif-luxury text-[10px] sm:text-[11px] tracking-[0.15em] block uppercase mt-1 font-medium opacity-90 foil-stamping-emboss"
                         style={{
                           color: FOIL_OPTIONS.find(f => f.id === foilColor)?.colorHex || '#D4AF37',
                         }}
@@ -3553,7 +3597,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     </div>
 
                     {/* Bottom Spine & Brand Stamp */}
-                    <div className="text-center text-[8px] tracking-[0.25em] uppercase opacity-60 font-brand">
+                    <div className="text-center text-[7.5px] tracking-[0.25em] uppercase opacity-60 font-brand">
                       FINE ART LAB
                     </div>
                   </div>
@@ -3561,21 +3605,21 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               </div>
 
               {/* Right Column: Customization Controls (Compact Height Optimized) */}
-              <div className="lg:col-span-7 space-y-2.5 sm:space-y-3.5">
+              <div className="lg:col-span-7 space-y-2">
                 <div>
                   <span className="text-[10px] font-bold tracking-widest text-[#8C6D37] uppercase">Paso 2 de 5</span>
-                  <h2 className="font-serif-luxury text-2xl sm:text-3xl font-bold text-[#1F1C18] leading-tight">Tapas, Telas & Grabado</h2>
-                  <p className="text-[11px] text-[#595248] mt-0.5">
+                  <h2 className="font-serif-luxury text-xl sm:text-2xl font-bold text-[#1F1C18] leading-tight">Tapas, Telas & Grabado</h2>
+                  <p className="text-[10.5px] text-[#595248]">
                     Grabado térmico artesanal prensado sobre linos naturales europeos o cuero vegano.
                   </p>
                 </div>
 
-                {/* Cover Material Selection (Compact 4-Column Grid) */}
+                {/* Cover Material Selection (Compact 6-Column Grid) */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-1">
+                  <label className="text-[9.5px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-1">
                     Material y Color de Tapa:
                   </label>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2">
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-1 sm:gap-1.5">
                     {COVER_MATERIALS.map((cov) => {
                       const isSelected = cov.id === coverMaterialId;
                       return (
@@ -3583,19 +3627,19 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           key={cov.id}
                           type="button"
                           onClick={() => setCoverMaterialId(cov.id)}
-                          className={`flex flex-col items-center text-center p-1.5 sm:p-2 rounded-lg border transition-all ${
+                          className={`flex flex-col items-center text-center p-1 rounded-md border transition-all ${
                             isSelected
-                              ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-sm ring-2 ring-[#8C6D37]/30'
+                              ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-xs ring-1.5 ring-[#8C6D37]/40'
                               : 'border-[#D6CEBE] bg-[#F4EFE6]/50 hover:bg-[#FDFCF9]'
                           }`}
                         >
                           <div
-                            className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-black/15 shadow-xs mb-1"
+                            className="w-4 h-4 rounded-full border border-black/15 shadow-xs mb-0.5"
                             style={{ backgroundColor: cov.colorHex }}
                           />
-                          <span className="text-[10px] font-semibold text-[#1F1C18] line-clamp-1">{cov.name}</span>
-                          <span className="text-[8.5px] text-[#736B60]">
-                            {cov.priceDelta > 0 ? `+${formatPriceARS(cov.priceDelta)}` : 'Incluido'}
+                          <span className="text-[9px] font-semibold text-[#1F1C18] truncate w-full">{cov.name}</span>
+                          <span className="text-[8px] text-[#736B60]">
+                            {cov.priceDelta > 0 ? `+${formatPriceARS(cov.priceDelta)}` : 'Incl.'}
                           </span>
                         </button>
                       );
@@ -3603,12 +3647,12 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   </div>
                 </div>
 
-                {/* Foil Stamping Color (Compact 5-Column Grid on Tablet/Desktop) */}
+                {/* Foil Stamping Color (Compact 5-Column Grid) */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-1">
+                  <label className="text-[9.5px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-1">
                     Color de Grabado en Hot Stamping:
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-1">
                     {FOIL_OPTIONS.map((f) => {
                       const isSelected = f.id === foilColor;
                       return (
@@ -3616,17 +3660,17 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           key={f.id}
                           type="button"
                           onClick={() => setFoilColor(f.id)}
-                          className={`flex items-center gap-1.5 p-1.5 sm:p-2 rounded-lg border text-left transition-all ${
+                          className={`flex items-center gap-1 p-1 rounded-md border text-left transition-all ${
                             isSelected
                               ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-xs ring-1 ring-[#8C6D37]'
                               : 'border-[#D6CEBE] bg-[#F4EFE6]/50 hover:bg-[#FDFCF9]'
                           }`}
                         >
                           <div
-                            className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0"
+                            className="w-3 h-3 rounded-full border border-black/10 shrink-0"
                             style={{ backgroundColor: f.colorHex }}
                           />
-                          <span className="text-[10.5px] font-medium text-[#1F1C18] truncate">{f.name}</span>
+                          <span className="text-[9.5px] font-medium text-[#1F1C18] truncate">{f.name}</span>
                         </button>
                       );
                     })}
@@ -3634,10 +3678,10 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 </div>
 
                 {/* Foil Title Input & Window Toggle */}
-                <div className="space-y-2 rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-2.5 sm:p-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="space-y-1.5 rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
+                      <label className="text-[9px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
                         Título Principal:
                       </label>
                       <input
@@ -3645,13 +3689,13 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         value={foilTitleText}
                         onChange={(e) => setFoilTitleText(e.target.value.toUpperCase())}
                         placeholder="EJ: NUESTRA HISTORIA"
-                        className="w-full rounded-md border border-[#D6CEBE] bg-[#F4EFE6]/40 px-2.5 py-1.5 text-xs font-brand tracking-wider text-[#1F1C18] focus:border-[#8C6D37] focus:outline-none"
+                        className="w-full rounded border border-[#D6CEBE] bg-[#F4EFE6]/40 px-2 py-1 text-xs font-brand tracking-wider text-[#1F1C18] focus:border-[#8C6D37] focus:outline-none"
                         maxLength={35}
                       />
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
+                      <label className="text-[9px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
                         Subtítulo / Fecha / Lugar:
                       </label>
                       <input
@@ -3659,17 +3703,17 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         value={foilSubtitleText}
                         onChange={(e) => setFoilSubtitleText(e.target.value.toUpperCase())}
                         placeholder="EJ: 2026 · PATAGONIA"
-                        className="w-full rounded-md border border-[#D6CEBE] bg-[#F4EFE6]/40 px-2.5 py-1.5 text-xs font-serif-luxury tracking-wide text-[#1F1C18] focus:border-[#8C6D37] focus:outline-none"
+                        className="w-full rounded border border-[#D6CEBE] bg-[#F4EFE6]/40 px-2 py-1 text-xs font-serif-luxury tracking-wide text-[#1F1C18] focus:border-[#8C6D37] focus:outline-none"
                         maxLength={45}
                       />
                     </div>
                   </div>
 
                   {/* Cover Window toggle */}
-                  <div className="flex items-center justify-between border-t border-[#E8E2D5] pt-1.5 mt-1">
+                  <div className="flex items-center justify-between border-t border-[#E8E2D5] pt-1">
                     <div>
-                      <span className="text-xs font-bold text-[#1F1C18] block">Ventana Fotográfica Calada</span>
-                      <span className="text-[10px] text-[#736B60]">Troquelado con marco biselado en el centro</span>
+                      <span className="text-[11px] font-bold text-[#1F1C18] block">Ventana Fotográfica Calada</span>
+                      <span className="text-[9.5px] text-[#736B60]">Troquelado con marco biselado en el centro</span>
                     </div>
                     <input
                       type="checkbox"
@@ -3707,41 +3751,41 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
         {/* STEP 3: PAPER & LAYFLAT */}
         {currentStep === 'paper' && (
-          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col">
-            <div className="max-w-5xl w-full mx-auto p-3.5 sm:p-6 my-auto flex flex-col">
-              <div className="text-center max-w-2xl mx-auto mb-3 sm:mb-5">
-                <span className="text-[10px] sm:text-xs font-bold tracking-widest text-[#8C6D37] uppercase">Paso 3 de 5</span>
-                <h2 className="font-serif-luxury text-2xl sm:text-3xl text-[#1F1C18] mt-0.5">
+          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col justify-center">
+            <div className="max-w-5xl w-full mx-auto px-3 sm:px-6 py-2 sm:py-4 my-auto flex flex-col justify-between">
+              <div className="text-center max-w-2xl mx-auto mb-2 sm:mb-3">
+                <span className="text-[10px] font-bold tracking-widest text-[#8C6D37] uppercase">Paso 3 de 5</span>
+                <h2 className="font-serif-luxury text-xl sm:text-2xl text-[#1F1C18] mt-0.5">
                   Auténtico Papel Fotográfico Fine Art
                 </h2>
-                <p className="text-[11px] sm:text-xs text-[#595248] mt-1 max-w-xl mx-auto">
+                <p className="text-[11px] text-[#595248] mt-0.5 max-w-xl mx-auto">
                   No utilizamos imprenta digital común. Cada página es revelada químicamente para brindar la máxima gama tonal y longevidad de 100+ años.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3.5">
                 {PAPER_FINISHES.map((paper) => {
                   const isSelected = paper.id === paperFinishId;
                   return (
                     <div
                       key={paper.id}
                       onClick={() => setPaperFinishId(paper.id)}
-                      className={`cursor-pointer rounded-xl border p-3.5 sm:p-4 flex flex-col justify-between transition-all ${
+                      className={`cursor-pointer rounded-xl border p-3 sm:p-3.5 flex flex-col justify-between transition-all ${
                         isSelected
                           ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-md ring-2 ring-[#8C6D37]/30'
                           : 'border-[#D6CEBE] bg-[#F4EFE6]/60 hover:bg-[#FDFCF9]'
                       }`}
                     >
                       <div>
-                        <span className="inline-block bg-[#8C6D37]/15 text-[#8C6D37] text-[9px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full mb-2">
+                        <span className="inline-block bg-[#8C6D37]/15 text-[#8C6D37] text-[8.5px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full mb-1.5">
                           {paper.badge}
                         </span>
-                        <h3 className="font-serif-luxury text-base sm:text-lg font-bold text-[#1F1C18] mb-0.5">{paper.name}</h3>
-                        <p className="text-[11px] text-[#8C6D37] font-semibold mb-2">{paper.subtitle}</p>
-                        <p className="text-[11px] text-[#595248] leading-snug mb-3 line-clamp-3">{paper.description}</p>
+                        <h3 className="font-serif-luxury text-sm sm:text-base font-bold text-[#1F1C18] mb-0.5">{paper.name}</h3>
+                        <p className="text-[10.5px] text-[#8C6D37] font-semibold mb-1.5">{paper.subtitle}</p>
+                        <p className="text-[10.5px] text-[#595248] leading-snug mb-2 line-clamp-3">{paper.description}</p>
                       </div>
 
-                      <div className="border-t border-[#E8E2D5] pt-2 flex items-center justify-between text-[11px]">
+                      <div className="border-t border-[#E8E2D5] pt-1.5 flex items-center justify-between text-[10.5px]">
                         <span className="text-[#736B60] font-mono">{paper.grammage}</span>
                         <span className="font-bold text-[#1F1C18]">
                           {paper.priceDelta > 0 ? `+${formatPriceARS(paper.priceDelta)} ARS` : 'Incluido'}
@@ -3753,21 +3797,21 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               </div>
 
               {/* Gift Box Addon */}
-              <div className="mt-3 sm:mt-4 rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-[#EFE9DE] flex items-center justify-center text-[#8C6D37] shrink-0">
-                    <Gift className="w-5 h-5" />
+              <div className="mt-2.5 sm:mt-3 rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-2.5 sm:p-3 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#EFE9DE] flex items-center justify-center text-[#8C6D37] shrink-0">
+                    <Gift className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-serif-luxury text-sm sm:text-base font-bold text-[#1F1C18]">Cofre / Caja de Presentación en Lino</h4>
-                    <p className="text-[11px] text-[#595248]">
+                    <h4 className="font-serif-luxury text-xs sm:text-sm font-bold text-[#1F1C18]">Cofre / Caja de Presentación en Lino</h4>
+                    <p className="text-[10px] sm:text-[10.5px] text-[#595248]">
                       Caja rígida forrada en la misma tela con cinta de satén para extracción suave y protección eterna.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="font-serif-luxury text-sm font-bold text-[#1F1C18]">
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <span className="font-serif-luxury text-xs sm:text-sm font-bold text-[#1F1C18]">
                     +{formatPriceARS(28000)} ARS
                   </span>
                   <input
@@ -3780,7 +3824,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               </div>
 
               {/* Navigation Action Buttons */}
-              <div className="mt-3 sm:mt-5 flex justify-between items-center">
+              <div className="mt-2.5 sm:mt-4 flex justify-between items-center">
                 <button
                   type="button"
                   onClick={() => setCurrentStep('cover')}
@@ -5070,7 +5114,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              recordHistorySnapshot(spreads);
                               handleChangePageLayout(activeLayoutMenuSide, 'five-photo-editorial');
                               setActiveLayoutMenuSide(null);
                             }}
@@ -5083,7 +5126,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              recordHistorySnapshot(spreads);
                               handleChangePageLayout(activeLayoutMenuSide, 'asymmetric-split');
                               setActiveLayoutMenuSide(null);
                             }}
@@ -5096,7 +5138,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              recordHistorySnapshot(spreads);
                               handleChangePageLayout(activeLayoutMenuSide, 'three-vertical-triptych');
                               setActiveLayoutMenuSide(null);
                             }}
@@ -5109,7 +5150,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              recordHistorySnapshot(spreads);
                               handleChangePageLayout(activeLayoutMenuSide, 'editorial-magazine-polaroid');
                               setActiveLayoutMenuSide(null);
                             }}
@@ -5122,7 +5162,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              recordHistorySnapshot(spreads);
                               handleChangePageLayout(activeLayoutMenuSide, 'moodboard-mosaic-9');
                               setActiveLayoutMenuSide(null);
                             }}
@@ -5135,7 +5174,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              recordHistorySnapshot(spreads);
                               handleChangePageLayout(activeLayoutMenuSide, 'lifestyle-bento-10');
                               setActiveLayoutMenuSide(null);
                             }}
@@ -5148,7 +5186,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              recordHistorySnapshot(spreads);
                               handleChangePageLayout(activeLayoutMenuSide, 'botanical-floral-scrapbook');
                               setActiveLayoutMenuSide(null);
                             }}
@@ -5168,7 +5205,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              recordHistorySnapshot(spreads);
                               handleChangePageLayout(activeLayoutMenuSide, 'single-full');
                               setActiveLayoutMenuSide(null);
                             }}
@@ -5179,7 +5215,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              recordHistorySnapshot(spreads);
                               handleChangePageLayout(activeLayoutMenuSide, 'single-bordered');
                               setActiveLayoutMenuSide(null);
                             }}
@@ -5190,7 +5225,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              recordHistorySnapshot(spreads);
                               handleChangePageLayout(activeLayoutMenuSide, 'two-vertical');
                               setActiveLayoutMenuSide(null);
                             }}
@@ -5201,7 +5235,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              recordHistorySnapshot(spreads);
                               handleChangePageLayout(activeLayoutMenuSide, 'two-horizontal');
                               setActiveLayoutMenuSide(null);
                             }}
@@ -5212,7 +5245,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              recordHistorySnapshot(spreads);
                               handleChangePageLayout(activeLayoutMenuSide, 'three-collage');
                               setActiveLayoutMenuSide(null);
                             }}
@@ -5223,7 +5255,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              recordHistorySnapshot(spreads);
                               handleChangePageLayout(activeLayoutMenuSide, 'four-grid');
                               setActiveLayoutMenuSide(null);
                             }}
@@ -5234,7 +5265,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              recordHistorySnapshot(spreads);
                               handleChangePageLayout(activeLayoutMenuSide, 'editorial-text-photo');
                               setActiveLayoutMenuSide(null);
                             }}
@@ -5245,7 +5275,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              recordHistorySnapshot(spreads);
                               handleChangePageLayout(activeLayoutMenuSide, 'blank');
                               setActiveLayoutMenuSide(null);
                             }}
@@ -5641,7 +5670,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                               <button
                                 type="button"
                                 onClick={() => {
-                                  recordHistorySnapshot(spreads);
                                   handleChangePageLayout('left', 'full-bleed-spread');
                                 }}
                                 className="w-full py-1 rounded-lg bg-[#8C6D37] text-white text-[9px] font-bold hover:bg-[#73582A]"
@@ -5653,7 +5681,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    recordHistorySnapshot(spreads);
                                     handleChangePageLayout('left', tmpl.id as PageLayoutId);
                                   }}
                                   className="flex-1 py-1 rounded-lg bg-[#EFE9DE] hover:bg-[#1F1C18] hover:text-white text-[9px] font-bold transition-colors"
@@ -5663,7 +5690,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    recordHistorySnapshot(spreads);
                                     handleChangePageLayout('right', tmpl.id as PageLayoutId);
                                   }}
                                   className="flex-1 py-1 rounded-lg bg-[#EFE9DE] hover:bg-[#1F1C18] hover:text-white text-[9px] font-bold transition-colors"
