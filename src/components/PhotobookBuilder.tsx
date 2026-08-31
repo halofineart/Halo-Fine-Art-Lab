@@ -1315,6 +1315,8 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     const activeSpread = spreads[activeSpreadIndex];
     if (!activeSpread) return;
 
+    recordHistorySnapshot(spreads);
+
     const updateSideSlots = (page: any) => ({
       ...page,
       slots: page.slots.map((s: any) => (s.id === slotId ? { ...s, photoId } : s))
@@ -1327,7 +1329,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     };
 
     setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
-    setSelectedSlotId(null);
+    setSelectedSlotId(slotId);
   };
 
   // Smart Auto Fill
@@ -2937,8 +2939,21 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
             {/* Floating Dark Action Toolbar - Located inside bottom edge of slot */}
             <div 
               onClick={(e) => e.stopPropagation()}
-              className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center bg-[#242220]/95 text-white rounded-xl shadow-2xl px-2 py-1.5 gap-1.5 z-40 border border-white/20 backdrop-blur-md"
+              className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center bg-[#242220]/95 text-white rounded-xl shadow-2xl px-2 py-1.5 gap-1.5 z-40 border border-white/20 backdrop-blur-md max-w-[95%]"
             >
+              {/* 0. Cambiar Foto / Reemplazar */}
+              <button
+                type="button"
+                onClick={() => setShowSwapPickerSlotId(slot.id)}
+                title="Cambiar foto de este marco (Elegir o subir otra imagen)"
+                className="px-2 py-1 rounded bg-[#8C6D37]/40 hover:bg-[#8C6D37] text-[#ECC880] hover:text-white transition-colors flex items-center gap-1 text-[10px] font-bold shrink-0"
+              >
+                <ArrowLeftRight className="w-3.5 h-3.5" />
+                <span>Cambiar</span>
+              </button>
+
+              <div className="w-[1px] h-3.5 bg-white/20" />
+
               {/* 1. Recortar / Zoom */}
               <button
                 type="button"
@@ -3153,41 +3168,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 </div>
               )}
             </div>
-
-            {/* Swap Photo Picker Popover - Opens UPWARDS */}
-            {showSwapPickerSlotId === slot.id && (
-              <div 
-                onClick={(e) => e.stopPropagation()}
-                className="absolute bottom-full mb-3 left-0 bg-[#1F1C18] text-white p-3 rounded-2xl shadow-2xl border border-white/25 z-50 w-72 space-y-2 text-xs backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
-              >
-                <div className="flex items-center justify-between border-b border-white/15 pb-1.5">
-                  <span className="text-[11px] font-bold text-[#ECC880] uppercase tracking-wider flex items-center gap-1.5">
-                    <ArrowLeftRight className="w-3.5 h-3.5 text-[#ECC880]" />
-                    Reemplazar Foto
-                  </span>
-                  <button type="button" onClick={() => setShowSwapPickerSlotId(null)} className="text-white/60 hover:text-white">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <div className="grid grid-cols-4 gap-1.5 max-h-40 overflow-y-auto pr-1">
-                  {uploadedPhotos.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => {
-                        handleAssignPhotoToSlot(slot.id, p.id);
-                        setShowSwapPickerSlotId(null);
-                      }}
-                      className="aspect-square rounded-lg overflow-hidden border border-white/20 hover:border-[#0091FF] hover:scale-105 transition-all shadow-xs"
-                    >
-                      <img src={getThumbnailSrc(p)} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-                {/* Arrow Indicator pointing down */}
-                <div className="absolute top-full left-4 -mt-1 border-4 border-transparent border-t-[#1F1C18]" />
-              </div>
-            )}
           </>
         )}
       </div>
@@ -4269,6 +4249,23 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         )}
                       </div>
 
+                      {/* Helper banner when a canvas slot is selected */}
+                      {selectedSlotId && (
+                        <div className="mx-2.5 mt-1.5 p-2 rounded-xl bg-[#0091FF]/10 border border-[#0091FF]/30 flex items-center justify-between text-xs text-[#0066CC] animate-in fade-in duration-150 shrink-0">
+                          <div className="flex items-center gap-1.5 text-[11px] font-semibold">
+                            <MousePointerClick className="w-3.5 h-3.5 shrink-0 text-[#0091FF]" />
+                            <span>Haz clic en una foto para asignarla al marco</span>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => setSelectedSlotId(null)}
+                            className="text-[10px] text-[#736B60] hover:text-[#1F1C18] underline ml-1 cursor-pointer shrink-0"
+                          >
+                            Listo
+                          </button>
+                        </div>
+                      )}
+
                       {/* Scrollable Photos Grid */}
                       <div className="flex-1 overflow-y-auto p-2.5 min-h-0">
                         {uploadedPhotos.length === 0 ? (
@@ -4306,23 +4303,23 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                                       setDraggedPhotoId(photo.id);
                                     }}
                                     onDragEnd={() => setDraggedPhotoId(null)}
-                                    onClick={() => {
-                                      setSelectedPhotoIds((prev) =>
-                                        prev.includes(photo.id)
-                                          ? prev.filter((id) => id !== photo.id)
-                                          : [...prev, photo.id]
-                                      );
+                                    onClick={(e) => {
+                                      if (selectedSlotId && !isMultiSelectMode && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+                                        handleAssignPhotoToSlot(selectedSlotId, photo.id);
+                                      } else {
+                                        handleTogglePhotoSelection(photo.id, e);
+                                      }
                                     }}
                                     onDoubleClick={() => {
                                       if (selectedSlotId) {
-                                        updateActiveSlot(selectedSlotId, (s) => ({ ...s, photoId: photo.id }));
+                                        handleAssignPhotoToSlot(selectedSlotId, photo.id);
                                       } else {
                                         const currentSpread = spreads[activeSpreadIndex];
                                         const emptyLeft = currentSpread?.leftPage.slots.find((s) => !s.photoId);
                                         const emptyRight = currentSpread?.rightPage.slots.find((s) => !s.photoId);
                                         const targetSlot = emptyLeft || emptyRight;
                                         if (targetSlot) {
-                                          updateActiveSlot(targetSlot.id, (s) => ({ ...s, photoId: photo.id }));
+                                          handleAssignPhotoToSlot(targetSlot.id, photo.id);
                                         }
                                       }
                                     }}
@@ -4331,7 +4328,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                                         ? 'border-[#8C6D37] ring-2 ring-[#8C6D37]/40 shadow-md scale-[1.02]'
                                         : 'border-[#D6CEBE] hover:border-[#8C6D37] hover:shadow-xs'
                                     }`}
-                                    title="Arrastra al pliego o doble clic para colocar"
+                                    title={selectedSlotId ? "Haz clic para asignar a la ranura seleccionada" : "Arrastra al pliego o haz doble clic para colocar"}
                                   >
                                     <div className="w-full h-full rounded-lg overflow-hidden bg-[#EFE9DE] relative">
                                       <img
@@ -5801,29 +5798,40 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <button
                             type="button"
                             onClick={() => setShowSwapPickerSlotId(selectedSlotData.slot.id)}
-                            className="p-1.5 rounded-lg bg-white hover:bg-[#E2D8C7] border border-[#D6CEBE] text-[#1F1C18] text-[10px] font-semibold"
-                            title="Cambiar foto"
+                            className="px-2.5 py-1.5 rounded-lg bg-[#8C6D37]/10 hover:bg-[#8C6D37] border border-[#8C6D37]/30 text-[#8C6D37] hover:text-white text-xs font-bold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer"
+                            title="Cambiar foto de este marco"
                           >
-                            <ArrowLeftRight className="w-3 h-3" />
+                            <ArrowLeftRight className="w-3.5 h-3.5" />
+                            <span>Cambiar</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => handleRemovePhotoFromSlot(selectedSlotData.slot.id)}
-                            className="p-1.5 rounded-lg bg-white hover:bg-rose-50 border border-[#D6CEBE] text-rose-600 text-[10px] font-semibold"
-                            title="Quitar foto"
+                            className="p-1.5 rounded-lg bg-white hover:bg-rose-50 border border-[#D6CEBE] text-rose-600 text-[10px] font-semibold hover:border-rose-300 transition-colors cursor-pointer"
+                            title="Quitar foto de este marco"
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </>
                     ) : (
-                      <div className="w-full text-center py-1">
-                        <span className="text-xs font-semibold text-[#736B60] block">Ranura sin Foto</span>
-                        <span className="text-[10px] text-[#A89F91]">Arrastra una foto de la izquierda</span>
+                      <div className="w-full flex items-center justify-between py-1">
+                        <div>
+                          <span className="text-xs font-semibold text-[#736B60] block">Ranura vacía</span>
+                          <span className="text-[10px] text-[#A89F91]">Sin foto asignada</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowSwapPickerSlotId(selectedSlotData.slot.id)}
+                          className="px-2.5 py-1.5 rounded-lg bg-[#8C6D37] hover:bg-[#73582A] text-white text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Elegir Foto</span>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -6622,6 +6630,265 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
             photo={inspectedPhotoForQuality}
             onClose={() => setInspectedPhotoForQuality(null)}
           />
+        )}
+
+        {/* Modal: Cambiar / Reemplazar Foto de la Ranura */}
+        {showSwapPickerSlotId && (() => {
+          let targetSpreadIdx = activeSpreadIndex;
+          let targetPageNum = activeSpreadIndex * 2 + 1;
+          let targetSlotObj: any = null;
+
+          for (let i = 0; i < spreads.length; i++) {
+            const sp = spreads[i];
+            const lSlot = sp.leftPage?.slots.find((s) => s.id === showSwapPickerSlotId);
+            if (lSlot) {
+              targetSpreadIdx = i;
+              targetPageNum = i * 2 + 1;
+              targetSlotObj = lSlot;
+              break;
+            }
+            const rSlot = sp.rightPage?.slots.find((s) => s.id === showSwapPickerSlotId);
+            if (rSlot) {
+              targetSpreadIdx = i;
+              targetPageNum = i * 2 + 2;
+              targetSlotObj = rSlot;
+              break;
+            }
+          }
+
+          const currentPhotoObj = targetSlotObj?.photoId
+            ? uploadedPhotos.find((p) => p.id === targetSlotObj.photoId)
+            : null;
+
+          return (
+            <div 
+              className="fixed inset-0 bg-black/65 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150"
+              onClick={() => setShowSwapPickerSlotId(null)}
+            >
+              <div 
+                className="bg-[#FDFCF9] rounded-2xl border border-[#D6CEBE] shadow-2xl w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="p-4 sm:p-5 border-b border-[#E8E2D5] bg-[#FAF7F2] flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#8C6D37]/15 border border-[#8C6D37]/30 flex items-center justify-center text-[#8C6D37] shrink-0">
+                      <ArrowLeftRight className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-serif-luxury text-lg font-bold text-[#1F1C18]">Cambiar Foto del Marco</h3>
+                        <span className="px-2 py-0.5 rounded-full bg-[#8C6D37] text-white text-[10px] font-bold">
+                          Página {targetPageNum} · Pliego {targetSpreadIdx + 1}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#736B60]">
+                        Selecciona cualquier foto de tu galería o sube una nueva para sustituir la imagen actual.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSwapPickerSlotId(null)}
+                    className="p-2 rounded-xl text-[#736B60] hover:text-[#1F1C18] hover:bg-[#EFE9DE] transition-colors cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Sub-bar: Current Photo + Direct Upload Button */}
+                <div className="p-3 sm:p-4 bg-[#F4EFE6] border-b border-[#E8E2D5] flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    {currentPhotoObj ? (
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#D6CEBE] bg-white shrink-0 shadow-xs">
+                          <img src={getThumbnailSrc(currentPhotoObj)} alt="" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="text-left">
+                          <span className="text-[10px] uppercase font-bold text-[#8C6D37] block">Foto en el Marco</span>
+                          <span className="text-xs font-semibold text-[#1F1C18] truncate max-w-[200px] block">
+                            {currentPhotoObj.name}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleRemovePhotoFromSlot(showSwapPickerSlotId);
+                            setShowSwapPickerSlotId(null);
+                          }}
+                          className="ml-2 px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Quitar Foto</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-xs text-[#736B60]">
+                        <span className="w-2 h-2 rounded-full bg-amber-500" />
+                        <span className="font-semibold text-[#1F1C18]">Marco vacío:</span> elige una foto para colocarla
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Upload button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      fileInputRef.current?.click();
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-[#8C6D37] text-white text-xs font-bold hover:bg-[#73582A] transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer ml-auto"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>+ Subir Nueva Foto</span>
+                  </button>
+                </div>
+
+                {/* Photo Gallery Grid */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+                  {uploadedPhotos.length === 0 ? (
+                    <div className="text-center py-12">
+                      <ImageIcon className="w-12 h-12 text-[#A89F91] mx-auto mb-3" />
+                      <h4 className="text-sm font-bold text-[#1F1C18] mb-1">No hay fotos en tu galería</h4>
+                      <p className="text-xs text-[#736B60] mb-4">Sube fotos para empezar a personalizar tu fotolibro.</p>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-4 py-2 rounded-xl bg-[#8C6D37] text-white text-xs font-bold hover:bg-[#73582A] cursor-pointer"
+                      >
+                        Subir Fotos
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                      {uploadedPhotos.map((p) => {
+                        const isCurrent = currentPhotoObj?.id === p.id;
+                        const usage = getPhotoUsageCount(p.id);
+
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              handleAssignPhotoToSlot(showSwapPickerSlotId, p.id);
+                              setShowSwapPickerSlotId(null);
+                            }}
+                            className={`group relative aspect-square rounded-xl overflow-hidden border-2 transition-all p-1 bg-white flex flex-col justify-between cursor-pointer text-left ${
+                              isCurrent
+                                ? 'border-[#0091FF] ring-2 ring-[#0091FF]/40 shadow-lg scale-[1.02]'
+                                : 'border-[#D6CEBE] hover:border-[#8C6D37] hover:shadow-md hover:scale-[1.03]'
+                            }`}
+                          >
+                            <div className="w-full h-full rounded-lg overflow-hidden bg-[#EFE9DE] relative">
+                              <img
+                                src={getThumbnailSrc(p)}
+                                alt={p.name}
+                                className="w-full h-full object-cover select-none group-hover:scale-105 transition-transform duration-200"
+                              />
+
+                              {isCurrent && (
+                                <div className="absolute inset-0 bg-[#0091FF]/30 flex items-center justify-center backdrop-blur-2xs">
+                                  <span className="px-2 py-1 rounded-md bg-[#0091FF] text-white font-bold text-[10px] shadow-sm flex items-center gap-1">
+                                    <Check className="w-3 h-3" /> Actual
+                                  </span>
+                                </div>
+                              )}
+
+                              {!isCurrent && usage > 0 && (
+                                <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded bg-black/60 text-white/90 text-[9px] font-semibold backdrop-blur-xs">
+                                  En uso ({usage}x)
+                                </div>
+                              )}
+
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <span className="px-2.5 py-1 rounded-lg bg-white text-[#1F1C18] font-bold text-xs shadow-lg flex items-center gap-1">
+                                  <Check className="w-3.5 h-3.5 text-[#8C6D37]" />
+                                  Asignar
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="p-3 sm:p-4 border-t border-[#E8E2D5] bg-[#FAF7F2] flex items-center justify-between">
+                  <span className="text-xs text-[#736B60]">
+                    {uploadedPhotos.length} fotos en tu catálogo
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowSwapPickerSlotId(null)}
+                    className="px-4 py-2 rounded-xl bg-[#EFE9DE] hover:bg-[#D6CEBE] text-[#1F1C18] text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Modal: Catálogo Completo de Plantillas & Diseños */}
+        {showTemplateGridModal && (
+          <div 
+            className="fixed inset-0 bg-black/65 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150"
+            onClick={() => setShowTemplateGridModal(false)}
+          >
+            <div 
+              className="bg-[#FDFCF9] rounded-2xl border border-[#D6CEBE] shadow-2xl w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-4 sm:p-5 border-b border-[#E8E2D5] bg-[#FAF7F2] flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#8C6D37]/15 border border-[#8C6D37]/30 flex items-center justify-center text-[#8C6D37] shrink-0">
+                    <LayoutGrid className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif-luxury text-lg font-bold text-[#1F1C18]">Catálogo de Diseños de Pliego</h3>
+                    <p className="text-xs text-[#736B60]">
+                      Selecciona una composición para el Pliego {activeSpreadIndex + 1}. Las fotos existentes se adaptarán automáticamente.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowTemplateGridModal(false)}
+                  className="p-2 rounded-xl text-[#736B60] hover:text-[#1F1C18] hover:bg-[#EFE9DE] transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {SPREAD_TEMPLATE_PRESETS.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => handleApplySpreadTemplate(t.id)}
+                    className="group relative p-3 rounded-xl border border-[#D6CEBE] bg-white hover:border-[#8C6D37] hover:shadow-lg transition-all text-left flex flex-col justify-between cursor-pointer"
+                  >
+                    <div className="w-full aspect-[16/10] rounded-lg overflow-hidden border border-[#E8E2D5] bg-[#FAF7F2] p-2 mb-2.5 flex items-center justify-center group-hover:scale-[1.02] transition-transform">
+                      {t.renderDiagram()}
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="font-bold text-xs text-[#1F1C18]">{t.title}</span>
+                        {t.badge && (
+                          <span className="px-1.5 py-0.5 rounded bg-[#8C6D37]/15 text-[#8C6D37] text-[9px] font-bold">
+                            {t.badge}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-[#736B60] block">{t.subtitle}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </motion.div>
