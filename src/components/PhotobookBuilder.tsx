@@ -56,7 +56,8 @@ import {
   FileCheck2,
   Heading2,
   Quote,
-  Tag
+  Tag,
+  LayoutGrid
 } from 'lucide-react';
 import { 
   BookFormatId, 
@@ -222,6 +223,12 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
   const [lastSelectedPhotoId, setLastSelectedPhotoId] = useState<string | null>(null);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState<boolean>(false);
+  const [photoUsageFilter, setPhotoUsageFilter] = useState<'all' | 'unused' | 'used'>('all');
+  const [isCanvasDragOver, setIsCanvasDragOver] = useState<boolean>(false);
+
+  // Template 4-Squares [ < ] [ ⊞ ] [ > ] Popover & Hover Preview State
+  const [showTemplateGridModal, setShowTemplateGridModal] = useState<boolean>(false);
+  const [hoveredLayoutTemplateId, setHoveredLayoutTemplateId] = useState<string | null>(null);
 
   // Floating text layer state
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
@@ -326,6 +333,17 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       ) {
         e.preventDefault();
         handleRedo();
+        return;
+      }
+
+      // Deselect all selected photos and elements: Ctrl+D or Cmd+D or Escape
+      if (((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D')) || e.key === 'Escape') {
+        e.preventDefault();
+        setSelectedPhotoIds([]);
+        setSelectedSlotId(null);
+        setSelectedTextId(null);
+        setShowTemplateGridModal(false);
+        setHoveredLayoutTemplateId(null);
         return;
       }
 
@@ -1531,6 +1549,712 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     setActiveSpreadIndex(0);
   };
 
+  // Predefined spread templates for [ < ] [ ⊞ ] [ > ] Popover & Real-Time Hover Preview
+  interface SpreadTemplatePreset {
+    id: string;
+    title: string;
+    subtitle: string;
+    category: 'all' | '1' | '2' | '3' | '4' | '5+' | 'panoramic' | 'editorial';
+    photoCount: number;
+    badge?: string;
+    apply: (source: PhotobookSpread, photos: string[]) => PhotobookSpread;
+    renderDiagram: () => React.ReactNode;
+  }
+
+  const SPREAD_TEMPLATE_PRESETS: SpreadTemplatePreset[] = [
+    {
+      id: 'panoramic-spread',
+      title: 'Panorámica 180°',
+      subtitle: '1 Foto Continua en Todo el Pliego',
+      category: 'panoramic',
+      photoCount: 1,
+      badge: 'Panorámica',
+      apply: (source, photos) => ({
+        ...source,
+        isFullSpreadBleed: true,
+        fullSpreadPhotoId: photos[0] || source.fullSpreadPhotoId || uploadedPhotos[0]?.id || '',
+      }),
+      renderDiagram: () => (
+        <div className="w-full h-full bg-[#FAF7F2] p-0.5 flex items-center justify-center border border-[#8C6D37]/40 rounded">
+          <div className="w-full h-full bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs flex items-center justify-center">
+            <span className="text-[7px] font-bold text-[#8C6D37]">180°</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'single-left-right',
+      title: '2 Fotos Clásicas',
+      subtitle: '1 Foto Izq + 1 Foto Der',
+      category: '2',
+      photoCount: 2,
+      apply: (source, photos) => ({
+        ...source,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...source.leftPage,
+          layout: 'single-full',
+          slots: [{ id: `s-L-${Date.now()}-1`, photoId: photos[0], fitMode: 'cover' }],
+        },
+        rightPage: {
+          ...source.rightPage,
+          layout: 'single-full',
+          slots: [{ id: `s-R-${Date.now()}-1`, photoId: photos[1] || photos[0], fitMode: 'cover' }],
+        },
+      }),
+      renderDiagram: () => (
+        <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5 bg-[#FAF7F2]">
+          <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+          <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+        </div>
+      ),
+    },
+    {
+      id: 'two-vert-left-one-right',
+      title: '3 Fotos (2 Vert + 1 Full)',
+      subtitle: '2 Fotos Izq + 1 Foto Der',
+      category: '3',
+      photoCount: 3,
+      apply: (source, photos) => ({
+        ...source,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...source.leftPage,
+          layout: 'two-vertical',
+          slots: [
+            { id: `s-L-${Date.now()}-1`, photoId: photos[0], fitMode: 'cover' },
+            { id: `s-L-${Date.now()}-2`, photoId: photos[1] || photos[0], fitMode: 'cover' },
+          ],
+        },
+        rightPage: {
+          ...source.rightPage,
+          layout: 'single-full',
+          slots: [{ id: `s-R-${Date.now()}-1`, photoId: photos[2] || photos[0], fitMode: 'cover' }],
+        },
+      }),
+      renderDiagram: () => (
+        <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5 bg-[#FAF7F2]">
+          <div className="grid grid-cols-2 gap-0.5">
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+          </div>
+          <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+        </div>
+      ),
+    },
+    {
+      id: 'two-horiz-left-one-right',
+      title: '3 Fotos (2 Horiz + 1 Full)',
+      subtitle: '2 Filas Izq + 1 Foto Der',
+      category: '3',
+      photoCount: 3,
+      apply: (source, photos) => ({
+        ...source,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...source.leftPage,
+          layout: 'two-horizontal',
+          slots: [
+            { id: `s-L-${Date.now()}-1`, photoId: photos[0], fitMode: 'cover' },
+            { id: `s-L-${Date.now()}-2`, photoId: photos[1] || photos[0], fitMode: 'cover' },
+          ],
+        },
+        rightPage: {
+          ...source.rightPage,
+          layout: 'single-full',
+          slots: [{ id: `s-R-${Date.now()}-1`, photoId: photos[2] || photos[0], fitMode: 'cover' }],
+        },
+      }),
+      renderDiagram: () => (
+        <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5 bg-[#FAF7F2]">
+          <div className="grid grid-rows-2 gap-0.5">
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+          </div>
+          <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+        </div>
+      ),
+    },
+    {
+      id: 'three-collage-spread',
+      title: '4 Fotos Mosaico',
+      subtitle: '1 Hero + 2 Stacked + 1 Full',
+      category: '4',
+      photoCount: 4,
+      apply: (source, photos) => ({
+        ...source,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...source.leftPage,
+          layout: 'three-collage',
+          slots: [
+            { id: `s-L-${Date.now()}-1`, photoId: photos[0], fitMode: 'cover' },
+            { id: `s-L-${Date.now()}-2`, photoId: photos[1] || photos[0], fitMode: 'cover' },
+            { id: `s-L-${Date.now()}-3`, photoId: photos[2] || photos[0], fitMode: 'cover' },
+          ],
+        },
+        rightPage: {
+          ...source.rightPage,
+          layout: 'single-full',
+          slots: [{ id: `s-R-${Date.now()}-1`, photoId: photos[3] || photos[0], fitMode: 'cover' }],
+        },
+      }),
+      renderDiagram: () => (
+        <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5 bg-[#FAF7F2]">
+          <div className="grid grid-cols-2 gap-0.5">
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="grid grid-rows-2 gap-0.5">
+              <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+              <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            </div>
+          </div>
+          <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+        </div>
+      ),
+    },
+    {
+      id: 'three-triptych-spread',
+      title: 'Tríptico 3 Verticales',
+      subtitle: '3 Columnas Altas + 1 Full',
+      category: '4',
+      photoCount: 4,
+      apply: (source, photos) => ({
+        ...source,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...source.leftPage,
+          layout: 'three-vertical-triptych',
+          slots: [
+            { id: `s-L-${Date.now()}-1`, photoId: photos[0], fitMode: 'cover' },
+            { id: `s-L-${Date.now()}-2`, photoId: photos[1] || photos[0], fitMode: 'cover' },
+            { id: `s-L-${Date.now()}-3`, photoId: photos[2] || photos[0], fitMode: 'cover' },
+          ],
+        },
+        rightPage: {
+          ...source.rightPage,
+          layout: 'single-full',
+          slots: [{ id: `s-R-${Date.now()}-1`, photoId: photos[3] || photos[0], fitMode: 'cover' }],
+        },
+      }),
+      renderDiagram: () => (
+        <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5 bg-[#FAF7F2]">
+          <div className="grid grid-cols-3 gap-0.5">
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+          </div>
+          <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+        </div>
+      ),
+    },
+    {
+      id: 'four-grid-left-one-right',
+      title: '5 Fotos (2x2 Grilla + 1 Full)',
+      subtitle: '4 Cuadrantes Izq + 1 Foto Der',
+      category: '5+',
+      photoCount: 5,
+      apply: (source, photos) => ({
+        ...source,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...source.leftPage,
+          layout: 'four-grid',
+          slots: [0, 1, 2, 3].map((i) => ({
+            id: `s-L-${Date.now()}-${i + 1}`,
+            photoId: photos[i] || photos[0],
+            fitMode: 'cover',
+          })),
+        },
+        rightPage: {
+          ...source.rightPage,
+          layout: 'single-full',
+          slots: [{ id: `s-R-${Date.now()}-1`, photoId: photos[4] || photos[0], fitMode: 'cover' }],
+        },
+      }),
+      renderDiagram: () => (
+        <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5 bg-[#FAF7F2]">
+          <div className="grid grid-cols-2 grid-rows-2 gap-0.5">
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+          </div>
+          <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+        </div>
+      ),
+    },
+    {
+      id: 'four-grid-both-spread',
+      title: '8 Fotos Grilla Doble',
+      subtitle: '4 Fotos Izq + 4 Fotos Der',
+      category: '5+',
+      photoCount: 8,
+      apply: (source, photos) => ({
+        ...source,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...source.leftPage,
+          layout: 'four-grid',
+          slots: [0, 1, 2, 3].map((i) => ({
+            id: `s-L-${Date.now()}-${i + 1}`,
+            photoId: photos[i] || photos[0],
+            fitMode: 'cover',
+          })),
+        },
+        rightPage: {
+          ...source.rightPage,
+          layout: 'four-grid',
+          slots: [4, 5, 6, 7].map((i) => ({
+            id: `s-R-${Date.now()}-${i + 1}`,
+            photoId: photos[i] || photos[0],
+            fitMode: 'cover',
+          })),
+        },
+      }),
+      renderDiagram: () => (
+        <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5 bg-[#FAF7F2]">
+          <div className="grid grid-cols-2 grid-rows-2 gap-0.5">
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+          </div>
+          <div className="grid grid-cols-2 grid-rows-2 gap-0.5">
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'five-photo-editorial-spread',
+      title: '6 Fotos (5 Editorial + 1 Full)',
+      subtitle: '2 Arriba + 3 Abajo en Izq',
+      category: '5+',
+      photoCount: 6,
+      badge: 'Popular',
+      apply: (source, photos) => ({
+        ...source,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...source.leftPage,
+          layout: 'five-photo-editorial',
+          slots: [0, 1, 2, 3, 4].map((i) => ({
+            id: `s-L-${Date.now()}-${i + 1}`,
+            photoId: photos[i] || photos[0],
+            fitMode: 'cover',
+          })),
+        },
+        rightPage: {
+          ...source.rightPage,
+          layout: 'single-full',
+          slots: [{ id: `s-R-${Date.now()}-1`, photoId: photos[5] || photos[0], fitMode: 'cover' }],
+        },
+      }),
+      renderDiagram: () => (
+        <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5 bg-[#FAF7F2]">
+          <div className="flex flex-col gap-0.5">
+            <div className="flex-1 grid grid-cols-2 gap-0.5">
+              <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+              <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            </div>
+            <div className="flex-1 grid grid-cols-3 gap-0.5">
+              <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+              <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+              <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            </div>
+          </div>
+          <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+        </div>
+      ),
+    },
+    {
+      id: 'editorial-magazine-polaroid-spread',
+      title: '5 Fotos Revista & Polaroid',
+      subtitle: 'Hero + Polaroids + 1 Full',
+      category: '5+',
+      photoCount: 5,
+      apply: (source, photos) => ({
+        ...source,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...source.leftPage,
+          layout: 'editorial-magazine-polaroid',
+          slots: [0, 1, 2, 3].map((i) => ({
+            id: `s-L-${Date.now()}-${i + 1}`,
+            photoId: photos[i] || photos[0],
+            fitMode: 'cover',
+          })),
+        },
+        rightPage: {
+          ...source.rightPage,
+          layout: 'single-full',
+          slots: [{ id: `s-R-${Date.now()}-1`, photoId: photos[4] || photos[0], fitMode: 'cover' }],
+        },
+      }),
+      renderDiagram: () => (
+        <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5 bg-[#FAF7F2]">
+          <div className="flex gap-0.5">
+            <div className="w-1/2 bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="w-1/2 flex flex-col gap-0.5">
+              <div className="h-1/2 bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+              <div className="h-1/2 grid grid-cols-2 gap-0.5">
+                <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+                <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+        </div>
+      ),
+    },
+    {
+      id: 'moodboard-mosaic-9-spread',
+      title: '10 Fotos Moodboard Mosaico',
+      subtitle: '9 Fotos Mosaico Izq + 1 Foto Der',
+      category: '5+',
+      photoCount: 10,
+      apply: (source, photos) => ({
+        ...source,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...source.leftPage,
+          layout: 'moodboard-mosaic-9',
+          slots: Array.from({ length: 9 }, (_, i) => ({
+            id: `s-L-${Date.now()}-${i + 1}`,
+            photoId: photos[i] || photos[0],
+            fitMode: 'cover',
+          })),
+        },
+        rightPage: {
+          ...source.rightPage,
+          layout: 'single-full',
+          slots: [{ id: `s-R-${Date.now()}-1`, photoId: photos[9] || photos[0], fitMode: 'cover' }],
+        },
+      }),
+      renderDiagram: () => (
+        <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5 bg-[#FAF7F2]">
+          <div className="grid grid-cols-3 grid-rows-3 gap-0.5">
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="col-span-2 bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="row-span-2 bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            <div className="col-span-2 bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+          </div>
+          <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+        </div>
+      ),
+    },
+    {
+      id: 'lifestyle-bento-10-spread',
+      title: '11 Fotos Bento Lifestyle',
+      subtitle: '10 Fotos Detalle Izq + 1 Foto Der',
+      category: '5+',
+      photoCount: 11,
+      apply: (source, photos) => ({
+        ...source,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...source.leftPage,
+          layout: 'lifestyle-bento-10',
+          slots: Array.from({ length: 10 }, (_, i) => ({
+            id: `s-L-${Date.now()}-${i + 1}`,
+            photoId: photos[i] || photos[0],
+            fitMode: 'cover',
+          })),
+        },
+        rightPage: {
+          ...source.rightPage,
+          layout: 'single-full',
+          slots: [{ id: `s-R-${Date.now()}-1`, photoId: photos[10] || photos[0], fitMode: 'cover' }],
+        },
+      }),
+      renderDiagram: () => (
+        <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5 bg-[#FAF7F2]">
+          <div className="grid grid-cols-3 grid-rows-3 gap-0.5">
+            {Array.from({ length: 9 }).map((_, idx) => (
+              <div key={idx} className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+            ))}
+          </div>
+          <div className="bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+        </div>
+      ),
+    },
+    {
+      id: 'editorial-text-photo-spread',
+      title: 'Editorial Clásica con Texto',
+      subtitle: 'Página de Dedicatoria Izq + 1 Foto Der',
+      category: 'editorial',
+      photoCount: 1,
+      apply: (source, photos) => ({
+        ...source,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...source.leftPage,
+          layout: 'editorial-text-photo',
+          slots: [],
+          customTextHeading: source.leftPage.customTextHeading || foilTitleText || 'Momentos Inolvidables',
+          customTextBody: source.leftPage.customTextBody || 'Cada imagen narra una historia única.',
+        },
+        rightPage: {
+          ...source.rightPage,
+          layout: 'single-bordered',
+          slots: [{ id: `s-R-${Date.now()}-1`, photoId: photos[0], fitMode: 'cover' }],
+        },
+      }),
+      renderDiagram: () => (
+        <div className="w-full h-full grid grid-cols-2 gap-1 p-0.5 bg-[#FAF7F2]">
+          <div className="flex flex-col justify-center items-center p-1 border border-[#D6CEBE] rounded-xs bg-white">
+            <div className="w-3/4 h-1 bg-[#8C6D37] rounded-full mb-1" />
+            <div className="w-1/2 h-0.5 bg-[#736B60] rounded-full mb-0.5" />
+            <div className="w-2/3 h-0.5 bg-[#736B60] rounded-full" />
+          </div>
+          <div className="bg-white p-0.5 border border-[#D6CEBE] rounded-xs flex items-center justify-center">
+            <div className="w-3/4 h-3/4 bg-[#8C6D37]/35 border border-[#8C6D37] rounded-xs" />
+          </div>
+        </div>
+      ),
+    },
+  ];
+
+  // Helper to extract all photo IDs in the current spread (or fallback to uploaded photos)
+  const getSpreadPhotos = useCallback((spread: PhotobookSpread): string[] => {
+    const photos: string[] = [];
+    if (spread.isFullSpreadBleed && spread.fullSpreadPhotoId) {
+      photos.push(spread.fullSpreadPhotoId);
+    }
+    spread.leftPage.slots.forEach((s) => {
+      if (s.photoId && !photos.includes(s.photoId)) photos.push(s.photoId);
+    });
+    spread.rightPage.slots.forEach((s) => {
+      if (s.photoId && !photos.includes(s.photoId)) photos.push(s.photoId);
+    });
+    // Add selected photos if any
+    selectedPhotoIds.forEach((id) => {
+      if (!photos.includes(id)) photos.push(id);
+    });
+    // Fill remaining from uploaded photos
+    uploadedPhotos.forEach((p) => {
+      if (!photos.includes(p.id)) photos.push(p.id);
+    });
+    return photos;
+  }, [selectedPhotoIds, uploadedPhotos]);
+
+  // Compute live preview spread when hovered over a template style
+  const activeSpread = spreads[activeSpreadIndex] || spreads[0];
+  const previewSpread = hoveredLayoutTemplateId && activeSpread
+    ? SPREAD_TEMPLATE_PRESETS.find((t) => t.id === hoveredLayoutTemplateId)?.apply(activeSpread, getSpreadPhotos(activeSpread)) || null
+    : null;
+  const displaySpread = previewSpread || activeSpread;
+
+  // Apply template permanently on click
+  const handleApplySpreadTemplate = (templateId: string) => {
+    const tmpl = SPREAD_TEMPLATE_PRESETS.find((t) => t.id === templateId);
+    if (!tmpl || !activeSpread) return;
+    recordHistorySnapshot(spreads);
+    const updated = tmpl.apply(activeSpread, getSpreadPhotos(activeSpread));
+    setSpreads((prev) => prev.map((s, idx) => (idx === activeSpreadIndex ? updated : s)));
+    setHoveredLayoutTemplateId(null);
+    setShowTemplateGridModal(false);
+  };
+
+  // Cycle spread templates with [ < ] and [ > ]
+  const handleCycleSpreadTemplate = (direction: 'prev' | 'next') => {
+    if (!activeSpread) return;
+    const currentIdx = SPREAD_TEMPLATE_PRESETS.findIndex((t) => {
+      if (activeSpread.isFullSpreadBleed) return t.id === 'panoramic-spread';
+      return t.id.includes(activeSpread.leftPage.layout);
+    });
+    let nextIdx = 0;
+    if (direction === 'prev') {
+      nextIdx = currentIdx <= 0 ? SPREAD_TEMPLATE_PRESETS.length - 1 : currentIdx - 1;
+    } else {
+      nextIdx = currentIdx >= SPREAD_TEMPLATE_PRESETS.length - 1 ? 0 : currentIdx + 1;
+    }
+    const nextTmpl = SPREAD_TEMPLATE_PRESETS[nextIdx];
+    if (nextTmpl) {
+      handleApplySpreadTemplate(nextTmpl.id);
+    }
+  };
+
+  // Delete spread with confirmation and history
+  const handleDeleteSpreadWithConfirmation = (index: number) => {
+    if (spreads.length <= 1) return;
+    if (window.confirm(`¿Estás seguro de eliminar el Pliego ${index + 1}? Esta acción se puede deshacer con Ctrl+Z.`)) {
+      recordHistorySnapshot(spreads);
+      handleDeleteSpread(index);
+    }
+  };
+
+  // Multi-photo drag & drop auto-layout handler
+  const handleDropPhotosOnTarget = (target: 'spread' | 'left' | 'right', e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverSlotId(null);
+    setIsCanvasDragOver(false);
+
+    let photoIdsToPlace: string[] = [];
+    if (selectedPhotoIds.length > 0 && draggedPhotoId && selectedPhotoIds.includes(draggedPhotoId)) {
+      photoIdsToPlace = [...selectedPhotoIds];
+    } else if (selectedPhotoIds.length > 1 && !draggedPhotoId) {
+      photoIdsToPlace = [...selectedPhotoIds];
+    } else if (draggedPhotoId) {
+      photoIdsToPlace = [draggedPhotoId];
+    } else if (selectedPhotoIds.length > 0) {
+      photoIdsToPlace = [...selectedPhotoIds];
+    }
+
+    if (photoIdsToPlace.length === 0) return;
+    if (!activeSpread) return;
+
+    recordHistorySnapshot(spreads);
+    const count = photoIdsToPlace.length;
+
+    if (target === 'left' || target === 'right') {
+      let layout: PageLayoutId = 'single-full';
+      if (count === 1) layout = 'single-full';
+      else if (count === 2) layout = 'two-vertical';
+      else if (count === 3) layout = 'three-collage';
+      else if (count === 4) layout = 'four-grid';
+      else if (count === 5) layout = 'five-photo-editorial';
+      else if (count <= 9) layout = 'moodboard-mosaic-9';
+      else layout = 'lifestyle-bento-10';
+
+      const slots: PageSlot[] = photoIdsToPlace.map((pId, idx) => ({
+        id: `slot-${target === 'left' ? 'L' : 'R'}-${Date.now()}-${idx}`,
+        photoId: pId,
+        fitMode: 'cover',
+      }));
+
+      const updatedSpread: PhotobookSpread = {
+        ...activeSpread,
+        isFullSpreadBleed: false,
+        [target === 'left' ? 'leftPage' : 'rightPage']: {
+          ...activeSpread[target === 'left' ? 'leftPage' : 'rightPage'],
+          layout,
+          slots,
+        },
+      };
+      setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+    } else {
+      // Whole spread drop
+      if (count === 1) {
+        const updatedSpread: PhotobookSpread = {
+          ...activeSpread,
+          isFullSpreadBleed: false,
+          leftPage: {
+            ...activeSpread.leftPage,
+            layout: 'single-full',
+            slots: [{ id: `s-L-${Date.now()}`, photoId: photoIdsToPlace[0], fitMode: 'cover' }],
+          },
+        };
+        setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+      } else if (count === 2) {
+        const updatedSpread: PhotobookSpread = {
+          ...activeSpread,
+          isFullSpreadBleed: false,
+          leftPage: {
+            ...activeSpread.leftPage,
+            layout: 'single-full',
+            slots: [{ id: `s-L-${Date.now()}`, photoId: photoIdsToPlace[0], fitMode: 'cover' }],
+          },
+          rightPage: {
+            ...activeSpread.rightPage,
+            layout: 'single-full',
+            slots: [{ id: `s-R-${Date.now()}`, photoId: photoIdsToPlace[1], fitMode: 'cover' }],
+          },
+        };
+        setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+      } else if (count === 3) {
+        const updatedSpread: PhotobookSpread = {
+          ...activeSpread,
+          isFullSpreadBleed: false,
+          leftPage: {
+            ...activeSpread.leftPage,
+            layout: 'two-vertical',
+            slots: [
+              { id: `s-L1-${Date.now()}`, photoId: photoIdsToPlace[0], fitMode: 'cover' },
+              { id: `s-L2-${Date.now()}`, photoId: photoIdsToPlace[1], fitMode: 'cover' },
+            ],
+          },
+          rightPage: {
+            ...activeSpread.rightPage,
+            layout: 'single-full',
+            slots: [{ id: `s-R1-${Date.now()}`, photoId: photoIdsToPlace[2], fitMode: 'cover' }],
+          },
+        };
+        setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+      } else if (count === 4) {
+        const updatedSpread: PhotobookSpread = {
+          ...activeSpread,
+          isFullSpreadBleed: false,
+          leftPage: {
+            ...activeSpread.leftPage,
+            layout: 'two-vertical',
+            slots: [
+              { id: `s-L1-${Date.now()}`, photoId: photoIdsToPlace[0], fitMode: 'cover' },
+              { id: `s-L2-${Date.now()}`, photoId: photoIdsToPlace[1], fitMode: 'cover' },
+            ],
+          },
+          rightPage: {
+            ...activeSpread.rightPage,
+            layout: 'two-vertical',
+            slots: [
+              { id: `s-R1-${Date.now()}`, photoId: photoIdsToPlace[2], fitMode: 'cover' },
+              { id: `s-R2-${Date.now()}`, photoId: photoIdsToPlace[3], fitMode: 'cover' },
+            ],
+          },
+        };
+        setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+      } else {
+        const leftCount = Math.ceil(count / 2);
+        const rightCount = count - leftCount;
+
+        const getLayout = (c: number): PageLayoutId => {
+          if (c === 1) return 'single-full';
+          if (c === 2) return 'two-vertical';
+          if (c === 3) return 'three-collage';
+          if (c === 4) return 'four-grid';
+          if (c === 5) return 'five-photo-editorial';
+          if (c <= 9) return 'moodboard-mosaic-9';
+          return 'lifestyle-bento-10';
+        };
+
+        const leftSlots: PageSlot[] = photoIdsToPlace.slice(0, leftCount).map((pId, idx) => ({
+          id: `s-L-${Date.now()}-${idx}`,
+          photoId: pId,
+          fitMode: 'cover',
+        }));
+        const rightSlots: PageSlot[] = photoIdsToPlace.slice(leftCount).map((pId, idx) => ({
+          id: `s-R-${Date.now()}-${idx}`,
+          photoId: pId,
+          fitMode: 'cover',
+        }));
+
+        const updatedSpread: PhotobookSpread = {
+          ...activeSpread,
+          isFullSpreadBleed: false,
+          leftPage: {
+            ...activeSpread.leftPage,
+            layout: getLayout(leftCount),
+            slots: leftSlots,
+          },
+          rightPage: {
+            ...activeSpread.rightPage,
+            layout: getLayout(rightCount),
+            slots: rightSlots,
+          },
+        };
+        setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+      }
+    }
+  };
+
   // Free Floating Draggable Text Handlers
   const handleAddFloatingText = (presetType: 'title' | 'subtitle' | 'quote' | 'label' = 'title') => {
     recordHistorySnapshot(spreads);
@@ -1751,8 +2475,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
     onAddToCart(project, totalPrice);
   };
-
-  const activeSpread = spreads[activeSpreadIndex] || spreads[0];
 
   // Interactive Slot Renderer with Zno Cloud Pro Editing Controls
   const renderSlotInteractive = (slot?: PageSlot, containerClasses = '') => {
@@ -3311,22 +4033,45 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           </div>
                         </div>
 
-                        {savings.hasIssues && (
-                          <div className="flex items-center gap-1 text-[9px] font-bold">
+                        <div className="flex flex-wrap items-center gap-1 text-[9px] font-bold">
+                          <button
+                            type="button"
+                            onClick={() => setPhotoUsageFilter('all')}
+                            className={`px-2 py-0.5 rounded-md transition-colors ${
+                              photoUsageFilter === 'all'
+                                ? 'bg-[#1F1C18] text-[#ECC880]'
+                                : 'bg-white border border-[#D6CEBE] text-[#736B60] hover:bg-[#F4EFE6]'
+                            }`}
+                          >
+                            Todas ({uploadedPhotos.length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPhotoUsageFilter('unused')}
+                            className={`px-2 py-0.5 rounded-md transition-colors ${
+                              photoUsageFilter === 'unused'
+                                ? 'bg-emerald-800 text-white'
+                                : 'bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100'
+                            }`}
+                          >
+                            Sin usar ({uploadedPhotos.filter((p) => getPhotoUsageCount(p.id) === 0).length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPhotoUsageFilter('used')}
+                            className={`px-2 py-0.5 rounded-md transition-colors ${
+                              photoUsageFilter === 'used'
+                                ? 'bg-[#8C6D37] text-white'
+                                : 'bg-white border border-[#D6CEBE] text-[#736B60] hover:bg-[#F4EFE6]'
+                            }`}
+                          >
+                            Usadas ({uploadedPhotos.filter((p) => getPhotoUsageCount(p.id) > 0).length})
+                          </button>
+
+                          {savings.hasIssues && (
                             <button
                               type="button"
-                              onClick={() => setQualityFilter('all')}
-                              className={`px-2 py-0.5 rounded-md transition-colors ${
-                                qualityFilter === 'all'
-                                  ? 'bg-[#1F1C18] text-[#ECC880]'
-                                  : 'bg-white border border-[#D6CEBE] text-[#736B60]'
-                              }`}
-                            >
-                              Todas ({uploadedPhotos.length})
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setQualityFilter('issues')}
+                              onClick={() => setQualityFilter(qualityFilter === 'issues' ? 'all' : 'issues')}
                               className={`px-2 py-0.5 rounded-md transition-colors flex items-center gap-1 ${
                                 qualityFilter === 'issues'
                                   ? 'bg-amber-600 text-white'
@@ -3336,16 +4081,39 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                               <AlertTriangle className="w-2.5 h-2.5" />
                               Avisos ({savings.warningCount + savings.insufficientCount})
                             </button>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     );
                   })()}
 
-                  {/* Photo Thumbnails Grid with Shift+Click Range Selection & Clear HQ Badges */}
+                  {/* Multi-Photo Active Selection Bar with Ctrl+D Deselect */}
+                  {selectedPhotoIds.length > 0 && (
+                    <div className="p-2 mb-2 rounded-xl bg-[#8C6D37]/15 border border-[#8C6D37]/35 flex items-center justify-between gap-1.5 text-xs shadow-xs animate-in fade-in">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="w-2 h-2 rounded-full bg-[#8C6D37] animate-ping" />
+                        <span className="font-bold text-[#8C6D37] text-[11px] truncate">
+                          {selectedPhotoIds.length} fotos seleccionadas
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPhotoIds([])}
+                        title="Deseleccionar todas las fotos (Ctrl+D o Esc)"
+                        className="px-2 py-1 rounded-lg bg-[#8C6D37] hover:bg-[#73582A] text-white font-bold text-[10px] whitespace-nowrap shadow-xs"
+                      >
+                        Deseleccionar (Ctrl+D)
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Photo Thumbnails Grid with Shift+Click Range Selection & Dimmed Used Photos */}
                   <div className="flex-1 overflow-y-auto grid grid-cols-3 gap-1.5 pr-1 min-h-0">
                     {uploadedPhotos
                       .filter((photo) => {
+                        const usage = getPhotoUsageCount(photo.id);
+                        if (photoUsageFilter === 'unused' && usage > 0) return false;
+                        if (photoUsageFilter === 'used' && usage === 0) return false;
                         if (qualityFilter === 'issues') {
                           return photo.preflight?.rating === 'advertencia' || photo.preflight?.rating === 'insuficiente';
                         }
@@ -3358,6 +4126,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         const rating = photo.preflight?.rating || 'buena';
                         const usageCount = getPhotoUsageCount(photo.id);
                         const isSelected = selectedPhotoIds.includes(photo.id);
+                        const isUsed = usageCount > 0;
 
                         return (
                           <div
@@ -3368,7 +4137,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                             onClick={(e) => handleTogglePhotoSelection(photo.id, e)}
                             className={`group relative aspect-square rounded-lg overflow-hidden border cursor-grab active:cursor-grabbing transition-all select-none ${
                               isSelected
-                                ? 'border-[#8C6D37] ring-2 ring-[#8C6D37] scale-98 shadow-md'
+                                ? 'border-[#8C6D37] ring-2 ring-[#8C6D37] scale-98 shadow-md opacity-100'
+                                : isUsed
+                                ? 'opacity-40 grayscale-[25%] hover:opacity-90 hover:grayscale-0 border-[#D6CEBE]'
                                 : selectedSlotId
                                 ? 'border-[#8C6D37] hover:scale-105 shadow-md ring-1 ring-[#8C6D37]'
                                 : 'border-[#D6CEBE] hover:border-[#1F1C18]'
@@ -3643,6 +4414,130 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               {/* TOP SECONDARY TOOLBAR (Zno Cloud Designer Signature Top Bar - Screenshot 1 Match) */}
               <div className="w-full max-w-5xl flex flex-wrap items-center justify-between gap-1.5 mb-2 bg-[#FDFCF9] p-2 rounded-2xl border border-[#D6CEBE] shadow-xs select-none">
                 <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 text-xs text-[#1F1C18]">
+                  
+                  {/* SPREAD INDICATOR & TRASH DELETE BUTTON */}
+                  <div className="flex items-center gap-1 bg-[#1F1C18] text-[#FDFCF9] px-2.5 py-1.5 rounded-xl text-[11px] font-bold shadow-xs">
+                    <span>Pliego {activeSpreadIndex + 1} / {spreads.length}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSpreadWithConfirmation(activeSpreadIndex)}
+                      disabled={spreads.length <= 1}
+                      title="Eliminar este pliego (Cesto de residuos)"
+                      className="p-1 rounded-md hover:bg-rose-600 text-rose-300 hover:text-white disabled:opacity-25 transition-colors ml-1"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="h-4 w-[1px] bg-[#D6CEBE] hidden sm:block" />
+
+                  {/* 4-SQUARE TEMPLATE STYLES BUTTON & PREV/NEXT CYCLE CONTROLS: [ < ] [ ⊞ ] [ > ] */}
+                  <div className="relative flex items-center bg-[#1F1C18] rounded-xl p-0.5 shadow-xs">
+                    <button
+                      type="button"
+                      onClick={() => handleCycleSpreadTemplate('prev')}
+                      title="Diseño anterior de pliego"
+                      className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-lg transition-colors"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowTemplateGridModal(!showTemplateGridModal)}
+                      title="Estilos de plantillas (4 cuadrados pequeños). Pasa el ratón por los estilos para previsualizar."
+                      className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-all ${
+                        showTemplateGridModal ? 'bg-[#8C6D37] text-white shadow-xs' : 'text-[#ECC880] hover:bg-white/15'
+                      }`}
+                    >
+                      <LayoutGrid className="w-4 h-4" />
+                      <span className="text-[11px] hidden sm:inline">Plantillas</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleCycleSpreadTemplate('next')}
+                      title="Siguiente diseño de pliego"
+                      className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-lg transition-colors"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+
+                    {/* Template Styles Popover Modal with Real-time Hover Preview */}
+                    {showTemplateGridModal && (
+                      <div 
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute top-full mt-2 left-0 sm:left-1/2 sm:-translate-x-1/2 w-[340px] sm:w-[480px] max-h-[460px] bg-[#1F1C18] border border-white/20 rounded-2xl shadow-2xl z-50 p-3.5 flex flex-col text-white backdrop-blur-md overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+                      >
+                        <div className="flex items-center justify-between pb-2 border-b border-white/15 mb-2.5">
+                          <div className="flex items-center gap-2">
+                            <LayoutGrid className="w-4 h-4 text-[#ECC880]" />
+                            <div>
+                              <span className="text-xs font-bold text-white block">Estilos de Plantillas de Pliego</span>
+                              <span className="text-[10px] text-[#D6CEBE]">Pasa el ratón para autoajustar · Clic para fijar</span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowTemplateGridModal(false);
+                              setHoveredLayoutTemplateId(null);
+                            }}
+                            className="p-1 rounded-lg hover:bg-white/20 text-white/70 hover:text-white transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Preset Cards Grid */}
+                        <div className="flex-1 overflow-y-auto pr-1 space-y-2 max-h-[380px]">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {SPREAD_TEMPLATE_PRESETS.map((tmpl) => {
+                              const isHovered = hoveredLayoutTemplateId === tmpl.id;
+                              return (
+                                <button
+                                  key={tmpl.id}
+                                  type="button"
+                                  onMouseEnter={() => setHoveredLayoutTemplateId(tmpl.id)}
+                                  onMouseLeave={() => setHoveredLayoutTemplateId(null)}
+                                  onClick={() => handleApplySpreadTemplate(tmpl.id)}
+                                  className={`group p-2 rounded-xl border text-left transition-all flex flex-col gap-1.5 relative ${
+                                    isHovered
+                                      ? 'border-[#ECC880] bg-white/20 ring-2 ring-[#ECC880] shadow-lg'
+                                      : 'border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/30'
+                                  }`}
+                                >
+                                  {/* Diagram Preview */}
+                                  <div className="w-full aspect-[16/9] rounded-lg overflow-hidden bg-[#2A2621] p-1 flex items-center justify-center pointer-events-none">
+                                    {tmpl.renderDiagram()}
+                                  </div>
+
+                                  <div>
+                                    <div className="flex items-center justify-between gap-1">
+                                      <span className="text-[11px] font-bold text-white group-hover:text-[#ECC880] truncate">
+                                        {tmpl.title}
+                                      </span>
+                                      {tmpl.badge && (
+                                        <span className="px-1 py-0.2 rounded text-[8px] font-bold bg-[#8C6D37] text-white whitespace-nowrap">
+                                          {tmpl.badge}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[9px] text-[#A89F91] line-clamp-1 block">
+                                      {tmpl.subtitle}
+                                    </span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="h-4 w-[1px] bg-[#D6CEBE] hidden sm:block" />
+
                   {/* Auto-fill button with Multi-Select Support */}
                   <button
                     type="button"
@@ -3668,21 +4563,19 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     <span>{selectedPhotoIds.length > 0 ? `Auto-Llenar (${selectedPhotoIds.length})` : 'Autocompletar'}</span>
                   </button>
 
-                  <div className="h-4 w-[1px] bg-[#D6CEBE] hidden sm:block" />
-
                   {/* Full Bleed / Rellenar Todo el Pliego sin Bordes (Edge-to-Edge Fill) */}
                   <button
                     type="button"
                     onClick={handleToggleSpreadFlushMargin}
                     title="Rellenar toda la página eliminando márgenes de borde (Sangrado Completo)"
                     className={`px-2.5 py-1.5 rounded-lg border font-semibold text-[11px] flex items-center gap-1.5 transition-all ${
-                      activeSpread.isFlushMargin
+                      displaySpread.isFlushMargin
                         ? 'bg-[#8C6D37] text-white border-[#8C6D37] shadow-xs'
                         : 'border-[#D6CEBE] hover:bg-[#F4EFE6] text-[#1F1C18]'
                     }`}
                   >
                     <Maximize2 className="w-3.5 h-3.5 text-[#ECC880]" />
-                    <span>{activeSpread.isFlushMargin ? 'Sin Bordes (Activo)' : 'Rellenar Todo'}</span>
+                    <span>{displaySpread.isFlushMargin ? 'Sin Bordes (Activo)' : 'Rellenar Todo'}</span>
                   </button>
 
                   {/* Background Color Picker Dropdown */}
@@ -3697,7 +4590,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       <span>Fondo</span>
                       <div 
                         className="w-2.5 h-2.5 rounded-full border border-black/20" 
-                        style={{ backgroundColor: activeSpread.backgroundColor || spreadBgColor }} 
+                        style={{ backgroundColor: displaySpread.backgroundColor || spreadBgColor }} 
                       />
                     </button>
 
@@ -3881,9 +4774,27 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               {/* The 180° Layflat Open Book Spread Canvas */}
               <div 
                 ref={spreadCanvasRef}
-                className="w-full max-w-5xl aspect-[16/10] rounded-2xl shadow-2xl border border-[#D6CEBE] overflow-hidden flex relative paper-texture select-none transition-colors duration-200"
-                style={{ backgroundColor: activeSpread.backgroundColor || spreadBgColor }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsCanvasDragOver(true);
+                }}
+                onDragLeave={() => setIsCanvasDragOver(false)}
+                onDrop={(e) => handleDropPhotosOnTarget('spread', e)}
+                className={`w-full max-w-5xl aspect-[16/10] rounded-2xl shadow-2xl border overflow-hidden flex relative paper-texture select-none transition-all duration-200 ${
+                  isCanvasDragOver
+                    ? 'border-[#8C6D37] ring-4 ring-[#8C6D37]/40'
+                    : 'border-[#D6CEBE]'
+                }`}
+                style={{ backgroundColor: displaySpread.backgroundColor || spreadBgColor }}
               >
+                {/* Live Real-time Template Hover Preview Badge */}
+                {hoveredLayoutTemplateId && (
+                  <div className="absolute top-3 inset-x-1/2 -translate-x-1/2 z-40 px-3.5 py-1.5 rounded-full bg-[#1F1C18]/95 border border-[#ECC880] text-[#ECC880] text-[11px] font-bold flex items-center gap-2 shadow-2xl backdrop-blur-md animate-pulse pointer-events-none whitespace-nowrap">
+                    <Sparkles className="w-3.5 h-3.5 text-[#ECC880]" />
+                    <span>Previsualizando: {SPREAD_TEMPLATE_PRESETS.find((t) => t.id === hoveredLayoutTemplateId)?.title} · Clic para fijar</span>
+                  </div>
+                )}
+
                 {/* Central Gutter / Spine Fold Shadow */}
                 <div className="absolute inset-y-0 left-1/2 -ml-4 w-8 book-gutter-shadow pointer-events-none z-20" />
                 <div className="absolute inset-y-0 left-1/2 w-[1px] bg-black/15 z-20 pointer-events-none" />
@@ -3923,7 +4834,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 )}
 
                 {/* FULL SPREAD PANORAMA OVERRIDE */}
-                {activeSpread.isFullSpreadBleed ? (
+                {displaySpread.isFullSpreadBleed ? (
                   <div 
                     className="w-full h-full relative group cursor-pointer"
                     onClick={() => setSelectedSlotId('full-spread')}
@@ -3941,9 +4852,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       }
                     }}
                   >
-                    {activeSpread.fullSpreadPhotoId && uploadedPhotos.find((p) => p.id === activeSpread.fullSpreadPhotoId) ? (
+                    {displaySpread.fullSpreadPhotoId && uploadedPhotos.find((p) => p.id === displaySpread.fullSpreadPhotoId) ? (
                       <img
-                        src={uploadedPhotos.find((p) => p.id === activeSpread.fullSpreadPhotoId)?.url}
+                        src={uploadedPhotos.find((p) => p.id === displaySpread.fullSpreadPhotoId)?.url}
                         alt="Foto Panorámica"
                         className="w-full h-full object-cover"
                       />
@@ -3970,9 +4881,13 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 ) : (
                   <>
                     {/* LEFT PAGE CONTAINER */}
-                    <div className={`w-1/2 h-full flex flex-col justify-between relative border-r border-[#EAE4D8] ${
-                      activeSpread.isFlushMargin ? 'p-0' : 'p-4 sm:p-6'
-                    }`}>
+                    <div 
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      onDrop={(e) => handleDropPhotosOnTarget('left', e)}
+                      className={`w-1/2 h-full flex flex-col justify-between relative border-r border-[#EAE4D8] ${
+                        displaySpread.isFlushMargin ? 'p-0' : 'p-4 sm:p-6'
+                      }`}
+                    >
                       {/* Left Layout Quick Switcher */}
                       <div className="absolute top-2.5 left-2.5 z-10">
                         <button
@@ -3987,21 +4902,25 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
                       {/* Content of Left Page */}
                       <div className="flex-1 flex flex-col justify-center items-center h-full w-full">
-                        {renderPageLayoutContent(activeSpread.leftPage, false)}
+                        {renderPageLayoutContent(displaySpread.leftPage, false)}
                       </div>
 
                       {/* Page number */}
                       <span className={`text-[9px] font-mono text-[#A89F91] text-left ${
-                        activeSpread.isFlushMargin ? 'p-1.5 bg-black/40 text-white rounded-tr' : ''
+                        displaySpread.isFlushMargin ? 'p-1.5 bg-black/40 text-white rounded-tr' : ''
                       }`}>
                         {activeSpreadIndex * 2 + 1}
                       </span>
                     </div>
 
                     {/* RIGHT PAGE CONTAINER */}
-                    <div className={`w-1/2 h-full flex flex-col justify-between relative ${
-                      activeSpread.isFlushMargin ? 'p-0' : 'p-4 sm:p-6'
-                    }`}>
+                    <div 
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      onDrop={(e) => handleDropPhotosOnTarget('right', e)}
+                      className={`w-1/2 h-full flex flex-col justify-between relative ${
+                        displaySpread.isFlushMargin ? 'p-0' : 'p-4 sm:p-6'
+                      }`}
+                    >
                       {/* Right Layout Quick Switcher */}
                       <div className="absolute top-2.5 right-2.5 z-10">
                         <button
@@ -4016,12 +4935,12 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
                       {/* Content of Right Page */}
                       <div className="flex-1 flex flex-col justify-center items-center h-full w-full">
-                        {renderPageLayoutContent(activeSpread.rightPage, true)}
+                        {renderPageLayoutContent(displaySpread.rightPage, true)}
                       </div>
 
                       {/* Page number */}
                       <span className={`text-[9px] font-mono text-[#A89F91] text-right ${
-                        activeSpread.isFlushMargin ? 'p-1.5 bg-black/40 text-white rounded-tl' : ''
+                        displaySpread.isFlushMargin ? 'p-1.5 bg-black/40 text-white rounded-tl' : ''
                       }`}>
                         {activeSpreadIndex * 2 + 2}
                       </span>
@@ -4030,7 +4949,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 )}
 
                 {/* FREE FLOATING TEXT OVERLAYS ON SPREAD CANVAS */}
-                {activeSpread.textElements && activeSpread.textElements.map((txt) => {
+                {displaySpread.textElements && displaySpread.textElements.map((txt) => {
                   const isSelected = selectedTextId === txt.id;
                   return (
                     <div
