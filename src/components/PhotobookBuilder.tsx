@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   X, 
   ChevronLeft, 
@@ -220,6 +220,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
   // Multi-photo selection state
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
+  const [lastSelectedPhotoId, setLastSelectedPhotoId] = useState<string | null>(null);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState<boolean>(false);
 
   // Floating text layer state
@@ -236,27 +237,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     containerRect: DOMRect;
   } | null>(null);
 
-  // Keyboard navigation for spreads
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
-        return;
-      }
-      if (e.key === 'ArrowLeft') {
-        setActiveSpreadIndex((prev) => Math.max(0, prev - 1));
-      } else if (e.key === 'ArrowRight') {
-        setActiveSpreadIndex((prev) => Math.min(spreads.length - 1, prev + 1));
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [spreads.length]);
-
-  // Undo / Redo History Stack (Zno Deshacer / Rehacer)
-  const [history, setHistory] = useState<PhotobookSpread[][]>([]);
-  const [historyIndex, setHistoryIndex] = useState<number>(-1);
-
   // Interactive Pan / Image Displacement State (Zno Pan Tool)
   const [panningSlotId, setPanningSlotId] = useState<string | null>(null);
   const panDragRef = useRef<{
@@ -268,36 +248,98 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     hasMoved: boolean;
   } | null>(null);
 
-  // Save history snapshot before making changes
-  const recordHistorySnapshot = (currentSpreads: PhotobookSpread[]) => {
-    setHistory((prev) => {
-      const newHistory = prev.slice(0, historyIndex + 1);
-      newHistory.push(JSON.parse(JSON.stringify(currentSpreads)));
-      if (newHistory.length > 25) newHistory.shift();
-      return newHistory;
-    });
-    setHistoryIndex((prev) => Math.min(prev + 1, 24));
-  };
+  // Undo / Redo History Stack (Deshacer / Rehacer con Ctrl+Z y Ctrl+Y)
+  const historyRef = useRef<PhotobookSpread[][]>([]);
+  const historyIndexRef = useRef<number>(-1);
+  const [historyCount, setHistoryCount] = useState<number>(0);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
 
-  const handleUndo = () => {
-    if (historyIndex > 0) {
-      const targetState = history[historyIndex - 1];
+  // Initialize history on mount
+  useEffect(() => {
+    if (historyRef.current.length === 0 && spreads.length > 0) {
+      const initialSnapshot = JSON.parse(JSON.stringify(spreads));
+      historyRef.current = [initialSnapshot];
+      historyIndexRef.current = 0;
+      setHistoryCount(1);
+      setHistoryIndex(0);
+    }
+  }, []);
+
+  // Save history snapshot before or after making changes
+  const recordHistorySnapshot = useCallback((stateToSnapshot?: PhotobookSpread[]) => {
+    const currentSpreadState = stateToSnapshot || spreads;
+    const currentIdx = historyIndexRef.current;
+    const nextHistory = historyRef.current.slice(0, currentIdx + 1);
+    nextHistory.push(JSON.parse(JSON.stringify(currentSpreadState)));
+    if (nextHistory.length > 35) {
+      nextHistory.shift();
+    }
+    historyRef.current = nextHistory;
+    historyIndexRef.current = nextHistory.length - 1;
+    setHistoryCount(nextHistory.length);
+    setHistoryIndex(nextHistory.length - 1);
+  }, [spreads]);
+
+  const handleUndo = useCallback(() => {
+    if (historyIndexRef.current > 0) {
+      const targetIndex = historyIndexRef.current - 1;
+      const targetState = historyRef.current[targetIndex];
       if (targetState) {
+        historyIndexRef.current = targetIndex;
+        setHistoryIndex(targetIndex);
         setSpreads(JSON.parse(JSON.stringify(targetState)));
-        setHistoryIndex(historyIndex - 1);
       }
     }
-  };
+  }, []);
 
-  const handleRedo = () => {
-    if (historyIndex < history.length - 1) {
-      const targetState = history[historyIndex + 1];
+  const handleRedo = useCallback(() => {
+    if (historyIndexRef.current < historyRef.current.length - 1) {
+      const targetIndex = historyIndexRef.current + 1;
+      const targetState = historyRef.current[targetIndex];
       if (targetState) {
+        historyIndexRef.current = targetIndex;
+        setHistoryIndex(targetIndex);
         setSpreads(JSON.parse(JSON.stringify(targetState)));
-        setHistoryIndex(historyIndex + 1);
       }
     }
-  };
+  }, []);
+
+  // Keyboard shortcuts: Ctrl+Z (Undo), Ctrl+Y / Cmd+Shift+Z (Redo), Arrow keys
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
+      // Undo: Ctrl+Z or Cmd+Z (without Shift)
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        handleUndo();
+        return;
+      }
+
+      // Redo: Ctrl+Shift+Z, Cmd+Shift+Z, Ctrl+Y, Cmd+Y
+      if (
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z')) ||
+        ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y'))
+      ) {
+        e.preventDefault();
+        handleRedo();
+        return;
+      }
+
+      // Spread Navigation
+      if (e.key === 'ArrowLeft') {
+        setActiveSpreadIndex((prev) => Math.max(0, prev - 1));
+      } else if (e.key === 'ArrowRight') {
+        setActiveSpreadIndex((prev) => Math.min(spreads.length - 1, prev + 1));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo, spreads.length]);
 
   // Interactive Frame Node Resize State & Rotation State
   const [resizingHandle, setResizingHandle] = useState<{
@@ -1205,24 +1247,246 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     setShowFullBleedMenu(false);
   };
 
-  // Multi-Photo Selection Handlers
+  // Multi-Photo Selection Handlers with Shift+Click range selection and Ctrl/Cmd+Click
   const handleTogglePhotoSelection = (photoId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setSelectedPhotoIds((prev) =>
-      prev.includes(photoId) ? prev.filter((id) => id !== photoId) : [...prev, photoId]
-    );
+
+    // If slot is selected on canvas and no modifier key is pressed, assign directly
+    if (selectedSlotId && e && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      handleAssignPhotoToSlot(selectedSlotId, photoId);
+      return;
+    }
+
+    // Visible photo list according to active quality filter
+    const visiblePhotos = uploadedPhotos.filter((photo) => {
+      if (qualityFilter === 'issues') return photo.preflight?.rating === 'advertencia' || photo.preflight?.rating === 'insuficiente';
+      if (qualityFilter === 'optimal') return photo.preflight?.rating === 'optima';
+      return true;
+    });
+    const visibleIds = visiblePhotos.map((p) => p.id);
+    const clickedIndex = visibleIds.indexOf(photoId);
+
+    // Shift + Click: Select range between lastSelectedPhotoId and clicked photo
+    if (e?.shiftKey && lastSelectedPhotoId && visibleIds.includes(lastSelectedPhotoId)) {
+      const lastIndex = visibleIds.indexOf(lastSelectedPhotoId);
+      const start = Math.min(lastIndex, clickedIndex);
+      const end = Math.max(lastIndex, clickedIndex);
+      const rangeIds = visibleIds.slice(start, end + 1);
+
+      setSelectedPhotoIds((prev) => {
+        const combined = new Set(prev);
+        rangeIds.forEach((id) => combined.add(id));
+        return Array.from(combined);
+      });
+      return;
+    }
+
+    // Normal Click or Ctrl/Cmd + Click: Toggle selection
+    setSelectedPhotoIds((prev) => {
+      const isAlreadySelected = prev.includes(photoId);
+      if (isAlreadySelected) {
+        return prev.filter((id) => id !== photoId);
+      } else {
+        return [...prev, photoId];
+      }
+    });
+    setLastSelectedPhotoId(photoId);
   };
 
   const handleSelectAllPhotos = () => {
-    setSelectedPhotoIds(uploadedPhotos.map((p) => p.id));
+    const visiblePhotos = uploadedPhotos.filter((photo) => {
+      if (qualityFilter === 'issues') return photo.preflight?.rating === 'advertencia' || photo.preflight?.rating === 'insuficiente';
+      if (qualityFilter === 'optimal') return photo.preflight?.rating === 'optima';
+      return true;
+    });
+    setSelectedPhotoIds(visiblePhotos.map((p) => p.id));
   };
 
   const handleDeselectAllPhotos = () => {
     setSelectedPhotoIds([]);
+    setLastSelectedPhotoId(null);
   };
 
-  // Smart Auto Populate with Selected Photos
+  // Volcar Fotos Seleccionadas en la Plantilla / Pliego Activo (Smart Dump to Spread)
+  const handleDumpSelectedPhotosToCurrentSpread = (targetSide: 'spread' | 'left' | 'right' = 'spread') => {
+    const photosToDump = selectedPhotoIds.length > 0
+      ? uploadedPhotos.filter((p) => selectedPhotoIds.includes(p.id))
+      : uploadedPhotos;
+
+    if (photosToDump.length === 0) return;
+    recordHistorySnapshot(spreads);
+
+    const activeSpread = spreads[activeSpreadIndex];
+    if (!activeSpread) return;
+
+    if (targetSide === 'left') {
+      const count = photosToDump.length;
+      let layout: PageLayoutId = 'single-full';
+      if (count === 1) layout = 'single-full';
+      else if (count === 2) layout = 'two-vertical';
+      else if (count === 3) layout = 'three-collage';
+      else layout = 'four-grid';
+
+      const slots: PageSlot[] = photosToDump.map((p, idx) => ({
+        id: `slot-L-${Date.now()}-${idx}`,
+        photoId: p.id,
+        fitMode: 'cover',
+      }));
+
+      const updatedSpread: PhotobookSpread = {
+        ...activeSpread,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...activeSpread.leftPage,
+          layout,
+          slots,
+        },
+      };
+      setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+      return;
+    }
+
+    if (targetSide === 'right') {
+      const count = photosToDump.length;
+      let layout: PageLayoutId = 'single-full';
+      if (count === 1) layout = 'single-full';
+      else if (count === 2) layout = 'two-vertical';
+      else if (count === 3) layout = 'three-collage';
+      else layout = 'four-grid';
+
+      const slots: PageSlot[] = photosToDump.map((p, idx) => ({
+        id: `slot-R-${Date.now()}-${idx}`,
+        photoId: p.id,
+        fitMode: 'cover',
+      }));
+
+      const updatedSpread: PhotobookSpread = {
+        ...activeSpread,
+        isFullSpreadBleed: false,
+        rightPage: {
+          ...activeSpread.rightPage,
+          layout,
+          slots,
+        },
+      };
+      setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+      return;
+    }
+
+    // Default: Dump across entire active spread (both left and right pages)
+    const count = photosToDump.length;
+
+    if (count === 1) {
+      // 1 photo: Full bleed or fill first slot
+      const updatedSpread: PhotobookSpread = {
+        ...activeSpread,
+        leftPage: {
+          ...activeSpread.leftPage,
+          slots: [{ id: `s-L-${Date.now()}`, photoId: photosToDump[0].id, fitMode: 'cover' }],
+        },
+      };
+      setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+    } else if (count === 2) {
+      // 2 photos: 1 on Left, 1 on Right
+      const updatedSpread: PhotobookSpread = {
+        ...activeSpread,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...activeSpread.leftPage,
+          layout: 'single-full',
+          slots: [{ id: `s-L-${Date.now()}`, photoId: photosToDump[0].id, fitMode: 'cover' }],
+        },
+        rightPage: {
+          ...activeSpread.rightPage,
+          layout: 'single-full',
+          slots: [{ id: `s-R-${Date.now()}`, photoId: photosToDump[1].id, fitMode: 'cover' }],
+        },
+      };
+      setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+    } else if (count === 3) {
+      // 3 photos: 2 on Left (two-vertical), 1 on Right (single-full)
+      const updatedSpread: PhotobookSpread = {
+        ...activeSpread,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...activeSpread.leftPage,
+          layout: 'two-vertical',
+          slots: [
+            { id: `s-L1-${Date.now()}`, photoId: photosToDump[0].id, fitMode: 'cover' },
+            { id: `s-L2-${Date.now()}`, photoId: photosToDump[1].id, fitMode: 'cover' },
+          ],
+        },
+        rightPage: {
+          ...activeSpread.rightPage,
+          layout: 'single-full',
+          slots: [{ id: `s-R1-${Date.now()}`, photoId: photosToDump[2].id, fitMode: 'cover' }],
+        },
+      };
+      setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+    } else if (count === 4) {
+      // 4 photos: 2 on Left, 2 on Right
+      const updatedSpread: PhotobookSpread = {
+        ...activeSpread,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...activeSpread.leftPage,
+          layout: 'two-vertical',
+          slots: [
+            { id: `s-L1-${Date.now()}`, photoId: photosToDump[0].id, fitMode: 'cover' },
+            { id: `s-L2-${Date.now()}`, photoId: photosToDump[1].id, fitMode: 'cover' },
+          ],
+        },
+        rightPage: {
+          ...activeSpread.rightPage,
+          layout: 'two-vertical',
+          slots: [
+            { id: `s-R1-${Date.now()}`, photoId: photosToDump[2].id, fitMode: 'cover' },
+            { id: `s-R2-${Date.now()}`, photoId: photosToDump[3].id, fitMode: 'cover' },
+          ],
+        },
+      };
+      setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+    } else {
+      // 5+ photos: Distribute evenly across Left and Right pages
+      const leftCount = Math.ceil(count / 2);
+      const rightCount = count - leftCount;
+
+      const leftSlots: PageSlot[] = photosToDump.slice(0, leftCount).map((p, idx) => ({
+        id: `s-L-${Date.now()}-${idx}`,
+        photoId: p.id,
+        fitMode: 'cover',
+      }));
+      const rightSlots: PageSlot[] = photosToDump.slice(leftCount).map((p, idx) => ({
+        id: `s-R-${Date.now()}-${idx}`,
+        photoId: p.id,
+        fitMode: 'cover',
+      }));
+
+      const updatedSpread: PhotobookSpread = {
+        ...activeSpread,
+        isFullSpreadBleed: false,
+        leftPage: {
+          ...activeSpread.leftPage,
+          layout: leftCount <= 2 ? 'two-vertical' : leftCount === 3 ? 'three-collage' : 'four-grid',
+          slots: leftSlots,
+        },
+        rightPage: {
+          ...activeSpread.rightPage,
+          layout: rightCount <= 2 ? 'two-vertical' : rightCount === 3 ? 'three-collage' : 'four-grid',
+          slots: rightSlots,
+        },
+      };
+      setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+    }
+  };
+
+  // Smart Auto Populate with Selected Photos into new spreads
   const handleAutoPopulateWithSelected = (onlyCurrentSpread = false) => {
+    if (onlyCurrentSpread) {
+      handleDumpSelectedPhotosToCurrentSpread('spread');
+      return;
+    }
+
     const photosToUse = selectedPhotoIds.length > 0 
       ? uploadedPhotos.filter((p) => selectedPhotoIds.includes(p.id))
       : uploadedPhotos;
@@ -1230,69 +1494,41 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     if (photosToUse.length === 0) return;
     recordHistorySnapshot(spreads);
 
-    if (onlyCurrentSpread) {
-      const activeSpread = spreads[activeSpreadIndex];
-      if (!activeSpread) return;
+    let photoIdx = 0;
+    const newSpreads: PhotobookSpread[] = [];
+    const spreadCount = Math.max(1, Math.ceil(photosToUse.length / 3));
 
-      let photoIndex = 0;
-      const updatedLeftSlots = activeSpread.leftPage.slots.map((s) => {
-        const p = photosToUse[photoIndex % photosToUse.length];
-        photoIndex++;
-        return { ...s, photoId: p?.id || s.photoId };
+    for (let i = 0; i < spreadCount; i++) {
+      const remaining = photosToUse.length - photoIdx;
+      const countForSpread = Math.min(3, remaining);
+      const p1 = photosToUse[photoIdx % photosToUse.length];
+      const p2 = countForSpread >= 2 ? photosToUse[(photoIdx + 1) % photosToUse.length] : undefined;
+      const p3 = countForSpread >= 3 ? photosToUse[(photoIdx + 2) % photosToUse.length] : undefined;
+      photoIdx += countForSpread;
+
+      newSpreads.push({
+        id: `spread-auto-${Date.now()}-${i + 1}`,
+        spreadNumber: i + 1,
+        backgroundColor: spreadBgColor,
+        leftPage: {
+          id: `p-${i}-L`,
+          layout: p2 ? 'two-vertical' : 'single-full',
+          slots: p2 
+            ? [{ id: `s-${i}-1`, photoId: p1?.id }, { id: `s-${i}-2`, photoId: p2?.id }]
+            : [{ id: `s-${i}-1`, photoId: p1?.id }],
+          customTextHeading: i === 0 ? foilTitleText : undefined,
+          customTextBody: i === 0 ? 'Cada página guarda un instante irrepetible.' : undefined,
+        },
+        rightPage: {
+          id: `p-${i}-R`,
+          layout: 'single-full',
+          slots: [{ id: `s-${i}-3`, photoId: p3?.id || p1?.id }],
+        }
       });
-
-      const updatedRightSlots = activeSpread.rightPage.slots.map((s) => {
-        const p = photosToUse[photoIndex % photosToUse.length];
-        photoIndex++;
-        return { ...s, photoId: p?.id || s.photoId };
-      });
-
-      const updatedSpread: PhotobookSpread = {
-        ...activeSpread,
-        isFullSpreadBleed: false,
-        leftPage: { ...activeSpread.leftPage, slots: updatedLeftSlots },
-        rightPage: { ...activeSpread.rightPage, slots: updatedRightSlots },
-      };
-
-      setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
-    } else {
-      let photoIdx = 0;
-      const newSpreads: PhotobookSpread[] = [];
-      const spreadCount = Math.max(2, Math.ceil(photosToUse.length / 3));
-
-      for (let i = 0; i < spreadCount; i++) {
-        const p1 = photosToUse[photoIdx % photosToUse.length];
-        const p2 = photosToUse[(photoIdx + 1) % photosToUse.length];
-        const p3 = photosToUse[(photoIdx + 2) % photosToUse.length];
-        photoIdx += 3;
-
-        newSpreads.push({
-          id: `spread-auto-${i + 1}`,
-          spreadNumber: i + 1,
-          backgroundColor: spreadBgColor,
-          leftPage: {
-            id: `p-${i}-L`,
-            layout: i === 0 ? 'editorial-text-photo' : i % 2 === 0 ? 'single-bordered' : 'two-vertical',
-            slots: [
-              { id: `s-${i}-1`, photoId: p1?.id },
-              { id: `s-${i}-2`, photoId: p2?.id }
-            ],
-            customTextHeading: i === 0 ? foilTitleText : undefined,
-            customTextBody: i === 0 ? 'Cada página guarda un instante irrepetible.' : undefined,
-          },
-          rightPage: {
-            id: `p-${i}-R`,
-            layout: i % 2 === 0 ? 'two-vertical' : 'single-full',
-            slots: [
-              { id: `s-${i}-3`, photoId: p3?.id }
-            ],
-          }
-        });
-      }
-
-      setSpreads(newSpreads);
-      setActiveSpreadIndex(0);
     }
+
+    setSpreads(newSpreads);
+    setActiveSpreadIndex(0);
   };
 
   // Free Floating Draggable Text Handlers
@@ -2931,46 +3167,75 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     </button>
                   </div>
 
-                  {/* Smart Auto Layout Quick Card with Multi-Select Support */}
+                  {/* Smart Auto Layout & Dump to Spread Action Card */}
                   <div className="mb-2.5 rounded-xl border border-[#C5A059]/40 bg-[#F4EFE6] p-2.5 space-y-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-[11px] font-bold text-[#1F1C18] block">Autocompletar / Auto-Fill</span>
+                        <span className="text-[11px] font-bold text-[#1F1C18] block">
+                          {selectedPhotoIds.length > 0 ? `${selectedPhotoIds.length} fotos seleccionadas` : 'Autocompletar / Auto-Fill'}
+                        </span>
                         <span className="text-[9px] text-[#736B60]">
                           {selectedPhotoIds.length > 0
-                            ? `${selectedPhotoIds.length} fotos seleccionadas`
-                            : 'Distribuye el álbum inteligentemente'}
+                            ? 'Vuelca directamente en el pliego o crea nuevas páginas'
+                            : 'Distribuye todas las fotos inteligentemente'}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        {selectedPhotoIds.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={handleDeselectAllPhotos}
-                            className="px-2 py-1 text-[9px] font-bold text-[#736B60] hover:text-[#1F1C18] bg-white rounded-md border border-[#D6CEBE]"
-                          >
-                            Limpiar
-                          </button>
-                        )}
+                      {selectedPhotoIds.length > 0 && (
                         <button
                           type="button"
-                          onClick={() => {
-                            if (selectedPhotoIds.length > 0) {
-                              handleAutoPopulateWithSelected();
-                            } else {
-                              handleAutoLayout();
-                            }
-                          }}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#8C6D37] text-white text-[10px] font-bold uppercase tracking-wider hover:bg-[#73582A] flex items-center gap-1 shadow-xs"
-                          title={selectedPhotoIds.length > 0 ? 'Autocompletar con fotos seleccionadas' : 'Autocompletar con todas las fotos'}
+                          onClick={handleDeselectAllPhotos}
+                          className="px-2 py-1 text-[9px] font-bold text-[#736B60] hover:text-[#1F1C18] bg-white rounded-md border border-[#D6CEBE]"
                         >
-                          <Sparkles className="w-3 h-3" />
-                          <span>{selectedPhotoIds.length > 0 ? `Llenar (${selectedPhotoIds.length})` : 'Auto-Fill'}</span>
+                          Limpiar
                         </button>
-                      </div>
+                      )}
                     </div>
 
-                    {/* Multi-selection toggle bar */}
+                    {/* Prominent Dump Action Buttons when photos are selected */}
+                    {selectedPhotoIds.length > 0 ? (
+                      <div className="space-y-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleDumpSelectedPhotosToCurrentSpread('spread')}
+                          className="w-full py-1.5 px-2.5 rounded-lg bg-[#8C6D37] text-white text-[11px] font-bold hover:bg-[#73582A] flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-98"
+                          title="Acomodar las fotos seleccionadas en el pliego activo"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Volcar en Pliego Actual ({selectedPhotoIds.length})</span>
+                        </button>
+
+                        <div className="grid grid-cols-2 gap-1 text-[9px] font-bold">
+                          <button
+                            type="button"
+                            onClick={() => handleDumpSelectedPhotosToCurrentSpread('left')}
+                            className="py-1 px-1.5 rounded-md bg-white border border-[#D6CEBE] hover:bg-[#EAE4D8] text-[#1F1C18] text-center"
+                            title="Volcar fotos seleccionadas solo en la página izquierda"
+                          >
+                            Volcar en Pág. Izq
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDumpSelectedPhotosToCurrentSpread('right')}
+                            className="py-1 px-1.5 rounded-md bg-white border border-[#D6CEBE] hover:bg-[#EAE4D8] text-[#1F1C18] text-center"
+                            title="Volcar fotos seleccionadas solo en la página derecha"
+                          >
+                            Volcar en Pág. Der
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleAutoLayout}
+                        className="w-full py-1.5 rounded-lg bg-[#8C6D37] text-white text-[10px] font-bold uppercase tracking-wider hover:bg-[#73582A] flex items-center justify-center gap-1.5 shadow-xs"
+                        title="Autocompletar álbum completo con todas las fotos"
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        <span>Auto-Llenar Todo el Álbum</span>
+                      </button>
+                    )}
+
+                    {/* Multi-selection toggle bar & Shift+Click hint */}
                     <div className="flex items-center justify-between pt-1 border-t border-[#D6CEBE]/50 text-[10px]">
                       <div className="flex items-center gap-1.5">
                         <button
@@ -2988,14 +3253,17 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       {selectedPhotoIds.length > 0 && (
                         <button
                           type="button"
-                          onClick={() => handleAutoPopulateSpreads()}
+                          onClick={() => handleAutoPopulateWithSelected(false)}
                           className="text-[9px] font-bold text-[#1F1C18] hover:text-[#8C6D37] flex items-center gap-0.5"
                           title="Crear páginas nuevas con las fotos seleccionadas"
                         >
                           <Wand2 className="w-2.5 h-2.5" />
-                          <span>Distribuir en Álbum</span>
+                          <span>+ Nuevos Pliegos</span>
                         </button>
                       )}
+                    </div>
+                    <div className="text-[8px] text-[#8C6D37] font-medium italic">
+                      💡 Tip: Mantén presionado Shift + clic para seleccionar un rango de fotos.
                     </div>
                   </div>
 
@@ -3026,12 +3294,12 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         <div className="px-2 py-1 rounded-lg bg-[#F4EFE6] border border-[#D6CEBE] flex items-center justify-between text-[9px]">
                           <div className="flex items-center gap-1 font-semibold text-[#1F1C18]">
                             <Printer className="w-3 h-3 text-[#8C6D37]" />
-                            <span>Pre-Vuelo Fine Art</span>
+                            <span>Resolución Fine Art</span>
                           </div>
                           <div className="flex items-center gap-1">
                             {savings.optimalCount > 0 && (
                               <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
-                                {savings.optimalCount} Óptimas
+                                {savings.optimalCount} Óptimas HQ
                               </span>
                             )}
                             {savings.hasIssues && (
@@ -3074,7 +3342,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     );
                   })()}
 
-                  {/* Photo Thumbnails Grid with Drag & Drop, Multi-Selection & Quality Badges */}
+                  {/* Photo Thumbnails Grid with Shift+Click Range Selection & Clear HQ Badges */}
                   <div className="flex-1 overflow-y-auto grid grid-cols-3 gap-1.5 pr-1 min-h-0">
                     {uploadedPhotos
                       .filter((photo) => {
@@ -3097,14 +3365,8 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                             draggable
                             onDragStart={() => setDraggedPhotoId(photo.id)}
                             onDragEnd={() => setDraggedPhotoId(null)}
-                            onClick={() => {
-                              if (selectedSlotId) {
-                                handleAssignPhotoToSlot(selectedSlotId, photo.id);
-                              } else {
-                                handleTogglePhotoSelection(photo.id);
-                              }
-                            }}
-                            className={`group relative aspect-square rounded-lg overflow-hidden border cursor-grab active:cursor-grabbing transition-all ${
+                            onClick={(e) => handleTogglePhotoSelection(photo.id, e)}
+                            className={`group relative aspect-square rounded-lg overflow-hidden border cursor-grab active:cursor-grabbing transition-all select-none ${
                               isSelected
                                 ? 'border-[#8C6D37] ring-2 ring-[#8C6D37] scale-98 shadow-md'
                                 : selectedSlotId
@@ -3116,59 +3378,58 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                               src={getThumbnailSrc(photo)} 
                               alt={photo.name} 
                               loading="lazy"
-                              className="w-full h-full object-cover" 
+                              className="w-full h-full object-cover pointer-events-none" 
                             />
 
-                            {/* Multi-Select Checkbox Circle in Top-Right */}
+                            {/* Top-Right Selection Checkbox (The ONLY checkbox on the photo) */}
                             <button
                               type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleTogglePhotoSelection(photo.id);
-                              }}
-                              className={`absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center transition-all z-10 ${
+                              onClick={(e) => handleTogglePhotoSelection(photo.id, e)}
+                              className={`absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center transition-all z-20 ${
                                 isSelected
-                                  ? 'bg-[#8C6D37] text-white shadow-md'
-                                  : 'bg-black/40 text-transparent hover:bg-black/70 hover:text-white border border-white/60'
+                                  ? 'bg-[#8C6D37] text-white shadow-md ring-1 ring-white'
+                                  : 'bg-black/45 text-white/50 hover:bg-black/80 hover:text-white border border-white/70 backdrop-blur-xs'
                               }`}
-                              title={isSelected ? 'Deseleccionar foto' : 'Seleccionar foto para autocompletar'}
+                              title={isSelected ? 'Deseleccionar foto (Shift+Clic para seleccionar rango)' : 'Seleccionar foto (Shift+Clic para rango)'}
                             >
-                              <Check className="w-2.5 h-2.5 stroke-[3]" />
+                              <Check className={`w-3 h-3 stroke-[3] ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
                             </button>
                             
-                            {/* Quality Badge Overlay */}
-                            <div className="absolute top-1 left-1 flex items-center gap-0.5">
+                            {/* Quality / DPI Badge on Top-Left (Clear HQ label, NOT a checkbox) */}
+                            <div className="absolute top-1 left-1 flex items-center gap-0.5 z-10 pointer-events-none">
                               {rating === 'optima' && (
                                 <span 
-                                  title="Calidad Fine Art Óptima (300+ DPI / sRGB)"
-                                  className="w-3.5 h-3.5 rounded-full bg-emerald-500/90 text-white flex items-center justify-center shadow-xs"
+                                  title="Resolución Fine Art Óptima (300+ DPI)"
+                                  className="px-1 py-0.2 rounded bg-emerald-600/95 text-white text-[8px] font-bold tracking-tight shadow-xs backdrop-blur-xs"
                                 >
-                                  <Check className="w-2 h-2 stroke-[3]" />
+                                  HQ
                                 </span>
                               )}
                               {rating === 'advertencia' && (
                                 <span 
-                                  title="Resolución moderada (~150 DPI). Clic para ver recomendaciones"
-                                  className="w-3.5 h-3.5 rounded-full bg-amber-500/90 text-white flex items-center justify-center shadow-xs"
+                                  title="Resolución moderada (~150 DPI)"
+                                  className="px-1 py-0.2 rounded bg-amber-500/95 text-white text-[8px] font-bold shadow-xs flex items-center gap-0.5 backdrop-blur-xs"
                                 >
                                   <AlertTriangle className="w-2 h-2" />
+                                  150
                                 </span>
                               )}
                               {rating === 'insuficiente' && (
                                 <span 
-                                  title="Calidad insuficiente (<150 DPI). Riesgo de pixelación"
-                                  className="w-3.5 h-3.5 rounded-full bg-rose-500/90 text-white flex items-center justify-center shadow-xs"
+                                  title="Calidad baja (<150 DPI)"
+                                  className="px-1 py-0.2 rounded bg-rose-600/95 text-white text-[8px] font-bold shadow-xs flex items-center gap-0.5 backdrop-blur-xs"
                                 >
                                   <AlertOctagon className="w-2 h-2" />
+                                  Baja
                                 </span>
                               )}
                             </div>
 
-                            {/* Usage Count Badge (Zno style) */}
+                            {/* Usage Count Badge */}
                             {usageCount > 0 && (
                               <span 
                                 title={`Usada ${usageCount} ${usageCount === 1 ? 'vez' : 'veces'} en el álbum`}
-                                className="absolute bottom-1 left-1 px-1.5 py-0.2 rounded-md bg-[#1F1C18]/80 text-[#ECC880] text-[9px] font-bold font-mono shadow-xs backdrop-blur-xs"
+                                className="absolute bottom-1 left-1 px-1.5 py-0.2 rounded-md bg-[#1F1C18]/85 text-[#ECC880] text-[9px] font-bold font-mono shadow-xs backdrop-blur-xs"
                               >
                                 {usageCount}×
                               </span>
@@ -3182,14 +3443,14 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                                 setInspectedPhotoForQuality(photo);
                               }}
                               title="Inspeccionar DPI, sRGB y resolución Fine Art"
-                              className="absolute bottom-1 right-1 p-0.5 rounded bg-black/60 hover:bg-black text-white text-[8px] font-mono opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5"
+                              className="absolute bottom-1 right-1 p-0.5 rounded bg-black/60 hover:bg-black text-white text-[8px] font-mono opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 z-20"
                             >
                               <Info className="w-2.5 h-2.5" />
                               <span>DPI</span>
                             </button>
 
                             {selectedSlotId && (
-                              <div className="absolute inset-0 bg-[#8C6D37]/35 flex items-center justify-center text-white text-[9px] font-bold text-center p-1">
+                              <div className="absolute inset-0 bg-[#8C6D37]/35 flex items-center justify-center text-white text-[9px] font-bold text-center p-1 z-10 pointer-events-none">
                                 Clic p/ colocar
                               </div>
                             )}
@@ -3526,16 +3787,16 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       onClick={handleUndo}
                       disabled={historyIndex <= 0}
                       title="Deshacer último cambio (Ctrl+Z)"
-                      className="p-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] disabled:opacity-30 text-[#1F1C18]"
+                      className="p-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] disabled:opacity-30 text-[#1F1C18] transition-colors"
                     >
                       <Undo2 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       type="button"
                       onClick={handleRedo}
-                      disabled={historyIndex >= history.length - 1}
-                      title="Rehacer cambio (Ctrl+Y)"
-                      className="p-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] disabled:opacity-30 text-[#1F1C18]"
+                      disabled={historyIndex >= historyCount - 1}
+                      title="Rehacer cambio (Ctrl+Y o Ctrl+Shift+Z)"
+                      className="p-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] disabled:opacity-30 text-[#1F1C18] transition-colors"
                     >
                       <Redo2 className="w-3.5 h-3.5" />
                     </button>
