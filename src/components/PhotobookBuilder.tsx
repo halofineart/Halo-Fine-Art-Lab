@@ -3,6 +3,7 @@ import {
   X, 
   ChevronLeft, 
   ChevronRight, 
+  ChevronDown,
   Plus, 
   Trash2, 
   Upload, 
@@ -214,6 +215,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   const [spreadPhotoGap, setSpreadPhotoGap] = useState<number>(8);
   const [showBgColorMenu, setShowBgColorMenu] = useState(false);
   const [showGapMenu, setShowGapMenu] = useState(false);
+  const [showAddElementMenu, setShowAddElementMenu] = useState(false);
   const [showFullBleedMenu, setShowFullBleedMenu] = useState(false);
   const [showBorderMenuSlotId, setShowBorderMenuSlotId] = useState<string | null>(null);
   const [showFilterMenuSlotId, setShowFilterMenuSlotId] = useState<string | null>(null);
@@ -2124,13 +2126,10 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     }
   };
 
-  // Delete spread with confirmation and history
+  // Delete spread directly with history (undoable with Ctrl+Z)
   const handleDeleteSpreadWithConfirmation = (index: number) => {
     if (spreads.length <= 1) return;
-    if (window.confirm(`¿Estás seguro de eliminar el Pliego ${index + 1}? Esta acción se puede deshacer con Ctrl+Z.`)) {
-      recordHistorySnapshot(spreads);
-      handleDeleteSpread(index);
-    }
+    handleDeleteSpread(index);
   };
 
   // Multi-photo drag & drop auto-layout handler
@@ -3466,60 +3465,60 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* STEP 1: FORMAT & SIZES */}
         {currentStep === 'format' && (
-          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col justify-center">
-            <div className="max-w-5xl w-full mx-auto px-3 sm:px-6 py-2 sm:py-4 my-auto flex flex-col justify-between">
-              <div className="text-center max-w-xl mx-auto mb-2 sm:mb-3">
-                <span className="text-[10px] font-bold tracking-widest text-[#8C6D37] uppercase">Paso 1 de 5</span>
-                <h2 className="font-serif-luxury text-xl sm:text-2xl text-[#1F1C18] mt-0.5">
+          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col justify-between p-3 sm:p-4">
+            <div className="max-w-4xl w-full mx-auto flex flex-col justify-center flex-1 my-auto">
+              <div className="text-center max-w-xl mx-auto mb-2">
+                <span className="text-[9px] font-bold tracking-widest text-[#8C6D37] uppercase">Paso 1 de 5</span>
+                <h2 className="font-serif-luxury text-lg sm:text-xl font-bold text-[#1F1C18]">
                   Elegí el formato y tamaño de tu libro
                 </h2>
-                <p className="text-[11px] text-[#595248] mt-0.5 max-w-md mx-auto">
-                  Todos nuestros álbumes cuentan con encuadernación rígida 100% Layflat de apertura plana a 180°.
+                <p className="text-[10px] sm:text-[11px] text-[#595248]">
+                  Encuadernación rígida 100% Layflat de apertura plana a 180° en auténtico papel químico Fuji.
                 </p>
               </div>
 
-              {/* 6 Formats in 3 Columns x 2 Rows (Ultra-clean, compact, zero-scroll) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5">
+              {/* 6 Formats in 3 Columns x 2 Rows (Compact single-view cards) */}
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5">
                 {BOOK_FORMATS.map((fmt) => {
                   const isSelected = fmt.id === formatId;
                   return (
                     <div
                       key={fmt.id}
                       onClick={() => setFormatId(fmt.id)}
-                      className={`cursor-pointer rounded-xl border p-2.5 sm:p-3 transition-all relative flex flex-col justify-between ${
+                      className={`cursor-pointer rounded-xl border p-2 sm:p-2.5 transition-all relative flex flex-col justify-between ${
                         isSelected
-                          ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-md ring-2 ring-[#8C6D37]/30'
+                          ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-md ring-2 ring-[#8C6D37]/40'
                           : 'border-[#D6CEBE] bg-[#F4EFE6]/60 hover:bg-[#FDFCF9] hover:border-[#B8AB98]'
                       }`}
                     >
                       {fmt.popular && (
-                        <span className="absolute top-2 right-2 bg-[#8C6D37] text-white text-[8px] tracking-wider uppercase font-bold px-1.5 py-0.5 rounded-full shadow-xs">
+                        <span className="absolute top-1.5 right-1.5 bg-[#8C6D37] text-white text-[7.5px] tracking-wider uppercase font-bold px-1.5 py-0.2 rounded-full shadow-xs">
                           Más Elegido
                         </span>
                       )}
 
                       <div>
-                        <div className="flex items-baseline justify-between gap-1 mb-0.5 pr-14">
-                          <h3 className="font-serif-luxury text-sm sm:text-base font-bold text-[#1F1C18] leading-tight">
+                        <div className="flex items-baseline justify-between gap-1 mb-0.5 pr-12">
+                          <h3 className="font-serif-luxury text-xs sm:text-sm font-bold text-[#1F1C18] leading-tight">
                             {fmt.name}
                           </h3>
                         </div>
 
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <span className="font-mono text-[10.5px] text-[#8C6D37] font-semibold">{fmt.dimensions}</span>
-                          <span className="font-serif-luxury text-sm sm:text-base font-bold text-[#1F1C18]">
+                        <div className="flex items-center justify-between gap-1.5 mb-1">
+                          <span className="font-mono text-[9.5px] sm:text-[10px] text-[#8C6D37] font-bold">{fmt.dimensions}</span>
+                          <span className="font-serif-luxury text-xs sm:text-sm font-bold text-[#1F1C18]">
                             {formatPriceARS(fmt.basePrice)}
                           </span>
                         </div>
 
-                        <p className="text-[10px] sm:text-[10.5px] text-[#595248] leading-snug line-clamp-2 mb-1.5">
+                        <p className="text-[9.5px] text-[#595248] leading-tight line-clamp-1 mb-1">
                           {fmt.description}
                         </p>
                       </div>
 
-                      <div className="flex items-center justify-between border-t border-[#E8E2D5] pt-1.5 text-[9.5px] text-[#736B60]">
-                        <span>{fmt.basePages} páginas rígidas</span>
-                        <span className="font-semibold text-[#1F1C18]">Recom: {fmt.idealPhotos}</span>
+                      <div className="flex items-center justify-between border-t border-[#E8E2D5] pt-1 text-[8.5px] sm:text-[9px] text-[#736B60]">
+                        <span>{fmt.basePages} pág. rígidas</span>
+                        <span className="font-semibold text-[#1F1C18]">Fotos: {fmt.idealPhotos}</span>
                       </div>
                     </div>
                   );
@@ -3527,11 +3526,11 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               </div>
 
               {/* Bottom Continue Action Bar */}
-              <div className="mt-2.5 sm:mt-4 flex justify-end">
+              <div className="mt-3 flex justify-end">
                 <button
                   type="button"
                   onClick={() => setCurrentStep('cover')}
-                  className="px-5 py-2.5 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                  className="px-5 py-2 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                 >
                   <span>Continuar a Tapa & Grabado</span>
                   <ChevronRight className="w-4 h-4" />
@@ -3543,28 +3542,28 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
         {/* STEP 2: COVER, MATERIAL & FOIL STAMPING */}
         {currentStep === 'cover' && (
-          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col justify-center">
-            <div className="max-w-5xl w-full mx-auto px-3 sm:px-6 py-2 sm:py-3 my-auto grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-5 items-center">
-              {/* Left Column: Live 3D Cover Mockup (Slim & Compact) */}
+          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col justify-between p-2 sm:p-3">
+            <div className="max-w-4xl w-full mx-auto my-auto grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+              {/* Left Column: Live 3D Cover Mockup (Compact) */}
               <div className="lg:col-span-5 flex flex-col items-center justify-center">
-                <div className="w-full max-w-[210px] sm:max-w-[240px]">
-                  <span className="text-[9.5px] font-bold tracking-widest text-[#8C6D37] uppercase mb-1 block text-center">
+                <div className="w-full max-w-[170px] sm:max-w-[195px]">
+                  <span className="text-[8.5px] font-bold tracking-widest text-[#8C6D37] uppercase mb-0.5 block text-center">
                     VISTA PREVIA DE PORTADA
                   </span>
 
                   {/* The Luxury Book Cover Card */}
                   <div 
-                    className={`aspect-[4/5] rounded-xl p-4 flex flex-col justify-between shadow-xl relative border border-black/10 transition-all duration-500 overflow-hidden ${currentCover.textureClass}`}
+                    className={`aspect-[4/5] rounded-xl p-3 flex flex-col justify-between shadow-lg relative border border-black/10 transition-all duration-500 overflow-hidden ${currentCover.textureClass}`}
                     style={{ backgroundColor: currentCover.colorHex }}
                   >
                     <div className="absolute inset-0 linen-texture opacity-30 pointer-events-none" />
 
                     {/* Left Spine Crease Shadow */}
-                    <div className="absolute left-0 top-0 bottom-0 w-5 bg-gradient-to-r from-black/25 via-black/10 to-transparent pointer-events-none" />
+                    <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-black/25 via-black/10 to-transparent pointer-events-none" />
 
                     {/* Optional Cover Photo Window */}
                     {hasCoverWindow ? (
-                      <div className="w-16 h-16 mx-auto my-auto rounded border border-[#C5A059]/40 overflow-hidden shadow-md relative bg-white">
+                      <div className="w-12 h-12 mx-auto my-auto rounded border border-[#C5A059]/40 overflow-hidden shadow-md relative bg-white">
                         <img
                           src={uploadedPhotos[0]?.url || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=600&q=80'}
                           alt="Foto de Portada"
@@ -3572,13 +3571,13 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         />
                       </div>
                     ) : (
-                      <div className="h-4" />
+                      <div className="h-2" />
                     )}
 
                     {/* Embossed & Stamped Hot Foil Title */}
                     <div className="text-center relative z-10 my-auto px-1">
                       <span 
-                        className="font-brand text-base sm:text-lg font-bold tracking-[0.2em] block uppercase foil-stamping-emboss drop-shadow-xs"
+                        className="font-brand text-xs sm:text-sm font-bold tracking-[0.18em] block uppercase foil-stamping-emboss drop-shadow-xs truncate"
                         style={{
                           color: FOIL_OPTIONS.find(f => f.id === foilColor)?.colorHex || '#D4AF37',
                         }}
@@ -3587,7 +3586,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       </span>
 
                       <span 
-                        className="font-serif-luxury text-[10px] sm:text-[11px] tracking-[0.15em] block uppercase mt-1 font-medium opacity-90 foil-stamping-emboss"
+                        className="font-serif-luxury text-[8.5px] sm:text-[9.5px] tracking-[0.12em] block uppercase mt-0.5 font-medium opacity-90 foil-stamping-emboss truncate"
                         style={{
                           color: FOIL_OPTIONS.find(f => f.id === foilColor)?.colorHex || '#D4AF37',
                         }}
@@ -3597,29 +3596,26 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     </div>
 
                     {/* Bottom Spine & Brand Stamp */}
-                    <div className="text-center text-[7.5px] tracking-[0.25em] uppercase opacity-60 font-brand">
+                    <div className="text-center text-[6.5px] tracking-[0.25em] uppercase opacity-60 font-brand">
                       FINE ART LAB
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Right Column: Customization Controls (Compact Height Optimized) */}
-              <div className="lg:col-span-7 space-y-2">
+              {/* Right Column: Customization Controls (Ultra-Compact) */}
+              <div className="lg:col-span-7 space-y-1.5">
                 <div>
-                  <span className="text-[10px] font-bold tracking-widest text-[#8C6D37] uppercase">Paso 2 de 5</span>
-                  <h2 className="font-serif-luxury text-xl sm:text-2xl font-bold text-[#1F1C18] leading-tight">Tapas, Telas & Grabado</h2>
-                  <p className="text-[10.5px] text-[#595248]">
-                    Grabado térmico artesanal prensado sobre linos naturales europeos o cuero vegano.
-                  </p>
+                  <span className="text-[9px] font-bold tracking-widest text-[#8C6D37] uppercase">Paso 2 de 5</span>
+                  <h2 className="font-serif-luxury text-base sm:text-lg font-bold text-[#1F1C18] leading-tight">Tapas, Telas & Grabado</h2>
                 </div>
 
                 {/* Cover Material Selection (Compact 6-Column Grid) */}
                 <div>
-                  <label className="text-[9.5px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-1">
+                  <label className="text-[8.5px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
                     Material y Color de Tapa:
                   </label>
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-1 sm:gap-1.5">
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
                     {COVER_MATERIALS.map((cov) => {
                       const isSelected = cov.id === coverMaterialId;
                       return (
@@ -3634,11 +3630,11 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           }`}
                         >
                           <div
-                            className="w-4 h-4 rounded-full border border-black/15 shadow-xs mb-0.5"
+                            className="w-3.5 h-3.5 rounded-full border border-black/15 shadow-xs mb-0.5"
                             style={{ backgroundColor: cov.colorHex }}
                           />
-                          <span className="text-[9px] font-semibold text-[#1F1C18] truncate w-full">{cov.name}</span>
-                          <span className="text-[8px] text-[#736B60]">
+                          <span className="text-[8.5px] font-semibold text-[#1F1C18] truncate w-full">{cov.name}</span>
+                          <span className="text-[7.5px] text-[#736B60]">
                             {cov.priceDelta > 0 ? `+${formatPriceARS(cov.priceDelta)}` : 'Incl.'}
                           </span>
                         </button>
@@ -3649,7 +3645,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
                 {/* Foil Stamping Color (Compact 5-Column Grid) */}
                 <div>
-                  <label className="text-[9.5px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-1">
+                  <label className="text-[8.5px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
                     Color de Grabado en Hot Stamping:
                   </label>
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-1">
@@ -3660,17 +3656,17 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           key={f.id}
                           type="button"
                           onClick={() => setFoilColor(f.id)}
-                          className={`flex items-center gap-1 p-1 rounded-md border text-left transition-all ${
+                          className={`flex items-center gap-1 p-0.5 sm:p-1 rounded-md border text-left transition-all ${
                             isSelected
                               ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-xs ring-1 ring-[#8C6D37]'
                               : 'border-[#D6CEBE] bg-[#F4EFE6]/50 hover:bg-[#FDFCF9]'
                           }`}
                         >
                           <div
-                            className="w-3 h-3 rounded-full border border-black/10 shrink-0"
+                            className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0"
                             style={{ backgroundColor: f.colorHex }}
                           />
-                          <span className="text-[9.5px] font-medium text-[#1F1C18] truncate">{f.name}</span>
+                          <span className="text-[8.5px] font-medium text-[#1F1C18] truncate">{f.name}</span>
                         </button>
                       );
                     })}
@@ -3678,10 +3674,10 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 </div>
 
                 {/* Foil Title Input & Window Toggle */}
-                <div className="space-y-1.5 rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-2">
+                <div className="space-y-1 rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-1.5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                     <div>
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
+                      <label className="text-[8px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
                         Título Principal:
                       </label>
                       <input
@@ -3689,13 +3685,13 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         value={foilTitleText}
                         onChange={(e) => setFoilTitleText(e.target.value.toUpperCase())}
                         placeholder="EJ: NUESTRA HISTORIA"
-                        className="w-full rounded border border-[#D6CEBE] bg-[#F4EFE6]/40 px-2 py-1 text-xs font-brand tracking-wider text-[#1F1C18] focus:border-[#8C6D37] focus:outline-none"
+                        className="w-full rounded border border-[#D6CEBE] bg-[#F4EFE6]/40 px-2 py-0.5 text-[11px] font-brand tracking-wider text-[#1F1C18] focus:border-[#8C6D37] focus:outline-none"
                         maxLength={35}
                       />
                     </div>
 
                     <div>
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
+                      <label className="text-[8px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
                         Subtítulo / Fecha / Lugar:
                       </label>
                       <input
@@ -3703,7 +3699,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         value={foilSubtitleText}
                         onChange={(e) => setFoilSubtitleText(e.target.value.toUpperCase())}
                         placeholder="EJ: 2026 · PATAGONIA"
-                        className="w-full rounded border border-[#D6CEBE] bg-[#F4EFE6]/40 px-2 py-1 text-xs font-serif-luxury tracking-wide text-[#1F1C18] focus:border-[#8C6D37] focus:outline-none"
+                        className="w-full rounded border border-[#D6CEBE] bg-[#F4EFE6]/40 px-2 py-0.5 text-[11px] font-serif-luxury tracking-wide text-[#1F1C18] focus:border-[#8C6D37] focus:outline-none"
                         maxLength={45}
                       />
                     </div>
@@ -3712,36 +3708,36 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   {/* Cover Window toggle */}
                   <div className="flex items-center justify-between border-t border-[#E8E2D5] pt-1">
                     <div>
-                      <span className="text-[11px] font-bold text-[#1F1C18] block">Ventana Fotográfica Calada</span>
-                      <span className="text-[9.5px] text-[#736B60]">Troquelado con marco biselado en el centro</span>
+                      <span className="text-[9.5px] font-bold text-[#1F1C18] block leading-none">Ventana Fotográfica Calada</span>
+                      <span className="text-[8px] text-[#736B60]">Troquelado con marco biselado en el centro</span>
                     </div>
                     <input
                       type="checkbox"
                       checked={hasCoverWindow}
                       onChange={(e) => setHasCoverWindow(e.target.checked)}
-                      className="w-4 h-4 accent-[#8C6D37] rounded cursor-pointer"
+                      className="w-3.5 h-3.5 accent-[#8C6D37] rounded cursor-pointer"
                     />
                   </div>
                 </div>
 
                 {/* Navigation Action Buttons */}
-                <div className="flex justify-between items-center pt-1">
+                <div className="flex justify-between items-center pt-0.5">
                   <button
                     type="button"
                     onClick={() => setCurrentStep('format')}
-                    className="text-xs font-semibold text-[#736B60] hover:text-[#1F1C18] flex items-center gap-1 transition-colors"
+                    className="text-[11px] font-semibold text-[#736B60] hover:text-[#1F1C18] flex items-center gap-1 transition-colors"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-3.5 h-3.5" />
                     <span>Volver a Formatos</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setCurrentStep('paper')}
-                    className="px-5 py-2.5 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                    className="px-4 py-2 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                   >
                     <span>Continuar a Papel</span>
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -3751,41 +3747,41 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
         {/* STEP 3: PAPER & LAYFLAT */}
         {currentStep === 'paper' && (
-          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col justify-center">
-            <div className="max-w-5xl w-full mx-auto px-3 sm:px-6 py-2 sm:py-4 my-auto flex flex-col justify-between">
-              <div className="text-center max-w-2xl mx-auto mb-2 sm:mb-3">
-                <span className="text-[10px] font-bold tracking-widest text-[#8C6D37] uppercase">Paso 3 de 5</span>
-                <h2 className="font-serif-luxury text-xl sm:text-2xl text-[#1F1C18] mt-0.5">
+          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col justify-between p-3 sm:p-4">
+            <div className="max-w-4xl w-full mx-auto flex flex-col justify-center flex-1 my-auto">
+              <div className="text-center max-w-xl mx-auto mb-2">
+                <span className="text-[9px] font-bold tracking-widest text-[#8C6D37] uppercase">Paso 3 de 5</span>
+                <h2 className="font-serif-luxury text-lg sm:text-xl font-bold text-[#1F1C18]">
                   Auténtico Papel Fotográfico Fine Art
                 </h2>
-                <p className="text-[11px] text-[#595248] mt-0.5 max-w-xl mx-auto">
-                  No utilizamos imprenta digital común. Cada página es revelada químicamente para brindar la máxima gama tonal y longevidad de 100+ años.
+                <p className="text-[10px] sm:text-[11px] text-[#595248]">
+                  Papel fotográfico químico de máxima durabilidad tonal (100+ años).
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3.5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-2.5">
                 {PAPER_FINISHES.map((paper) => {
                   const isSelected = paper.id === paperFinishId;
                   return (
                     <div
                       key={paper.id}
                       onClick={() => setPaperFinishId(paper.id)}
-                      className={`cursor-pointer rounded-xl border p-3 sm:p-3.5 flex flex-col justify-between transition-all ${
+                      className={`cursor-pointer rounded-xl border p-2.5 transition-all flex flex-col justify-between ${
                         isSelected
-                          ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-md ring-2 ring-[#8C6D37]/30'
+                          ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-md ring-2 ring-[#8C6D37]/40'
                           : 'border-[#D6CEBE] bg-[#F4EFE6]/60 hover:bg-[#FDFCF9]'
                       }`}
                     >
                       <div>
-                        <span className="inline-block bg-[#8C6D37]/15 text-[#8C6D37] text-[8.5px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full mb-1.5">
+                        <span className="inline-block bg-[#8C6D37]/15 text-[#8C6D37] text-[8px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded-full mb-1">
                           {paper.badge}
                         </span>
-                        <h3 className="font-serif-luxury text-sm sm:text-base font-bold text-[#1F1C18] mb-0.5">{paper.name}</h3>
-                        <p className="text-[10.5px] text-[#8C6D37] font-semibold mb-1.5">{paper.subtitle}</p>
-                        <p className="text-[10.5px] text-[#595248] leading-snug mb-2 line-clamp-3">{paper.description}</p>
+                        <h3 className="font-serif-luxury text-xs sm:text-sm font-bold text-[#1F1C18] mb-0.5">{paper.name}</h3>
+                        <p className="text-[9.5px] text-[#8C6D37] font-semibold mb-1">{paper.subtitle}</p>
+                        <p className="text-[9.5px] text-[#595248] leading-tight mb-1.5 line-clamp-2">{paper.description}</p>
                       </div>
 
-                      <div className="border-t border-[#E8E2D5] pt-1.5 flex items-center justify-between text-[10.5px]">
+                      <div className="border-t border-[#E8E2D5] pt-1 flex items-center justify-between text-[9.5px]">
                         <span className="text-[#736B60] font-mono">{paper.grammage}</span>
                         <span className="font-bold text-[#1F1C18]">
                           {paper.priceDelta > 0 ? `+${formatPriceARS(paper.priceDelta)} ARS` : 'Incluido'}
@@ -3797,50 +3793,50 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               </div>
 
               {/* Gift Box Addon */}
-              <div className="mt-2.5 sm:mt-3 rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-2.5 sm:p-3 flex flex-col sm:flex-row items-center justify-between gap-2.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-[#EFE9DE] flex items-center justify-center text-[#8C6D37] shrink-0">
-                    <Gift className="w-4 h-4" />
+              <div className="mt-2 rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#EFE9DE] flex items-center justify-center text-[#8C6D37] shrink-0">
+                    <Gift className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <h4 className="font-serif-luxury text-xs sm:text-sm font-bold text-[#1F1C18]">Cofre / Caja de Presentación en Lino</h4>
-                    <p className="text-[10px] sm:text-[10.5px] text-[#595248]">
-                      Caja rígida forrada en la misma tela con cinta de satén para extracción suave y protección eterna.
+                    <h4 className="font-serif-luxury text-xs font-bold text-[#1F1C18]">Cofre / Caja de Presentación en Lino</h4>
+                    <p className="text-[9.5px] text-[#595248]">
+                      Caja rígida forrada en lino con cinta de satén para extracción suave y protección.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2.5 shrink-0">
-                  <span className="font-serif-luxury text-xs sm:text-sm font-bold text-[#1F1C18]">
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="font-serif-luxury text-xs font-bold text-[#1F1C18]">
                     +{formatPriceARS(28000)} ARS
                   </span>
                   <input
                     type="checkbox"
                     checked={giftBoxIncluded}
                     onChange={(e) => setGiftBoxIncluded(e.target.checked)}
-                    className="w-4 h-4 accent-[#8C6D37] rounded cursor-pointer"
+                    className="w-3.5 h-3.5 accent-[#8C6D37] rounded cursor-pointer"
                   />
                 </div>
               </div>
 
               {/* Navigation Action Buttons */}
-              <div className="mt-2.5 sm:mt-4 flex justify-between items-center">
+              <div className="mt-2.5 flex justify-between items-center">
                 <button
                   type="button"
                   onClick={() => setCurrentStep('cover')}
-                  className="text-xs font-semibold text-[#736B60] hover:text-[#1F1C18] flex items-center gap-1 transition-colors"
+                  className="text-[11px] font-semibold text-[#736B60] hover:text-[#1F1C18] flex items-center gap-1 transition-colors"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-3.5 h-3.5" />
                   <span>Volver a Tapas</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setCurrentStep('editor')}
-                  className="px-5 py-2.5 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                  className="px-5 py-2 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                 >
-                  <span>Comenzar a Diseñar Páginas</span>
-                  <ChevronRight className="w-4 h-4" />
+                  <span>Continuar a Diseñar Páginas</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -4466,19 +4462,54 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
             {/* Center Area: Double Page Spread Canvas (Zno CXEditor Style) */}
             <div className="flex-1 flex flex-col overflow-y-auto p-2 sm:p-4 bg-[#EFECE3] items-center justify-between min-h-0">
-              {/* TOP SECONDARY TOOLBAR (Zno Cloud Designer Signature Top Bar - Screenshot 1 Match) */}
-              <div className="w-full max-w-5xl flex flex-wrap items-center justify-between gap-1.5 mb-2 bg-[#FDFCF9] p-2 rounded-2xl border border-[#D6CEBE] shadow-xs select-none">
-                <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 text-xs text-[#1F1C18]">
+              {/* TOP SECONDARY TOOLBAR (Clean, organized & intuitive designer toolbar) */}
+              <div className="w-full max-w-5xl flex flex-wrap items-center justify-between gap-2 mb-2 bg-[#FDFCF9] p-2 sm:px-3 sm:py-2 rounded-2xl border border-[#D6CEBE] shadow-xs select-none">
+                
+                {/* LEFT & CENTER GROUPS */}
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-[#1F1C18]">
                   
-                  {/* SPREAD INDICATOR & TRASH DELETE BUTTON */}
-                  <div className="flex items-center gap-1 bg-[#1F1C18] text-[#FDFCF9] px-2.5 py-1.5 rounded-xl text-[11px] font-bold shadow-xs">
-                    <span>Pliego {activeSpreadIndex + 1} / {spreads.length}</span>
+                  {/* GROUP 1: PLIEGOS (Navegación y Gestión) */}
+                  <div className="flex items-center bg-[#1F1C18] text-[#FDFCF9] rounded-xl p-0.5 shadow-xs">
+                    <button
+                      type="button"
+                      onClick={() => setActiveSpreadIndex((prev) => Math.max(0, prev - 1))}
+                      disabled={activeSpreadIndex === 0}
+                      title="Pliego anterior"
+                      className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-lg disabled:opacity-25 transition-colors"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="px-2 text-[11px] font-bold tracking-wide whitespace-nowrap">
+                      Pliego {activeSpreadIndex + 1} / {spreads.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSpreadIndex((prev) => Math.min(spreads.length - 1, prev + 1))}
+                      disabled={activeSpreadIndex >= spreads.length - 1}
+                      title="Siguiente pliego"
+                      className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-lg disabled:opacity-25 transition-colors"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Acciones de Pliego: Agregar y Eliminar */}
+                  <div className="flex items-center gap-0.5 bg-[#F4EFE6] p-0.5 rounded-xl border border-[#D6CEBE]">
+                    <button
+                      type="button"
+                      onClick={handleAddSpread}
+                      title="Agregar un nuevo pliego en blanco"
+                      className="px-2 py-1 rounded-lg text-[11px] font-bold text-[#8C6D37] hover:bg-[#8C6D37] hover:text-white flex items-center gap-1 transition-colors"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span className="hidden sm:inline">Pliego</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleDeleteSpreadWithConfirmation(activeSpreadIndex)}
                       disabled={spreads.length <= 1}
-                      title="Eliminar este pliego (Cesto de residuos)"
-                      className="p-1 rounded-md hover:bg-rose-600 text-rose-300 hover:text-white disabled:opacity-25 transition-colors ml-1"
+                      title="Eliminar este pliego (Deshacer con Ctrl+Z)"
+                      className="p-1.5 rounded-lg text-[#8C7A6B] hover:text-rose-600 hover:bg-rose-50 disabled:opacity-20 transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -4486,36 +4517,21 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
                   <div className="h-4 w-[1px] bg-[#D6CEBE] hidden sm:block" />
 
-                  {/* 4-SQUARE TEMPLATE STYLES BUTTON & PREV/NEXT CYCLE CONTROLS: [ < ] [ ⊞ ] [ > ] */}
-                  <div className="relative flex items-center bg-[#1F1C18] rounded-xl p-0.5 shadow-xs">
-                    <button
-                      type="button"
-                      onClick={() => handleCycleSpreadTemplate('prev')}
-                      title="Diseño anterior de pliego"
-                      className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-lg transition-colors"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-
+                  {/* GROUP 2: PLANTILLAS Y DISTRIBUCIÓN */}
+                  <div className="relative">
                     <button
                       type="button"
                       onClick={() => setShowTemplateGridModal(!showTemplateGridModal)}
-                      title="Estilos de plantillas (4 cuadrados pequeños). Pasa el ratón por los estilos para previsualizar."
-                      className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-all ${
-                        showTemplateGridModal ? 'bg-[#8C6D37] text-white shadow-xs' : 'text-[#ECC880] hover:bg-white/15'
+                      title="Explorar plantillas y estilos para este pliego"
+                      className={`px-2.5 py-1.5 rounded-xl border font-bold text-[11px] flex items-center gap-1.5 transition-all ${
+                        showTemplateGridModal
+                          ? 'bg-[#1F1C18] text-[#ECC880] border-[#1F1C18] shadow-xs'
+                          : 'border-[#D6CEBE] bg-[#FAF7F2] hover:bg-[#EFE9DE] text-[#1F1C18]'
                       }`}
                     >
-                      <LayoutGrid className="w-4 h-4" />
-                      <span className="text-[11px] hidden sm:inline">Plantillas</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleCycleSpreadTemplate('next')}
-                      title="Siguiente diseño de pliego"
-                      className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-lg transition-colors"
-                    >
-                      <ChevronRight className="w-4 h-4" />
+                      <LayoutGrid className="w-3.5 h-3.5 text-[#8C6D37]" />
+                      <span>Plantillas</span>
+                      <ChevronDown className="w-3 h-3 opacity-60" />
                     </button>
 
                     {/* Template Styles Popover Modal with Real-time Hover Preview */}
@@ -4529,7 +4545,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                             <LayoutGrid className="w-4 h-4 text-[#ECC880]" />
                             <div>
                               <span className="text-xs font-bold text-white block">Estilos de Plantillas de Pliego</span>
-                              <span className="text-[10px] text-[#D6CEBE]">Pasa el ratón para autoajustar · Clic para fijar</span>
+                              <span className="text-[10px] text-[#D6CEBE]">Pasa el ratón para previsualizar · Clic para fijar</span>
                             </div>
                           </div>
                           <button
@@ -4555,14 +4571,17 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                                   type="button"
                                   onMouseEnter={() => setHoveredLayoutTemplateId(tmpl.id)}
                                   onMouseLeave={() => setHoveredLayoutTemplateId(null)}
-                                  onClick={() => handleApplySpreadTemplate(tmpl.id)}
+                                  onClick={() => {
+                                    handleApplySpreadTemplate(tmpl.id);
+                                    setShowTemplateGridModal(false);
+                                    setHoveredLayoutTemplateId(null);
+                                  }}
                                   className={`group p-2 rounded-xl border text-left transition-all flex flex-col gap-1.5 relative ${
                                     isHovered
                                       ? 'border-[#ECC880] bg-white/20 ring-2 ring-[#ECC880] shadow-lg'
                                       : 'border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/30'
                                   }`}
                                 >
-                                  {/* Diagram Preview */}
                                   <div className="w-full aspect-[16/9] rounded-lg overflow-hidden bg-[#2A2621] p-1 flex items-center justify-center pointer-events-none">
                                     {tmpl.renderDiagram()}
                                   </div>
@@ -4591,9 +4610,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     )}
                   </div>
 
-                  <div className="h-4 w-[1px] bg-[#D6CEBE] hidden sm:block" />
-
-                  {/* Auto-fill button with Multi-Select Support */}
+                  {/* Auto-distribuir / Auto-Llenar */}
                   <button
                     type="button"
                     onClick={() => {
@@ -4605,46 +4622,121 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     }}
                     title={
                       selectedPhotoIds.length > 0
-                        ? `Autocompletar páginas con las ${selectedPhotoIds.length} fotos seleccionadas`
-                        : "Autocompletar inteligentemente todas las páginas con las fotos subidas"
+                        ? `Llenar con las ${selectedPhotoIds.length} fotos seleccionadas`
+                        : "Distribuir automáticamente fotos en el fotolibro"
                     }
-                    className={`px-2.5 py-1.5 rounded-lg font-bold text-[11px] flex items-center gap-1.5 transition-colors ${
+                    className={`px-2.5 py-1.5 rounded-xl font-bold text-[11px] flex items-center gap-1.5 transition-colors ${
                       selectedPhotoIds.length > 0
                         ? 'bg-[#8C6D37] text-white shadow-xs'
                         : 'bg-[#8C6D37]/10 hover:bg-[#8C6D37] text-[#8C6D37] hover:text-white'
                     }`}
                   >
                     <Wand2 className="w-3.5 h-3.5" />
-                    <span>{selectedPhotoIds.length > 0 ? `Auto-Llenar (${selectedPhotoIds.length})` : 'Autocompletar'}</span>
+                    <span>{selectedPhotoIds.length > 0 ? `Llenar (${selectedPhotoIds.length})` : 'Auto-Llenar'}</span>
                   </button>
 
-                  {/* Full Bleed / Rellenar Todo el Pliego sin Bordes (Edge-to-Edge Fill) */}
+                  {/* Invertir Lados (Izquierda <-> Derecha) */}
                   <button
                     type="button"
-                    onClick={handleToggleSpreadFlushMargin}
-                    title="Rellenar toda la página eliminando márgenes de borde (Sangrado Completo)"
-                    className={`px-2.5 py-1.5 rounded-lg border font-semibold text-[11px] flex items-center gap-1.5 transition-all ${
-                      displaySpread.isFlushMargin
-                        ? 'bg-[#8C6D37] text-white border-[#8C6D37] shadow-xs'
-                        : 'border-[#D6CEBE] hover:bg-[#F4EFE6] text-[#1F1C18]'
-                    }`}
+                    onClick={handleFlipSpreadSides}
+                    title="Intercambiar el contenido entre la página izquierda y derecha"
+                    className="p-1.5 sm:px-2 sm:py-1.5 rounded-xl border border-[#D6CEBE] bg-[#FAF7F2] hover:bg-[#EFE9DE] font-semibold text-[11px] flex items-center gap-1 text-[#595248] transition-colors"
                   >
-                    <Maximize2 className="w-3.5 h-3.5 text-[#ECC880]" />
-                    <span>{displaySpread.isFlushMargin ? 'Sin Bordes (Activo)' : 'Rellenar Todo'}</span>
+                    <FlipHorizontal className="w-3.5 h-3.5 text-[#736B60]" />
+                    <span className="hidden md:inline">Invertir Lados</span>
                   </button>
 
-                  {/* Background Color Picker Dropdown */}
+                  <div className="h-4 w-[1px] bg-[#D6CEBE] hidden sm:block" />
+
+                  {/* GROUP 3: INSERTAR ELEMENTOS (+ AGREGAR DROPDOWN) */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddElementMenu(!showAddElementMenu)}
+                      title="Agregar marcos de fotos o textos al pliego"
+                      className={`px-2.5 py-1.5 rounded-xl border font-bold text-[11px] flex items-center gap-1.5 transition-colors ${
+                        showAddElementMenu
+                          ? 'bg-[#1F1C18] text-white border-[#1F1C18]'
+                          : 'border-[#D6CEBE] bg-[#FAF7F2] hover:bg-[#EFE9DE] text-[#1F1C18]'
+                      }`}
+                    >
+                      <Plus className="w-3.5 h-3.5 text-[#8C6D37]" />
+                      <span>+ Agregar</span>
+                      <ChevronDown className="w-3 h-3 opacity-60" />
+                    </button>
+
+                    {showAddElementMenu && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute top-full mt-1.5 left-0 w-52 bg-[#1F1C18] text-white p-2 rounded-2xl shadow-2xl border border-white/20 z-50 space-y-1 text-xs"
+                      >
+                        <span className="text-[10px] font-bold text-[#ECC880] uppercase tracking-wider block px-2 py-1">Insertar al Pliego</span>
+                        
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleAddPhotoSlotToPage('left');
+                            setShowAddElementMenu(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/15 text-left text-xs transition-colors"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5 text-[#ECC880]" />
+                          <span>Marco en Pág. Izquierda</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleAddPhotoSlotToPage('right');
+                            setShowAddElementMenu(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/15 text-left text-xs transition-colors"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5 text-[#ECC880]" />
+                          <span>Marco en Pág. Derecha</span>
+                        </button>
+
+                        <div className="h-[1px] bg-white/10 my-1" />
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleAddFloatingText('title');
+                            setShowAddElementMenu(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/15 text-left text-xs transition-colors"
+                        >
+                          <Type className="w-3.5 h-3.5 text-[#ECC880]" />
+                          <span>Cuadro de Texto Libre</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleAddFloatingText('quote');
+                            setShowAddElementMenu(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/15 text-left text-xs transition-colors"
+                        >
+                          <Type className="w-3.5 h-3.5 text-[#A89F91]" />
+                          <span>Cita o Frase Editorial</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Color de Fondo */}
                   <div className="relative">
                     <button
                       type="button"
                       onClick={() => setShowBgColorMenu(!showBgColorMenu)}
                       title="Cambiar color de fondo del pliego"
-                      className="px-2.5 py-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] font-semibold text-[11px] flex items-center gap-1.5"
+                      className="px-2.5 py-1.5 rounded-xl border border-[#D6CEBE] bg-[#FAF7F2] hover:bg-[#EFE9DE] font-semibold text-[11px] flex items-center gap-1.5 transition-colors"
                     >
                       <Palette className="w-3.5 h-3.5 text-[#8C6D37]" />
-                      <span>Fondo</span>
+                      <span className="hidden sm:inline">Fondo</span>
                       <div 
-                        className="w-2.5 h-2.5 rounded-full border border-black/20" 
+                        className="w-3 h-3 rounded-full border border-black/30 shadow-2xs" 
                         style={{ backgroundColor: displaySpread.backgroundColor || spreadBgColor }} 
                       />
                     </button>
@@ -4652,7 +4744,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     {showBgColorMenu && (
                       <div 
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute top-full mt-1 left-0 bg-[#1F1C18] text-white p-2 rounded-xl shadow-2xl border border-white/20 z-50 w-52 space-y-2 text-xs"
+                        className="absolute top-full mt-1.5 left-0 bg-[#1F1C18] text-white p-2.5 rounded-2xl shadow-2xl border border-white/20 z-50 w-52 space-y-2 text-xs"
                       >
                         <span className="text-[10px] font-bold text-[#ECC880] uppercase tracking-wider block">Fondo del Pliego</span>
                         <div className="grid grid-cols-2 gap-1 text-[10px]">
@@ -4662,7 +4754,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                             { color: '#EFE9DE', name: 'Marfil Algodón' },
                             { color: '#2B2B2B', name: 'Gris Carbón' },
                             { color: '#E2E6DF', name: 'Salvia Editorial' },
-                            { color: '#1B2421', name: 'Verde Bosque Oscuro' },
+                            { color: '#1B2421', name: 'Verde Bosque' },
                           ].map((c) => (
                             <button
                               key={c.color}
@@ -4671,10 +4763,10 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                                 handleSetSpreadBgColor(c.color);
                                 setShowBgColorMenu(false);
                               }}
-                              className="flex items-center gap-1.5 p-1 rounded hover:bg-white/15 text-left"
+                              className="flex items-center gap-1.5 p-1.5 rounded-lg hover:bg-white/15 text-left transition-colors"
                             >
-                              <div className="w-3.5 h-3.5 rounded-full border border-white/40" style={{ backgroundColor: c.color }} />
-                              <span>{c.name}</span>
+                              <div className="w-3.5 h-3.5 rounded-full border border-white/40 shadow-2xs shrink-0" style={{ backgroundColor: c.color }} />
+                              <span className="truncate">{c.name}</span>
                             </button>
                           ))}
                         </div>
@@ -4682,98 +4774,45 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     )}
                   </div>
 
-                  {/* Add Floating Text Block Button */}
+                  {/* Margen / Sin Bordes (Sangrado Completo) */}
                   <button
                     type="button"
-                    onClick={() => handleAddFloatingText('title')}
-                    title="Agregar cuadro de texto libre en cualquier posición del pliego"
-                    className="px-2.5 py-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] font-semibold text-[11px] flex items-center gap-1.5"
+                    onClick={handleToggleSpreadFlushMargin}
+                    title="Alternar entre margen clásico o fotos al ras sin bordes"
+                    className={`px-2.5 py-1.5 rounded-xl border font-semibold text-[11px] flex items-center gap-1.5 transition-all ${
+                      displaySpread.isFlushMargin
+                        ? 'bg-[#8C6D37] text-white border-[#8C6D37] shadow-xs'
+                        : 'border-[#D6CEBE] bg-[#FAF7F2] hover:bg-[#EFE9DE] text-[#595248]'
+                    }`}
                   >
-                    <Type className="w-3.5 h-3.5 text-[#736B60]" />
-                    <span>+ Texto Libre</span>
+                    <Maximize2 className="w-3.5 h-3.5" />
+                    <span>{displaySpread.isFlushMargin ? 'Sin Bordes' : 'Con Margen'}</span>
                   </button>
 
-                  {/* Add Photo Slot / Frame Button (Zno "Agregar Marco") */}
-                  <div className="flex items-center border border-[#D6CEBE] rounded-lg overflow-hidden bg-white">
-                    <button
-                      type="button"
-                      onClick={() => handleAddPhotoSlotToPage('left')}
-                      title="Agregar marco de foto en página izquierda"
-                      className="px-2 py-1.5 hover:bg-[#F4EFE6] text-[11px] font-semibold flex items-center gap-1 border-r border-[#D6CEBE]"
-                    >
-                      <Plus className="w-3 h-3 text-[#8C6D37]" />
-                      <span>+ Marco Izq</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAddPhotoSlotToPage('right')}
-                      title="Agregar marco de foto en página derecha"
-                      className="px-2 py-1.5 hover:bg-[#F4EFE6] text-[11px] font-semibold flex items-center gap-1"
-                    >
-                      <Plus className="w-3 h-3 text-[#8C6D37]" />
-                      <span>+ Marco Der</span>
-                    </button>
-                  </div>
-
-                  {/* Swap / Flip Left and Right (Zno "Voltear") */}
-                  <button
-                    type="button"
-                    onClick={handleFlipSpreadSides}
-                    title="Intercambiar diseño entre página izquierda y derecha"
-                    className="px-2.5 py-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] font-semibold text-[11px] flex items-center gap-1.5"
-                  >
-                    <FlipHorizontal className="w-3.5 h-3.5 text-[#736B60]" />
-                    <span>Voltear Pliego</span>
-                  </button>
-
-                  <div className="h-4 w-[1px] bg-[#D6CEBE] hidden sm:block" />
-
-                  {/* Undo & Redo (Zno Deshacer / Rehacer) */}
-                  <div className="flex items-center gap-0.5">
-                    <button
-                      type="button"
-                      onClick={handleUndo}
-                      disabled={historyIndex <= 0}
-                      title="Deshacer último cambio (Ctrl+Z)"
-                      className="p-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] disabled:opacity-30 text-[#1F1C18] transition-colors"
-                    >
-                      <Undo2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleRedo}
-                      disabled={historyIndex >= historyCount - 1}
-                      title="Rehacer cambio (Ctrl+Y o Ctrl+Shift+Z)"
-                      className="p-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] disabled:opacity-30 text-[#1F1C18] transition-colors"
-                    >
-                      <Redo2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  {/* Photo Gap / Spacing (Zno Modificar plantilla) */}
+                  {/* Espacio entre fotos */}
                   <div className="relative">
                     <button
                       type="button"
                       onClick={() => setShowGapMenu(!showGapMenu)}
-                      title="Ajustar espacio entre fotos"
-                      className="px-2.5 py-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] font-semibold text-[11px] flex items-center gap-1.5"
+                      title="Ajustar espacio de separación entre fotos"
+                      className="px-2 py-1.5 rounded-xl border border-[#D6CEBE] bg-[#FAF7F2] hover:bg-[#EFE9DE] font-semibold text-[11px] flex items-center gap-1 text-[#595248] transition-colors"
                     >
                       <SlidersHorizontal className="w-3.5 h-3.5 text-[#736B60]" />
-                      <span>Espacio: {spreadPhotoGap}px</span>
+                      <span className="hidden sm:inline">{spreadPhotoGap}px</span>
                     </button>
 
                     {showGapMenu && (
                       <div 
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute top-full mt-1 left-0 bg-[#1F1C18] text-white p-2.5 rounded-xl shadow-2xl border border-white/20 z-50 w-44 space-y-2 text-xs"
+                        className="absolute top-full mt-1.5 left-0 bg-[#1F1C18] text-white p-2.5 rounded-2xl shadow-2xl border border-white/20 z-50 w-44 space-y-2 text-xs"
                       >
                         <span className="text-[10px] font-bold text-[#ECC880] uppercase tracking-wider block">Espacio entre Fotos</span>
                         <div className="grid grid-cols-2 gap-1.5 text-[10px]">
                           {[
-                            { gap: 0, label: '0px (Flush)' },
+                            { gap: 0, label: '0px (Al ras)' },
                             { gap: 8, label: '8px (Normal)' },
                             { gap: 16, label: '16px (Galería)' },
-                            { gap: 24, label: '24px (Passepartout)' },
+                            { gap: 24, label: '24px (Amplio)' },
                           ].map((g) => (
                             <button
                               key={g.gap}
@@ -4782,7 +4821,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                                 setSpreadPhotoGap(g.gap);
                                 setShowGapMenu(false);
                               }}
-                              className={`p-1.5 rounded text-center transition-colors ${
+                              className={`p-1.5 rounded-lg text-center transition-colors ${
                                 spreadPhotoGap === g.gap ? 'bg-[#8C6D37] text-white font-bold' : 'bg-white/10 hover:bg-white/20'
                               }`}
                             >
@@ -4795,33 +4834,60 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   </div>
                 </div>
 
-                {/* Right controls: Bleed guides and Fine Art Inspector */}
-                <div className="flex items-center gap-1.5">
+                {/* RIGHT GROUP: HISTORIAL & HERRAMIENTAS DE VISTA */}
+                <div className="flex items-center gap-1 sm:gap-1.5">
+                  
+                  {/* Deshacer & Rehacer */}
+                  <div className="flex items-center gap-0.5 bg-[#FAF7F2] p-0.5 rounded-xl border border-[#D6CEBE]">
+                    <button
+                      type="button"
+                      onClick={handleUndo}
+                      disabled={historyIndex <= 0}
+                      title="Deshacer (Ctrl+Z)"
+                      className="p-1.5 rounded-lg hover:bg-[#EFE9DE] disabled:opacity-25 text-[#1F1C18] transition-colors"
+                    >
+                      <Undo2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRedo}
+                      disabled={historyIndex >= historyCount - 1}
+                      title="Rehacer (Ctrl+Y o Ctrl+Shift+Z)"
+                      className="p-1.5 rounded-lg hover:bg-[#EFE9DE] disabled:opacity-25 text-[#1F1C18] transition-colors"
+                    >
+                      <Redo2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="h-4 w-[1px] bg-[#D6CEBE] hidden sm:block" />
+
+                  {/* Guías de Corte y Sangría */}
                   <button
                     type="button"
                     onClick={() => setShowSafeMarginGuides(!showSafeMarginGuides)}
-                    className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-colors ${
+                    className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-colors ${
                       showSafeMarginGuides
                         ? 'bg-[#8C6D37]/15 text-[#8C6D37] border border-[#8C6D37]/40'
-                        : 'border border-[#D6CEBE] text-[#736B60] hover:bg-[#EFE9DE]'
+                        : 'border border-[#D6CEBE] bg-[#FAF7F2] text-[#736B60] hover:bg-[#EFE9DE]'
                     }`}
                     title="Mostrar/Ocultar guías de margen de seguridad y sangría de corte"
                   >
                     <Grid className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Líneas de Sangrado</span>
+                    <span className="hidden md:inline">Guías</span>
                   </button>
 
+                  {/* Auditoría Fine Art */}
                   <button
                     type="button"
                     onClick={() => {
                       const firstPhoto = uploadedPhotos[0];
                       if (firstPhoto) setInspectedPhotoForQuality(firstPhoto);
                     }}
-                    className="px-2.5 py-1.5 rounded-lg bg-[#1F1C18] text-[#FDFCF9] hover:bg-[#3D352E] text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
+                    className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-[#1F1C18] text-[#FDFCF9] hover:bg-[#3D352E] text-[11px] font-bold flex items-center gap-1.5 shadow-xs transition-colors"
                     title="Auditar resolución DPI y perfil sRGB Fine Art"
                   >
                     <Sparkles className="w-3.5 h-3.5 text-[#ECC880]" />
-                    <span className="hidden md:inline">Auditoría Fine Art</span>
+                    <span className="hidden lg:inline">Auditoría</span>
                   </button>
                 </div>
               </div>
@@ -4948,10 +5014,11 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         <button
                           type="button"
                           onClick={() => setActiveLayoutMenuSide(activeLayoutMenuSide === 'left' ? null : 'left')}
-                          className="px-2 py-0.5 rounded bg-[#1F1C18]/75 text-[#FDFCF9] text-[9px] uppercase font-bold tracking-wider hover:bg-[#1F1C18] flex items-center gap-1 shadow-xs backdrop-blur-xs"
+                          className="px-2 py-1 rounded-lg bg-[#1F1C18]/80 text-[#FDFCF9] text-[10px] font-semibold hover:bg-[#1F1C18] flex items-center gap-1.5 shadow-sm backdrop-blur-xs transition-all hover:scale-105"
+                          title="Cambiar diseño / disposición de la página izquierda"
                         >
-                          <Layout className="w-2.5 h-2.5" />
-                          <span>Layout Izq</span>
+                          <Layout className="w-3 h-3 text-[#ECC880]" />
+                          <span>Diseño Izq.</span>
                         </button>
                       </div>
 
@@ -4981,10 +5048,11 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         <button
                           type="button"
                           onClick={() => setActiveLayoutMenuSide(activeLayoutMenuSide === 'right' ? null : 'right')}
-                          className="px-2 py-0.5 rounded bg-[#1F1C18]/75 text-[#FDFCF9] text-[9px] uppercase font-bold tracking-wider hover:bg-[#1F1C18] flex items-center gap-1 shadow-xs backdrop-blur-xs"
+                          className="px-2 py-1 rounded-lg bg-[#1F1C18]/80 text-[#FDFCF9] text-[10px] font-semibold hover:bg-[#1F1C18] flex items-center gap-1.5 shadow-sm backdrop-blur-xs transition-all hover:scale-105"
+                          title="Cambiar diseño / disposición de la página derecha"
                         >
-                          <Layout className="w-2.5 h-2.5" />
-                          <span>Layout Der</span>
+                          <Layout className="w-3 h-3 text-[#ECC880]" />
+                          <span>Diseño Der.</span>
                         </button>
                       </div>
 
@@ -6646,21 +6714,21 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
         {/* STEP 5: 3D FLIP PREVIEW & FINAL SUMMARY */}
         {currentStep === 'preview' && (
-          <div className="w-full flex-1 overflow-y-auto min-h-0">
-            <div className="max-w-4xl mx-auto p-6 sm:p-10 pb-24 flex flex-col items-center">
-              <div className="text-center mb-8">
-                <span className="text-xs font-bold tracking-widest text-[#8C6D37] uppercase">Paso 5 de 5</span>
-                <h2 className="font-serif-luxury text-3xl sm:text-4xl text-[#1F1C18] mt-1">
+          <div className="w-full flex-1 overflow-y-auto min-h-0 p-3 sm:p-4">
+            <div className="max-w-3xl mx-auto pb-8 flex flex-col items-center">
+              <div className="text-center mb-3">
+                <span className="text-[9px] font-bold tracking-widest text-[#8C6D37] uppercase">Paso 5 de 5</span>
+                <h2 className="font-serif-luxury text-xl sm:text-2xl text-[#1F1C18]">
                   Hojeado Digital & Revisión Final
                 </h2>
-                <p className="text-xs sm:text-sm text-[#595248] mt-2">
+                <p className="text-[11px] text-[#595248]">
                   Revisa cada pliego antes de enviar tu fotolibro a impresión artesanal.
                 </p>
               </div>
 
               {/* Flip Book Showcase */}
-              <div className="w-full aspect-[16/10] bg-[#FDFCFA] rounded-2xl shadow-2xl border border-[#D6CEBE] overflow-hidden flex relative mb-6 paper-texture">
-                <div className="absolute inset-y-0 left-1/2 -ml-4 w-8 book-gutter-shadow pointer-events-none z-20" />
+              <div className="w-full aspect-[16/10] max-h-[38vh] bg-[#FDFCFA] rounded-2xl shadow-xl border border-[#D6CEBE] overflow-hidden flex relative mb-3 paper-texture">
+                <div className="absolute inset-y-0 left-1/2 -ml-3 w-6 book-gutter-shadow pointer-events-none z-20" />
                 
                 {activeSpread.isFullSpreadBleed ? (
                   <div className="w-full h-full">
@@ -6678,7 +6746,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   </div>
                 ) : (
                   <>
-                    <div className="w-1/2 h-full p-6 sm:p-8 border-r border-[#E8E2D5] flex flex-col justify-center items-center">
+                    <div className="w-1/2 h-full p-4 sm:p-6 border-r border-[#E8E2D5] flex flex-col justify-center items-center">
                       {uploadedPhotos.find((p) => p.id === activeSpread.leftPage.slots[0]?.photoId) ? (
                         <img
                           src={uploadedPhotos.find((p) => p.id === activeSpread.leftPage.slots[0]?.photoId)?.url}
@@ -6686,9 +6754,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           className="w-full h-full object-cover rounded shadow"
                         />
                       ) : activeSpread.leftPage.layout === 'editorial-text-photo' ? (
-                        <div className="text-center p-4">
-                          <h4 className="font-serif-luxury text-xl font-bold text-[#1F1C18]">{activeSpread.leftPage.customTextHeading || 'Capítulo'}</h4>
-                          <p className="text-xs italic text-[#595248] mt-2">{activeSpread.leftPage.customTextBody || ''}</p>
+                        <div className="text-center p-3">
+                          <h4 className="font-serif-luxury text-base font-bold text-[#1F1C18]">{activeSpread.leftPage.customTextHeading || 'Capítulo'}</h4>
+                          <p className="text-[10px] italic text-[#595248] mt-1">{activeSpread.leftPage.customTextBody || ''}</p>
                         </div>
                       ) : (
                         <div className="w-full h-full bg-[#EFE9DE] rounded flex items-center justify-center text-xs text-[#736B60]">
@@ -6696,7 +6764,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         </div>
                       )}
                     </div>
-                    <div className="w-1/2 h-full p-6 sm:p-8 flex flex-col justify-center items-center">
+                    <div className="w-1/2 h-full p-4 sm:p-6 flex flex-col justify-center items-center">
                       {uploadedPhotos.find((p) => p.id === activeSpread.rightPage.slots[0]?.photoId) ? (
                         <img
                           src={uploadedPhotos.find((p) => p.id === activeSpread.rightPage.slots[0]?.photoId)?.url}
@@ -6714,50 +6782,50 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               </div>
 
               {/* Stepper controls */}
-              <div className="flex items-center gap-4 mb-8">
+              <div className="flex items-center gap-3 mb-3">
                 <button
                   type="button"
                   onClick={() => setActiveSpreadIndex((prev) => Math.max(0, prev - 1))}
                   disabled={activeSpreadIndex === 0}
-                  className="px-4 py-2 rounded-full border border-[#D6CEBE] bg-[#FDFCF9] text-xs font-semibold text-[#1F1C18] disabled:opacity-30"
+                  className="px-3.5 py-1.5 rounded-full border border-[#D6CEBE] bg-[#FDFCF9] text-xs font-semibold text-[#1F1C18] disabled:opacity-30"
                 >
                   ← Pliego Anterior
                 </button>
-                <span className="font-serif-luxury text-base font-bold text-[#1F1C18]">
+                <span className="font-serif-luxury text-sm font-bold text-[#1F1C18]">
                   Pliego {activeSpreadIndex + 1} de {spreads.length}
                 </span>
                 <button
                   type="button"
                   onClick={() => setActiveSpreadIndex((prev) => Math.min(spreads.length - 1, prev + 1))}
                   disabled={activeSpreadIndex === spreads.length - 1}
-                  className="px-4 py-2 rounded-full border border-[#D6CEBE] bg-[#FDFCF9] text-xs font-semibold text-[#1F1C18] disabled:opacity-30"
+                  className="px-3.5 py-1.5 rounded-full border border-[#D6CEBE] bg-[#FDFCF9] text-xs font-semibold text-[#1F1C18] disabled:opacity-30"
                 >
                   Siguiente Pliego →
                 </button>
               </div>
 
               {/* Final Order Confirmation Card */}
-              <div className="w-full rounded-2xl border border-[#8C6D37] bg-[#FDFCF9] p-6 shadow-xl text-left space-y-4">
-                <div className="flex items-center justify-between border-b border-[#E8E2D5] pb-4">
+              <div className="w-full rounded-xl border border-[#8C6D37] bg-[#FDFCF9] p-4 shadow-lg text-left space-y-3">
+                <div className="flex items-center justify-between border-b border-[#E8E2D5] pb-2.5">
                   <div>
-                    <h3 className="font-serif-luxury text-xl font-bold text-[#1F1C18]">{foilTitleText}</h3>
-                    <p className="text-xs text-[#736B60]">{currentFormat.name} · {currentCover.name}</p>
+                    <h3 className="font-serif-luxury text-base sm:text-lg font-bold text-[#1F1C18]">{foilTitleText}</h3>
+                    <p className="text-[11px] text-[#736B60]">{currentFormat.name} · {currentCover.name}</p>
                   </div>
                   <div className="text-right">
-                    <span className="font-serif-luxury text-2xl font-bold text-[#1F1C18]">
+                    <span className="font-serif-luxury text-lg sm:text-xl font-bold text-[#1F1C18]">
                       {formatPriceARS(totalPrice)} ARS
                     </span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-[#595248]">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-[#595248]">
                   <div>
                     <span className="block text-[#736B60] font-medium">Papel:</span>
                     <span className="font-semibold text-[#1F1C18]">{currentPaper.name}</span>
                   </div>
                   <div>
                     <span className="block text-[#736B60] font-medium">Páginas:</span>
-                    <span className="font-semibold text-[#1F1C18]">{totalPages} páginas ({spreads.length} pliegos)</span>
+                    <span className="font-semibold text-[#1F1C18]">{totalPages} pág ({spreads.length} pliegos)</span>
                   </div>
                   <div>
                     <span className="block text-[#736B60] font-medium">Grabado:</span>
@@ -6772,7 +6840,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 <button
                   type="button"
                   onClick={handleFinishAndOrder}
-                  className="w-full py-4 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-widest font-bold hover:bg-[#3D352E] shadow-xl flex items-center justify-center gap-2 mt-4"
+                  className="w-full py-3 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-widest font-bold hover:bg-[#3D352E] shadow-lg flex items-center justify-center gap-2 mt-2"
                 >
                   <BookOpen className="w-4 h-4 text-[#ECC880]" />
                   <span>Confirmar y Enviar a Fabricación</span>
