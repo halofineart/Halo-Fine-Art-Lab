@@ -3424,63 +3424,70 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* STEP 1: FORMAT & SIZES */}
         {currentStep === 'format' && (
-          <div className="w-full flex-1 overflow-y-auto min-h-0">
-            <div className="max-w-5xl mx-auto p-6 sm:p-10 pb-24">
-              <div className="text-center max-w-2xl mx-auto mb-8">
-                <span className="text-xs font-bold tracking-widest text-[#8C6D37] uppercase">Paso 1 de 5</span>
-                <h2 className="font-serif-luxury text-3xl sm:text-4xl text-[#1F1C18] mt-1">
+          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col">
+            <div className="max-w-6xl w-full mx-auto p-3.5 sm:p-6 my-auto flex flex-col">
+              <div className="text-center max-w-2xl mx-auto mb-3 sm:mb-5">
+                <span className="text-[10px] sm:text-xs font-bold tracking-widest text-[#8C6D37] uppercase">Paso 1 de 5</span>
+                <h2 className="font-serif-luxury text-2xl sm:text-3xl text-[#1F1C18] mt-0.5">
                   Elegí el formato y tamaño de tu libro
                 </h2>
-                <p className="text-xs sm:text-sm text-[#595248] mt-2">
+                <p className="text-[11px] sm:text-xs text-[#595248] mt-1 max-w-xl mx-auto">
                   Todos nuestros álbumes cuentan con encuadernación rígida 100% Layflat de apertura plana a 180°.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* 6 Formats in 3 Columns (2 neat rows on desktop/tablet) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3.5">
                 {BOOK_FORMATS.map((fmt) => {
                   const isSelected = fmt.id === formatId;
                   return (
                     <div
                       key={fmt.id}
                       onClick={() => setFormatId(fmt.id)}
-                      className={`cursor-pointer rounded-2xl border p-6 transition-all relative ${
+                      className={`cursor-pointer rounded-xl border p-3 sm:p-4 transition-all relative flex flex-col justify-between ${
                         isSelected
-                          ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-xl ring-2 ring-[#8C6D37]/30'
+                          ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-md ring-2 ring-[#8C6D37]/30'
                           : 'border-[#D6CEBE] bg-[#F4EFE6]/60 hover:bg-[#FDFCF9] hover:border-[#B8AB98]'
                       }`}
                     >
                       {fmt.popular && (
-                        <span className="absolute top-4 right-4 bg-[#8C6D37] text-white text-[10px] tracking-widest uppercase font-bold px-2.5 py-0.5 rounded-full">
+                        <span className="absolute top-2.5 right-2.5 bg-[#8C6D37] text-white text-[9px] tracking-wider uppercase font-bold px-2 py-0.5 rounded-full shadow-xs">
                           Más Elegido
                         </span>
                       )}
 
-                      <div className="flex items-start justify-between gap-4 mb-4">
-                        <div>
-                          <h3 className="font-serif-luxury text-2xl font-bold text-[#1F1C18]">{fmt.name}</h3>
-                          <p className="font-mono text-xs text-[#8C6D37] font-semibold mt-0.5">{fmt.dimensions}</p>
+                      <div>
+                        <div className="flex items-start justify-between gap-2 pr-14 mb-1">
+                          <div>
+                            <h3 className="font-serif-luxury text-base sm:text-lg font-bold text-[#1F1C18] leading-tight">
+                              {fmt.name}
+                            </h3>
+                            <p className="font-mono text-[11px] text-[#8C6D37] font-semibold mt-0.5">{fmt.dimensions}</p>
+                          </div>
                         </div>
-                        <span className="font-serif-luxury text-xl font-bold text-[#1F1C18]">
+
+                        <div className="font-serif-luxury text-base sm:text-lg font-bold text-[#1F1C18] my-1">
                           {formatPriceARS(fmt.basePrice)}
-                        </span>
+                        </div>
+
+                        <p className="text-[11px] text-[#595248] leading-snug line-clamp-2 mb-2">{fmt.description}</p>
                       </div>
 
-                      <p className="text-xs text-[#595248] leading-relaxed mb-4">{fmt.description}</p>
-
-                      <div className="flex items-center justify-between border-t border-[#E8E2D5] pt-3 text-[11px] text-[#736B60]">
-                        <span>Incluye {fmt.basePages} páginas rígidas</span>
-                        <span className="font-medium text-[#1F1C18]">Recomendado: {fmt.idealPhotos}</span>
+                      <div className="flex items-center justify-between border-t border-[#E8E2D5] pt-2 text-[10px] text-[#736B60]">
+                        <span>Incluye {fmt.basePages} páginas</span>
+                        <span className="font-semibold text-[#1F1C18]">Recom: {fmt.idealPhotos}</span>
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="mt-8 flex justify-end">
+              {/* Bottom Continue Action Bar */}
+              <div className="mt-3 sm:mt-5 flex justify-end">
                 <button
                   type="button"
                   onClick={() => setCurrentStep('cover')}
-                  className="px-6 py-3 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                 >
                   <span>Continuar a Tapa & Grabado</span>
                   <ChevronRight className="w-4 h-4" />
@@ -3492,28 +3499,28 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
         {/* STEP 2: COVER, MATERIAL & FOIL STAMPING */}
         {currentStep === 'cover' && (
-          <div className="w-full flex-1 overflow-y-auto min-h-0">
-            <div className="max-w-6xl mx-auto p-6 sm:p-10 pb-24 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* Left Column: Live 3D Cover Mockup */}
-              <div className="lg:col-span-6 flex flex-col items-center">
-                <div className="sticky top-6 w-full max-w-md">
-                  <span className="text-[11px] font-bold tracking-widest text-[#8C6D37] uppercase mb-2 block text-center">
+          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col">
+            <div className="max-w-6xl w-full mx-auto p-3.5 sm:p-5 my-auto grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-center">
+              {/* Left Column: Live 3D Cover Mockup (Compact & Balanced) */}
+              <div className="lg:col-span-5 flex flex-col items-center justify-center">
+                <div className="w-full max-w-[280px] sm:max-w-[320px]">
+                  <span className="text-[10px] font-bold tracking-widest text-[#8C6D37] uppercase mb-1.5 block text-center">
                     VISTA PREVIA DE PORTADA REAL
                   </span>
 
                   {/* The Luxury Book Cover Card */}
                   <div 
-                    className={`aspect-[4/5] rounded-2xl p-8 flex flex-col justify-between shadow-2xl relative border-2 border-black/10 transition-all duration-500 overflow-hidden ${currentCover.textureClass}`}
+                    className={`aspect-[4/5] rounded-xl p-5 sm:p-6 flex flex-col justify-between shadow-xl relative border-2 border-black/10 transition-all duration-500 overflow-hidden ${currentCover.textureClass}`}
                     style={{ backgroundColor: currentCover.colorHex }}
                   >
                     <div className="absolute inset-0 linen-texture opacity-30 pointer-events-none" />
 
                     {/* Left Spine Crease Shadow */}
-                    <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-black/25 via-black/10 to-transparent pointer-events-none" />
+                    <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-black/25 via-black/10 to-transparent pointer-events-none" />
 
                     {/* Optional Cover Photo Window */}
                     {hasCoverWindow ? (
-                      <div className="w-32 h-32 mx-auto my-auto rounded-xl border-4 border-[#C5A059]/40 overflow-hidden shadow-2xl relative bg-white">
+                      <div className="w-24 h-24 mx-auto my-auto rounded-lg border-2 border-[#C5A059]/40 overflow-hidden shadow-xl relative bg-white">
                         <img
                           src={uploadedPhotos[0]?.url || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=600&q=80'}
                           alt="Foto de Portada"
@@ -3521,13 +3528,13 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         />
                       </div>
                     ) : (
-                      <div className="h-10" />
+                      <div className="h-6" />
                     )}
 
                     {/* Embossed & Stamped Hot Foil Title */}
-                    <div className="text-center relative z-10 my-auto">
+                    <div className="text-center relative z-10 my-auto px-2">
                       <span 
-                        className="font-brand text-2xl sm:text-3xl font-bold tracking-[0.25em] block uppercase foil-stamping-emboss drop-shadow-sm"
+                        className="font-brand text-lg sm:text-2xl font-bold tracking-[0.2em] block uppercase foil-stamping-emboss drop-shadow-xs"
                         style={{
                           color: FOIL_OPTIONS.find(f => f.id === foilColor)?.colorHex || '#D4AF37',
                         }}
@@ -3536,7 +3543,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       </span>
 
                       <span 
-                        className="font-serif-luxury text-sm tracking-[0.2em] block uppercase mt-2 font-medium opacity-90 foil-stamping-emboss"
+                        className="font-serif-luxury text-xs tracking-[0.15em] block uppercase mt-1.5 font-medium opacity-90 foil-stamping-emboss"
                         style={{
                           color: FOIL_OPTIONS.find(f => f.id === foilColor)?.colorHex || '#D4AF37',
                         }}
@@ -3546,29 +3553,29 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     </div>
 
                     {/* Bottom Spine & Brand Stamp */}
-                    <div className="text-center text-[9px] tracking-[0.3em] uppercase opacity-60 font-brand">
+                    <div className="text-center text-[8px] tracking-[0.25em] uppercase opacity-60 font-brand">
                       FINE ART LAB
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Right Column: Customization Controls */}
-              <div className="lg:col-span-6 space-y-6">
+              {/* Right Column: Customization Controls (Compact Height Optimized) */}
+              <div className="lg:col-span-7 space-y-2.5 sm:space-y-3.5">
                 <div>
-                  <span className="text-xs font-bold tracking-widest text-[#8C6D37] uppercase">Paso 2 de 5</span>
-                  <h2 className="font-serif-luxury text-3xl font-bold text-[#1F1C18]">Tapas, Telas & Grabado</h2>
-                  <p className="text-xs text-[#595248] mt-1">
+                  <span className="text-[10px] font-bold tracking-widest text-[#8C6D37] uppercase">Paso 2 de 5</span>
+                  <h2 className="font-serif-luxury text-2xl sm:text-3xl font-bold text-[#1F1C18] leading-tight">Tapas, Telas & Grabado</h2>
+                  <p className="text-[11px] text-[#595248] mt-0.5">
                     Grabado térmico artesanal prensado sobre linos naturales europeos o cuero vegano.
                   </p>
                 </div>
 
-                {/* Cover Material Selection */}
+                {/* Cover Material Selection (Compact 4-Column Grid) */}
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-[#1F1C18] block mb-2">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-1">
                     Material y Color de Tapa:
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2">
                     {COVER_MATERIALS.map((cov) => {
                       const isSelected = cov.id === coverMaterialId;
                       return (
@@ -3576,18 +3583,18 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           key={cov.id}
                           type="button"
                           onClick={() => setCoverMaterialId(cov.id)}
-                          className={`flex flex-col items-center text-center p-3 rounded-xl border transition-all ${
+                          className={`flex flex-col items-center text-center p-1.5 sm:p-2 rounded-lg border transition-all ${
                             isSelected
-                              ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-md ring-2 ring-[#8C6D37]/30'
+                              ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-sm ring-2 ring-[#8C6D37]/30'
                               : 'border-[#D6CEBE] bg-[#F4EFE6]/50 hover:bg-[#FDFCF9]'
                           }`}
                         >
                           <div
-                            className="w-7 h-7 rounded-full border border-black/15 shadow-sm mb-1.5"
+                            className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-black/15 shadow-xs mb-1"
                             style={{ backgroundColor: cov.colorHex }}
                           />
-                          <span className="text-[11px] font-semibold text-[#1F1C18] line-clamp-1">{cov.name}</span>
-                          <span className="text-[9px] text-[#736B60]">
+                          <span className="text-[10px] font-semibold text-[#1F1C18] line-clamp-1">{cov.name}</span>
+                          <span className="text-[8.5px] text-[#736B60]">
                             {cov.priceDelta > 0 ? `+${formatPriceARS(cov.priceDelta)}` : 'Incluido'}
                           </span>
                         </button>
@@ -3596,12 +3603,12 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   </div>
                 </div>
 
-                {/* Foil Stamping Color */}
+                {/* Foil Stamping Color (Compact 5-Column Grid on Tablet/Desktop) */}
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-[#1F1C18] block mb-2">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-1">
                     Color de Grabado en Hot Stamping:
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
                     {FOIL_OPTIONS.map((f) => {
                       const isSelected = f.id === foilColor;
                       return (
@@ -3609,58 +3616,60 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           key={f.id}
                           type="button"
                           onClick={() => setFoilColor(f.id)}
-                          className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all ${
+                          className={`flex items-center gap-1.5 p-1.5 sm:p-2 rounded-lg border text-left transition-all ${
                             isSelected
-                              ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-sm ring-1 ring-[#8C6D37]'
+                              ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-xs ring-1 ring-[#8C6D37]'
                               : 'border-[#D6CEBE] bg-[#F4EFE6]/50 hover:bg-[#FDFCF9]'
                           }`}
                         >
                           <div
-                            className="w-4 h-4 rounded-full border border-black/10 shrink-0"
+                            className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0"
                             style={{ backgroundColor: f.colorHex }}
                           />
-                          <span className="text-xs font-medium text-[#1F1C18] truncate">{f.name}</span>
+                          <span className="text-[10.5px] font-medium text-[#1F1C18] truncate">{f.name}</span>
                         </button>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Foil Title Input */}
-                <div className="space-y-3 rounded-2xl border border-[#D6CEBE] bg-[#FDFCF9] p-4">
-                  <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-[#1F1C18] block mb-1">
-                      Título Principal en Tapa:
-                    </label>
-                    <input
-                      type="text"
-                      value={foilTitleText}
-                      onChange={(e) => setFoilTitleText(e.target.value.toUpperCase())}
-                      placeholder="EJ: NUESTRA HISTORIA, SOFÍA & MATEO"
-                      className="w-full rounded-lg border border-[#D6CEBE] bg-[#F4EFE6]/40 px-3 py-2 text-xs font-brand tracking-widest text-[#1F1C18] focus:border-[#8C6D37] focus:outline-none"
-                      maxLength={35}
-                    />
-                  </div>
+                {/* Foil Title Input & Window Toggle */}
+                <div className="space-y-2 rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-2.5 sm:p-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
+                        Título Principal:
+                      </label>
+                      <input
+                        type="text"
+                        value={foilTitleText}
+                        onChange={(e) => setFoilTitleText(e.target.value.toUpperCase())}
+                        placeholder="EJ: NUESTRA HISTORIA"
+                        className="w-full rounded-md border border-[#D6CEBE] bg-[#F4EFE6]/40 px-2.5 py-1.5 text-xs font-brand tracking-wider text-[#1F1C18] focus:border-[#8C6D37] focus:outline-none"
+                        maxLength={35}
+                      />
+                    </div>
 
-                  <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-[#1F1C18] block mb-1">
-                      Subtítulo / Fecha / Lugar:
-                    </label>
-                    <input
-                      type="text"
-                      value={foilSubtitleText}
-                      onChange={(e) => setFoilSubtitleText(e.target.value.toUpperCase())}
-                      placeholder="EJ: 14 DE NOVIEMBRE DE 2025 · PATAGONIA"
-                      className="w-full rounded-lg border border-[#D6CEBE] bg-[#F4EFE6]/40 px-3 py-2 text-xs font-serif-luxury tracking-wider text-[#1F1C18] focus:border-[#8C6D37] focus:outline-none"
-                      maxLength={45}
-                    />
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
+                        Subtítulo / Fecha / Lugar:
+                      </label>
+                      <input
+                        type="text"
+                        value={foilSubtitleText}
+                        onChange={(e) => setFoilSubtitleText(e.target.value.toUpperCase())}
+                        placeholder="EJ: 2026 · PATAGONIA"
+                        className="w-full rounded-md border border-[#D6CEBE] bg-[#F4EFE6]/40 px-2.5 py-1.5 text-xs font-serif-luxury tracking-wide text-[#1F1C18] focus:border-[#8C6D37] focus:outline-none"
+                        maxLength={45}
+                      />
+                    </div>
                   </div>
 
                   {/* Cover Window toggle */}
-                  <div className="flex items-center justify-between border-t border-[#E8E2D5] pt-3">
+                  <div className="flex items-center justify-between border-t border-[#E8E2D5] pt-1.5 mt-1">
                     <div>
                       <span className="text-xs font-bold text-[#1F1C18] block">Ventana Fotográfica Calada</span>
-                      <span className="text-[11px] text-[#736B60]">Troquelado con marco biselado en el centro</span>
+                      <span className="text-[10px] text-[#736B60]">Troquelado con marco biselado en el centro</span>
                     </div>
                     <input
                       type="checkbox"
@@ -3671,11 +3680,12 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center pt-2">
+                {/* Navigation Action Buttons */}
+                <div className="flex justify-between items-center pt-1">
                   <button
                     type="button"
                     onClick={() => setCurrentStep('format')}
-                    className="text-xs font-semibold text-[#736B60] hover:text-[#1F1C18] flex items-center gap-1"
+                    className="text-xs font-semibold text-[#736B60] hover:text-[#1F1C18] flex items-center gap-1 transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4" />
                     <span>Volver a Formatos</span>
@@ -3684,7 +3694,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   <button
                     type="button"
                     onClick={() => setCurrentStep('paper')}
-                    className="px-6 py-3 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] flex items-center gap-2"
+                    className="px-5 py-2.5 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                   >
                     <span>Continuar a Papel</span>
                     <ChevronRight className="w-4 h-4" />
@@ -3697,41 +3707,41 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
         {/* STEP 3: PAPER & LAYFLAT */}
         {currentStep === 'paper' && (
-          <div className="w-full flex-1 overflow-y-auto min-h-0">
-            <div className="max-w-5xl mx-auto p-6 sm:p-10 pb-24">
-              <div className="text-center max-w-2xl mx-auto mb-8">
-                <span className="text-xs font-bold tracking-widest text-[#8C6D37] uppercase">Paso 3 de 5</span>
-                <h2 className="font-serif-luxury text-3xl sm:text-4xl text-[#1F1C18] mt-1">
+          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col">
+            <div className="max-w-5xl w-full mx-auto p-3.5 sm:p-6 my-auto flex flex-col">
+              <div className="text-center max-w-2xl mx-auto mb-3 sm:mb-5">
+                <span className="text-[10px] sm:text-xs font-bold tracking-widest text-[#8C6D37] uppercase">Paso 3 de 5</span>
+                <h2 className="font-serif-luxury text-2xl sm:text-3xl text-[#1F1C18] mt-0.5">
                   Auténtico Papel Fotográfico Fine Art
                 </h2>
-                <p className="text-xs sm:text-sm text-[#595248] mt-2">
+                <p className="text-[11px] sm:text-xs text-[#595248] mt-1 max-w-xl mx-auto">
                   No utilizamos imprenta digital común. Cada página es revelada químicamente para brindar la máxima gama tonal y longevidad de 100+ años.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                 {PAPER_FINISHES.map((paper) => {
                   const isSelected = paper.id === paperFinishId;
                   return (
                     <div
                       key={paper.id}
                       onClick={() => setPaperFinishId(paper.id)}
-                      className={`cursor-pointer rounded-2xl border p-6 flex flex-col justify-between transition-all ${
+                      className={`cursor-pointer rounded-xl border p-3.5 sm:p-4 flex flex-col justify-between transition-all ${
                         isSelected
-                          ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-xl ring-2 ring-[#8C6D37]/30'
+                          ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-md ring-2 ring-[#8C6D37]/30'
                           : 'border-[#D6CEBE] bg-[#F4EFE6]/60 hover:bg-[#FDFCF9]'
                       }`}
                     >
                       <div>
-                        <span className="inline-block bg-[#8C6D37]/15 text-[#8C6D37] text-[10px] font-bold tracking-widest uppercase px-2.5 py-0.5 rounded-full mb-3">
+                        <span className="inline-block bg-[#8C6D37]/15 text-[#8C6D37] text-[9px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full mb-2">
                           {paper.badge}
                         </span>
-                        <h3 className="font-serif-luxury text-xl font-bold text-[#1F1C18] mb-1">{paper.name}</h3>
-                        <p className="text-xs text-[#8C6D37] font-semibold mb-3">{paper.subtitle}</p>
-                        <p className="text-xs text-[#595248] leading-relaxed mb-4">{paper.description}</p>
+                        <h3 className="font-serif-luxury text-base sm:text-lg font-bold text-[#1F1C18] mb-0.5">{paper.name}</h3>
+                        <p className="text-[11px] text-[#8C6D37] font-semibold mb-2">{paper.subtitle}</p>
+                        <p className="text-[11px] text-[#595248] leading-snug mb-3 line-clamp-3">{paper.description}</p>
                       </div>
 
-                      <div className="border-t border-[#E8E2D5] pt-3 flex items-center justify-between text-xs">
+                      <div className="border-t border-[#E8E2D5] pt-2 flex items-center justify-between text-[11px]">
                         <span className="text-[#736B60] font-mono">{paper.grammage}</span>
                         <span className="font-bold text-[#1F1C18]">
                           {paper.priceDelta > 0 ? `+${formatPriceARS(paper.priceDelta)} ARS` : 'Incluido'}
@@ -3743,37 +3753,38 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               </div>
 
               {/* Gift Box Addon */}
-              <div className="mt-8 rounded-2xl border border-[#D6CEBE] bg-[#FDFCF9] p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#EFE9DE] flex items-center justify-center text-[#8C6D37] shrink-0">
-                    <Gift className="w-6 h-6" />
+              <div className="mt-3 sm:mt-4 rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-[#EFE9DE] flex items-center justify-center text-[#8C6D37] shrink-0">
+                    <Gift className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-serif-luxury text-lg font-bold text-[#1F1C18]">Cofre / Caja de Presentación en Lino</h4>
-                    <p className="text-xs text-[#595248]">
+                    <h4 className="font-serif-luxury text-sm sm:text-base font-bold text-[#1F1C18]">Cofre / Caja de Presentación en Lino</h4>
+                    <p className="text-[11px] text-[#595248]">
                       Caja rígida forrada en la misma tela con cinta de satén para extracción suave y protección eterna.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="font-serif-luxury text-base font-bold text-[#1F1C18]">
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="font-serif-luxury text-sm font-bold text-[#1F1C18]">
                     +{formatPriceARS(28000)} ARS
                   </span>
                   <input
                     type="checkbox"
                     checked={giftBoxIncluded}
                     onChange={(e) => setGiftBoxIncluded(e.target.checked)}
-                    className="w-5 h-5 accent-[#8C6D37] rounded cursor-pointer"
+                    className="w-4 h-4 accent-[#8C6D37] rounded cursor-pointer"
                   />
                 </div>
               </div>
 
-              <div className="mt-8 flex justify-between items-center">
+              {/* Navigation Action Buttons */}
+              <div className="mt-3 sm:mt-5 flex justify-between items-center">
                 <button
                   type="button"
                   onClick={() => setCurrentStep('cover')}
-                  className="text-xs font-semibold text-[#736B60] hover:text-[#1F1C18] flex items-center gap-1"
+                  className="text-xs font-semibold text-[#736B60] hover:text-[#1F1C18] flex items-center gap-1 transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   <span>Volver a Tapas</span>
@@ -3782,7 +3793,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 <button
                   type="button"
                   onClick={() => setCurrentStep('editor')}
-                  className="px-6 py-3 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                 >
                   <span>Comenzar a Diseñar Páginas</span>
                   <ChevronRight className="w-4 h-4" />
