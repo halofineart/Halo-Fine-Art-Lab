@@ -183,6 +183,7 @@ export async function fetchUserProfile(userId: string): Promise<{ data: UserProf
           city: data.city,
           postalCode: data.postal_code,
           createdAt: data.created_at,
+          isAdmin: Boolean(data.is_admin),
         },
         error: null,
       };
