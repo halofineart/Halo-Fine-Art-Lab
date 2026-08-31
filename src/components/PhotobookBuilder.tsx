@@ -249,6 +249,19 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     }
   };
 
+  // Interactive Frame Node Resize State & Rotation State
+  const [resizingHandle, setResizingHandle] = useState<{
+    slotId: string;
+    handle: string;
+    wDelta: number;
+    hDelta: number;
+  } | null>(null);
+
+  const [rotatingSlotState, setRotatingSlotState] = useState<{
+    slotId: string;
+    deg: number;
+  } | null>(null);
+
   // Live Panning Drag Handler for image displacement inside frame
   const handleStartPan = (slot: PageSlot, e: React.PointerEvent) => {
     e.preventDefault();
@@ -303,6 +316,241 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       }
       setPanningSlotId(null);
       panDragRef.current = null;
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  };
+
+  // Interactive Frame Node Resize Handler (8 Bounding Box Handles)
+  const handleStartResize = (
+    slot: PageSlot,
+    handle: 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w',
+    e: React.PointerEvent
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const initialW = slot.frameWidthDelta || 0;
+    const initialH = slot.frameHeightDelta || 0;
+    const initialOffX = slot.frameOffsetX || 0;
+    const initialOffY = slot.frameOffsetY || 0;
+
+    let hasMoved = false;
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+
+      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+        hasMoved = true;
+      }
+
+      let newW = initialW;
+      let newH = initialH;
+      let newOffX = initialOffX;
+      let newOffY = initialOffY;
+
+      if (handle === 'se') {
+        newW = initialW + dx;
+        newH = initialH + dy;
+      } else if (handle === 'e') {
+        newW = initialW + dx;
+      } else if (handle === 's') {
+        newH = initialH + dy;
+      } else if (handle === 'sw') {
+        newW = initialW - dx;
+        newH = initialH + dy;
+        newOffX = initialOffX + dx;
+      } else if (handle === 'w') {
+        newW = initialW - dx;
+        newOffX = initialOffX + dx;
+      } else if (handle === 'ne') {
+        newW = initialW + dx;
+        newH = initialH - dy;
+        newOffY = initialOffY + dy;
+      } else if (handle === 'n') {
+        newH = initialH - dy;
+        newOffY = initialOffY + dy;
+      } else if (handle === 'nw') {
+        newW = initialW - dx;
+        newH = initialH - dy;
+        newOffX = initialOffX + dx;
+        newOffY = initialOffY + dy;
+      }
+
+      newW = Math.max(-150, Math.min(600, Math.round(newW)));
+      newH = Math.max(-150, Math.min(600, Math.round(newH)));
+      newOffX = Math.round(newOffX);
+      newOffY = Math.round(newOffY);
+
+      setResizingHandle({ slotId: slot.id, handle, wDelta: newW, hDelta: newH });
+
+      setSpreads((prevSpreads) => {
+        const activeSpread = prevSpreads[activeSpreadIndex];
+        if (!activeSpread) return prevSpreads;
+
+        const updateSlots = (page: any) => ({
+          ...page,
+          slots: page.slots.map((s: PageSlot) =>
+            s.id === slot.id
+              ? {
+                  ...s,
+                  frameWidthDelta: newW,
+                  frameHeightDelta: newH,
+                  frameOffsetX: newOffX,
+                  frameOffsetY: newOffY,
+                }
+              : s
+          ),
+        });
+
+        const updatedSpread = {
+          ...activeSpread,
+          leftPage: updateSlots(activeSpread.leftPage),
+          rightPage: updateSlots(activeSpread.rightPage),
+        };
+
+        return prevSpreads.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s));
+      });
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      if (hasMoved) {
+        recordHistorySnapshot(spreads);
+      }
+      setResizingHandle(null);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  };
+
+  // Interactive Rotation Handler (Drag Top Node)
+  const handleStartRotateInteractive = (slot: PageSlot, e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const targetEl = document.getElementById(slot.id);
+    let centerX = e.clientX;
+    let centerY = e.clientY + 50;
+
+    if (targetEl) {
+      const rect = targetEl.getBoundingClientRect();
+      centerX = rect.left + rect.width / 2;
+      centerY = rect.top + rect.height / 2;
+    }
+
+    let hasMoved = false;
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const dx = moveEvent.clientX - centerX;
+      const dy = moveEvent.clientY - centerY;
+      hasMoved = true;
+
+      const angleRad = Math.atan2(dy, dx);
+      let deg = Math.round((angleRad * 180) / Math.PI) + 90;
+      if (deg < 0) deg += 360;
+      deg = deg % 360;
+
+      // Snap near angles 0, 45, 90, 135, 180, 225, 270, 315, 360
+      for (const snap of [0, 45, 90, 135, 180, 225, 270, 315, 360]) {
+        if (Math.abs(deg - snap) <= 4) {
+          deg = snap % 360;
+          break;
+        }
+      }
+
+      setRotatingSlotState({ slotId: slot.id, deg });
+
+      setSpreads((prevSpreads) => {
+        const activeSpread = prevSpreads[activeSpreadIndex];
+        if (!activeSpread) return prevSpreads;
+
+        const updateSlots = (page: any) => ({
+          ...page,
+          slots: page.slots.map((s: PageSlot) =>
+            s.id === slot.id ? { ...s, rotation: deg } : s
+          ),
+        });
+
+        const updatedSpread = {
+          ...activeSpread,
+          leftPage: updateSlots(activeSpread.leftPage),
+          rightPage: updateSlots(activeSpread.rightPage),
+        };
+
+        return prevSpreads.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s));
+      });
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      if (hasMoved) {
+        recordHistorySnapshot(spreads);
+      }
+      setRotatingSlotState(null);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  };
+
+  // Interactive Frame Move Handler (Move entire frame on page)
+  const handleStartFrameMove = (slot: PageSlot, e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const initialOffX = slot.frameOffsetX || 0;
+    const initialOffY = slot.frameOffsetY || 0;
+    let hasMoved = false;
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+        hasMoved = true;
+      }
+
+      const newOffX = Math.round(initialOffX + dx);
+      const newOffY = Math.round(initialOffY + dy);
+
+      setSpreads((prevSpreads) => {
+        const activeSpread = prevSpreads[activeSpreadIndex];
+        if (!activeSpread) return prevSpreads;
+
+        const updateSlots = (page: any) => ({
+          ...page,
+          slots: page.slots.map((s: PageSlot) =>
+            s.id === slot.id
+              ? { ...s, frameOffsetX: newOffX, frameOffsetY: newOffY }
+              : s
+          ),
+        });
+
+        const updatedSpread = {
+          ...activeSpread,
+          leftPage: updateSlots(activeSpread.leftPage),
+          rightPage: updateSlots(activeSpread.rightPage),
+        };
+
+        return prevSpreads.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s));
+      });
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      if (hasMoved) {
+        recordHistorySnapshot(spreads);
+      }
     };
 
     window.addEventListener('pointermove', handlePointerMove);
@@ -453,6 +701,32 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
           : s
       );
     });
+  };
+
+  const handleSlotSetFrameWidth = (slotId: string, delta: number) => {
+    updateActiveSlot(slotId, (slot) => ({ ...slot, frameWidthDelta: delta }));
+  };
+
+  const handleSlotSetFrameHeight = (slotId: string, delta: number) => {
+    updateActiveSlot(slotId, (slot) => ({ ...slot, frameHeightDelta: delta }));
+  };
+
+  const handleSlotSetFrameOffsetX = (slotId: string, offset: number) => {
+    updateActiveSlot(slotId, (slot) => ({ ...slot, frameOffsetX: offset }));
+  };
+
+  const handleSlotSetFrameOffsetY = (slotId: string, offset: number) => {
+    updateActiveSlot(slotId, (slot) => ({ ...slot, frameOffsetY: offset }));
+  };
+
+  const handleResetFrameDimensions = (slotId: string) => {
+    updateActiveSlot(slotId, (slot) => ({
+      ...slot,
+      frameWidthDelta: 0,
+      frameHeightDelta: 0,
+      frameOffsetX: 0,
+      frameOffsetY: 0,
+    }));
   };
 
   const handleSlotRotate = (slotId: string) => {
@@ -933,10 +1207,16 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
         style={{
           borderWidth: borderWidth > 0 ? `${borderWidth}px` : undefined,
           borderColor: borderWidth > 0 ? borderColor : undefined,
+          transform: (slot.frameOffsetX || slot.frameOffsetY)
+            ? `translate(${slot.frameOffsetX || 0}px, ${slot.frameOffsetY || 0}px)`
+            : undefined,
+          width: slot.frameWidthDelta ? `calc(100% + ${slot.frameWidthDelta}px)` : undefined,
+          height: slot.frameHeightDelta ? `calc(100% + ${slot.frameHeightDelta}px)` : undefined,
+          zIndex: isSelected ? 35 : (slot.frameOffsetX || slot.frameOffsetY || slot.frameWidthDelta || slot.frameHeightDelta) ? 20 : undefined,
         }}
         className={`group relative overflow-visible rounded-lg transition-all cursor-pointer select-none ${containerClasses} ${
           isSelected
-            ? 'ring-2 ring-[#0091FF] z-30 shadow-lg'
+            ? 'ring-2 ring-[#0091FF] shadow-lg'
             : isDragOver
             ? 'border-dashed border-2 border-[#8C6D37] bg-[#8C6D37]/15 scale-[1.01]'
             : 'border border-[#D6CEBE]/80 hover:border-[#1F1C18]'
@@ -985,6 +1265,11 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     Encuadre ({slot.customPosition?.x || 0}px, {slot.customPosition?.y || 0}px)
                   </span>
                 )}
+                {Boolean(slot.frameWidthDelta || slot.frameHeightDelta || slot.frameOffsetX || slot.frameOffsetY) && (
+                  <span className="px-1 py-0.5 rounded bg-[#8C6D37]/90 backdrop-blur-xs text-white text-[8px] font-mono">
+                    Marco Personalizado
+                  </span>
+                )}
                 {flipH && (
                   <span className="px-1 py-0.5 rounded bg-black/60 backdrop-blur-xs text-white text-[8px] font-mono">
                     Espejo
@@ -1008,30 +1293,73 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
         {isSelected && photo && (
           <>
             {/* Top Rotation Pivot Handle */}
-            <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto z-40">
+            <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto z-40">
               <button
                 type="button"
+                onPointerDown={(e) => handleStartRotateInteractive(slot, e)}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleSlotRotate(slot.id);
                 }}
-                title="Girar foto 90°"
-                className="w-5 h-5 rounded-full bg-white border-2 border-[#0091FF] text-[#0091FF] flex items-center justify-center shadow-md hover:scale-110 transition-transform"
+                title="Arrastra para rotar libremente o haz clic para girar 90°"
+                className={`w-6 h-6 rounded-full bg-white border-2 border-[#0091FF] text-[#0091FF] hover:bg-[#0091FF] hover:text-white flex items-center justify-center shadow-lg transition-transform ${
+                  rotatingSlotState?.slotId === slot.id ? 'scale-125 ring-2 ring-[#0091FF]' : 'hover:scale-110'
+                } cursor-grab active:cursor-grabbing`}
               >
-                <RotateCw className="w-2.5 h-2.5" />
+                <RotateCw className="w-3 h-3" />
               </button>
-              <div className="w-[1.5px] h-2 bg-[#0091FF]" />
+              <div className="w-[1.5px] h-2.5 bg-[#0091FF]" />
             </div>
 
-            {/* 8 Bounding Control Handles (Cyan / Blue Zno Style) */}
-            <div className="absolute -top-1.5 -left-1.5 w-3 h-3 rounded-full bg-white border-2 border-[#0091FF] shadow-xs pointer-events-none z-30" />
-            <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-white border-2 border-[#0091FF] shadow-xs pointer-events-none z-30" />
-            <div className="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full bg-white border-2 border-[#0091FF] shadow-xs pointer-events-none z-30" />
-            <div className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-3 h-3 rounded-full bg-white border-2 border-[#0091FF] shadow-xs pointer-events-none z-30" />
-            <div className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-3 h-3 rounded-full bg-white border-2 border-[#0091FF] shadow-xs pointer-events-none z-30" />
-            <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 rounded-full bg-white border-2 border-[#0091FF] shadow-xs pointer-events-none z-30" />
-            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-white border-2 border-[#0091FF] shadow-xs pointer-events-none z-30" />
-            <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 rounded-full bg-white border-2 border-[#0091FF] shadow-xs pointer-events-none z-30" />
+            {/* 8 Bounding Control Handles (Cyan / Blue Zno Style) - Fully Interactive Nodes */}
+            {/* Top-Left (NW) */}
+            <div
+              onPointerDown={(e) => handleStartResize(slot, 'nw', e)}
+              title="Redimensionar esquina superior izquierda"
+              className="absolute -top-2 -left-2 w-4 h-4 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-nwse-resize"
+            />
+            {/* Top-Center (N) */}
+            <div
+              onPointerDown={(e) => handleStartResize(slot, 'n', e)}
+              title="Redimensionar altura superior"
+              className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-ns-resize"
+            />
+            {/* Top-Right (NE) */}
+            <div
+              onPointerDown={(e) => handleStartResize(slot, 'ne', e)}
+              title="Redimensionar esquina superior derecha"
+              className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-nesw-resize"
+            />
+            {/* Left-Center (W) */}
+            <div
+              onPointerDown={(e) => handleStartResize(slot, 'w', e)}
+              title="Redimensionar ancho izquierdo"
+              className="absolute top-1/2 -left-2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-ew-resize"
+            />
+            {/* Right-Center (E) */}
+            <div
+              onPointerDown={(e) => handleStartResize(slot, 'e', e)}
+              title="Redimensionar ancho derecho"
+              className="absolute top-1/2 -right-2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-ew-resize"
+            />
+            {/* Bottom-Left (SW) */}
+            <div
+              onPointerDown={(e) => handleStartResize(slot, 'sw', e)}
+              title="Redimensionar esquina inferior izquierda"
+              className="absolute -bottom-2 -left-2 w-4 h-4 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-nesw-resize"
+            />
+            {/* Bottom-Center (S) */}
+            <div
+              onPointerDown={(e) => handleStartResize(slot, 's', e)}
+              title="Redimensionar altura inferior"
+              className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-ns-resize"
+            />
+            {/* Bottom-Right (SE) */}
+            <div
+              onPointerDown={(e) => handleStartResize(slot, 'se', e)}
+              title="Redimensionar esquina inferior derecha"
+              className="absolute -bottom-2 -right-2 w-4 h-4 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-nwse-resize"
+            />
 
             {/* Top-Left Circular Swap Icon Button (Zno Screenshot 2) */}
             <button
@@ -1045,6 +1373,31 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
             >
               <ArrowLeftRight className="w-3 h-3" />
             </button>
+
+            {/* Frame Move Button (Move entire frame box on page) */}
+            <div
+              onPointerDown={(e) => handleStartFrameMove(slot, e)}
+              title="Arrastra para mover la posición del marco en la página"
+              className="absolute -top-2.5 right-6 w-6 h-6 rounded-full bg-[#1F1C18] text-white flex items-center justify-center shadow-md z-40 cursor-move hover:scale-110 transition-transform"
+            >
+              <Move className="w-3 h-3" />
+            </div>
+
+            {/* Live Active HUD indicator */}
+            {resizingHandle?.slotId === slot.id && (
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-[#1F1C18] text-white text-[10px] font-mono px-2.5 py-1 rounded-full shadow-2xl border border-white/20 z-50 whitespace-nowrap pointer-events-none flex items-center gap-1.5">
+                <span className="text-[#0091FF] font-bold">Marco:</span>
+                <span>Ancho {resizingHandle.wDelta >= 0 ? `+${resizingHandle.wDelta}` : resizingHandle.wDelta}px</span>
+                <span className="text-white/40">|</span>
+                <span>Alto {resizingHandle.hDelta >= 0 ? `+${resizingHandle.hDelta}` : resizingHandle.hDelta}px</span>
+              </div>
+            )}
+            {rotatingSlotState?.slotId === slot.id && (
+              <div className="absolute -top-14 left-1/2 -translate-x-1/2 bg-[#1F1C18] text-white text-[10px] font-mono px-2.5 py-1 rounded-full shadow-2xl border border-white/20 z-50 whitespace-nowrap pointer-events-none flex items-center gap-1.5">
+                <RotateCw className="w-3 h-3 text-[#0091FF]" />
+                <span>Rotación: {rotatingSlotState.deg}°</span>
+              </div>
+            )}
 
             {/* Central Pan Hand Tool - Supports interactive drag & displacement */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
@@ -1087,6 +1440,18 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   className="px-1.5 py-0.5 rounded bg-[#0091FF]/30 hover:bg-[#0091FF] text-[#0091FF] hover:text-white text-[9px] font-bold transition-colors"
                 >
                   Centrar
+                </button>
+              )}
+
+              {/* Reset Frame Size/Position if resized or moved */}
+              {Boolean(slot.frameWidthDelta || slot.frameHeightDelta || slot.frameOffsetX || slot.frameOffsetY) && (
+                <button
+                  type="button"
+                  onClick={() => handleResetFrameDimensions(slot.id)}
+                  title="Restablecer tamaño y posición del marco al diseño original"
+                  className="px-1.5 py-0.5 rounded bg-[#8C6D37]/50 hover:bg-[#8C6D37] text-[#ECC880] hover:text-white text-[9px] font-bold transition-colors"
+                >
+                  Reset Marco
                 </button>
               )}
 
@@ -3427,48 +3792,176 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   </div>
 
                   {/* 5. ROTACIÓN Y REFLEJO */}
-                  <div className="space-y-1.5 pt-1 border-t border-[#E8E2D5]">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
-                      Transformación
-                    </span>
-                    <div className="grid grid-cols-3 gap-1.5">
+                  <div className="space-y-2 pt-1 border-t border-[#E8E2D5]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
+                        Rotación & Ángulo
+                      </span>
+                      <span className="font-mono font-bold text-xs text-[#1F1C18]">
+                        {selectedSlotData.slot.rotation || 0}°
+                      </span>
+                    </div>
+
+                    {/* Rotation Slider */}
+                    <input
+                      type="range"
+                      min="0"
+                      max="360"
+                      step="1"
+                      value={selectedSlotData.slot.rotation || 0}
+                      onChange={(e) =>
+                        handleSlotSetRotation(selectedSlotData.slot.id, parseInt(e.target.value))
+                      }
+                      className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
+                    />
+
+                    <div className="grid grid-cols-4 gap-1">
+                      {[0, 90, 180, 270].map((deg) => (
+                        <button
+                          key={deg}
+                          type="button"
+                          onClick={() => handleSlotSetRotation(selectedSlotData.slot.id, deg)}
+                          className={`py-1 rounded text-[10px] font-bold transition-all border ${
+                            (selectedSlotData.slot.rotation || 0) === deg
+                              ? 'bg-[#8C6D37] text-white border-[#8C6D37]'
+                              : 'bg-white text-[#595248] border-[#D6CEBE] hover:bg-[#EFE9DE]'
+                          }`}
+                        >
+                          {deg}°
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-1.5 pt-1">
                       <button
                         type="button"
                         onClick={() => handleSlotRotate(selectedSlotData.slot.id)}
-                        className="py-1.5 px-1 rounded-lg bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[10px] font-bold flex flex-col items-center gap-1 shadow-xs"
+                        className="py-1.5 px-2 rounded-lg bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[10px] font-bold flex items-center justify-center gap-1.5 shadow-xs"
                       >
                         <RotateCw className="w-3.5 h-3.5" />
-                        <span>Girar 90°</span>
+                        <span>Girar +90°</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleSlotFlipH(selectedSlotData.slot.id)}
-                        className={`py-1.5 px-1 rounded-lg border text-[10px] font-bold flex flex-col items-center gap-1 shadow-xs ${
+                        className={`py-1.5 px-2 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1.5 shadow-xs ${
                           selectedSlotData.slot.flipH
                             ? 'bg-[#8C6D37] text-white border-[#8C6D37]'
                             : 'bg-white border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18]'
                         }`}
                       >
                         <FlipHorizontal className="w-3.5 h-3.5" />
-                        <span>Espejo</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleSlotSetRotation(
-                            selectedSlotData.slot.id,
-                            ((selectedSlotData.slot.rotation || 0) + 180) % 360
-                          )
-                        }
-                        className="py-1.5 px-1 rounded-lg bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[10px] font-bold flex flex-col items-center gap-1 shadow-xs"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        <span>Girar 180°</span>
+                        <span>Reflejo Espejo</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* 6. FILTROS FINE ART */}
+                  {/* 6. TAMAÑO Y POSICIÓN DEL MARCO (NODOS & REDIMENSIÓN) */}
+                  <div className="space-y-3 pt-2 border-t border-[#E8E2D5]">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1.5">
+                        <Move className="w-3.5 h-3.5 text-[#0091FF]" />
+                        <span>Tamaño y Nodos del Marco</span>
+                      </label>
+                      {Boolean(
+                        selectedSlotData.slot.frameWidthDelta ||
+                        selectedSlotData.slot.frameHeightDelta ||
+                        selectedSlotData.slot.frameOffsetX ||
+                        selectedSlotData.slot.frameOffsetY
+                      ) && (
+                        <button
+                          type="button"
+                          onClick={() => handleResetFrameDimensions(selectedSlotData.slot.id)}
+                          className="text-[10px] font-bold text-[#8C6D37] hover:underline"
+                        >
+                          Restablecer
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Width Delta Slider */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[10px] text-[#736B60]">
+                        <span>Ancho del Marco</span>
+                        <span className="font-mono font-bold text-[#1F1C18]">
+                          {(selectedSlotData.slot.frameWidthDelta || 0) >= 0 ? `+${selectedSlotData.slot.frameWidthDelta || 0}` : selectedSlotData.slot.frameWidthDelta} px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-150"
+                        max="300"
+                        step="5"
+                        value={selectedSlotData.slot.frameWidthDelta || 0}
+                        onChange={(e) => handleSlotSetFrameWidth(selectedSlotData.slot.id, parseInt(e.target.value))}
+                        className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#0091FF]"
+                      />
+                    </div>
+
+                    {/* Height Delta Slider */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[10px] text-[#736B60]">
+                        <span>Alto del Marco</span>
+                        <span className="font-mono font-bold text-[#1F1C18]">
+                          {(selectedSlotData.slot.frameHeightDelta || 0) >= 0 ? `+${selectedSlotData.slot.frameHeightDelta || 0}` : selectedSlotData.slot.frameHeightDelta} px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-150"
+                        max="300"
+                        step="5"
+                        value={selectedSlotData.slot.frameHeightDelta || 0}
+                        onChange={(e) => handleSlotSetFrameHeight(selectedSlotData.slot.id, parseInt(e.target.value))}
+                        className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#0091FF]"
+                      />
+                    </div>
+
+                    {/* Frame Position on Page (Offsets) */}
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-[10px] text-[#736B60]">
+                          <span>Posición X</span>
+                          <span className="font-mono font-bold text-[#1F1C18]">
+                            {selectedSlotData.slot.frameOffsetX || 0}px
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="-150"
+                          max="150"
+                          step="5"
+                          value={selectedSlotData.slot.frameOffsetX || 0}
+                          onChange={(e) => handleSlotSetFrameOffsetX(selectedSlotData.slot.id, parseInt(e.target.value))}
+                          className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#0091FF]"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-[10px] text-[#736B60]">
+                          <span>Posición Y</span>
+                          <span className="font-mono font-bold text-[#1F1C18]">
+                            {selectedSlotData.slot.frameOffsetY || 0}px
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="-150"
+                          max="150"
+                          step="5"
+                          value={selectedSlotData.slot.frameOffsetY || 0}
+                          onChange={(e) => handleSlotSetFrameOffsetY(selectedSlotData.slot.id, parseInt(e.target.value))}
+                          className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#0091FF]"
+                        />
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] text-[#736B60] italic bg-[#EBF5FF] p-2 rounded-lg border border-[#BDE0FE] flex items-center gap-1.5">
+                      <span className="text-xs">✨</span>
+                      <span>Arrastra cualquiera de los 8 nodos azules de las esquinas y lados para redimensionar libremente.</span>
+                    </p>
+                  </div>
+
+                  {/* 7. FILTROS FINE ART */}
                   <div className="space-y-1.5 pt-1 border-t border-[#E8E2D5]">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
                       Filtros Fine Art Emulsión
@@ -3502,7 +3995,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     </div>
                   </div>
 
-                  {/* 7. DESELECCIONAR */}
+                  {/* 8. DESELECCIONAR */}
                   <div className="pt-2">
                     <button
                       type="button"

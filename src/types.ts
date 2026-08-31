@@ -143,6 +143,10 @@ export interface PageSlot {
   opacity?: number; // 0 to 1
   fitMode?: 'cover' | 'contain';
   caption?: string;
+  frameWidthDelta?: number; // px delta resize
+  frameHeightDelta?: number; // px delta resize
+  frameOffsetX?: number; // px offset position
+  frameOffsetY?: number; // px offset position
 }
 
 export interface CustomTextElement {
