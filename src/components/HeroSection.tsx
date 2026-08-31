@@ -32,8 +32,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         }}
       >
         {/* Semi-transparent warm veil to create the exact translucent effect from the image */}
-        <div className="absolute inset-0 bg-[#FAF8F5]/82 backdrop-blur-[1px]" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#FAF8F5]/90 via-[#FAF8F5]/70 to-[#FAF8F5]" />
+        <div className="absolute inset-0 bg-[#FAF8F5]/60" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#FAF8F5]/75 via-[#FAF8F5]/45 to-[#FAF8F5]" />
 
         {/* Floating Editorial Content Directly Over the Translucent Background */}
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-16 sm:py-24 text-center">
