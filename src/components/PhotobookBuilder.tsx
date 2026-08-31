@@ -2809,11 +2809,11 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
           )}
         </div>
 
-        {/* ZNO CLOUD SELECTION HANDLES & OVERLAYS WHEN SELECTED (Screenshot 2 Match) */}
+        {/* ZNO CLOUD SELECTION HANDLES & OVERLAYS WHEN SELECTED */}
         {isSelected && photo && (
           <>
             {/* Top Rotation Pivot Handle */}
-            <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto z-40">
+            <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto z-40">
               <button
                 type="button"
                 onPointerDown={(e) => handleStartRotateInteractive(slot, e)}
@@ -2822,83 +2822,55 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   handleSlotRotate(slot.id);
                 }}
                 title="Arrastra para rotar libremente o haz clic para girar 90°"
-                className={`w-6 h-6 rounded-full bg-white border-2 border-[#0091FF] text-[#0091FF] hover:bg-[#0091FF] hover:text-white flex items-center justify-center shadow-lg transition-transform ${
+                className={`w-5 h-5 rounded-full bg-white border-2 border-[#0091FF] text-[#0091FF] hover:bg-[#0091FF] hover:text-white flex items-center justify-center shadow-lg transition-transform ${
                   rotatingSlotState?.slotId === slot.id ? 'scale-125 ring-2 ring-[#0091FF]' : 'hover:scale-110'
                 } cursor-grab active:cursor-grabbing`}
               >
-                <RotateCw className="w-3 h-3" />
+                <RotateCw className="w-2.5 h-2.5" />
               </button>
-              <div className="w-[1.5px] h-2.5 bg-[#0091FF]" />
+              <div className="w-[1.5px] h-2 bg-[#0091FF]" />
             </div>
 
-            {/* 8 Bounding Control Handles (Cyan / Blue Zno Style) - Fully Interactive Nodes */}
-            {/* Top-Left (NW) */}
+            {/* Corner Resize Handles (NW, NE, SW, SE) */}
             <div
               onPointerDown={(e) => handleStartResize(slot, 'nw', e)}
               title="Redimensionar esquina superior izquierda"
-              className="absolute -top-2 -left-2 w-4 h-4 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-nwse-resize"
+              className="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-nwse-resize"
             />
-            {/* Top-Center (N) */}
-            <div
-              onPointerDown={(e) => handleStartResize(slot, 'n', e)}
-              title="Redimensionar altura superior"
-              className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-ns-resize"
-            />
-            {/* Top-Right (NE) */}
             <div
               onPointerDown={(e) => handleStartResize(slot, 'ne', e)}
               title="Redimensionar esquina superior derecha"
-              className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-nesw-resize"
+              className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-nesw-resize"
             />
-            {/* Left-Center (W) */}
-            <div
-              onPointerDown={(e) => handleStartResize(slot, 'w', e)}
-              title="Redimensionar ancho izquierdo"
-              className="absolute top-1/2 -left-2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-ew-resize"
-            />
-            {/* Right-Center (E) */}
-            <div
-              onPointerDown={(e) => handleStartResize(slot, 'e', e)}
-              title="Redimensionar ancho derecho"
-              className="absolute top-1/2 -right-2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-ew-resize"
-            />
-            {/* Bottom-Left (SW) */}
             <div
               onPointerDown={(e) => handleStartResize(slot, 'sw', e)}
               title="Redimensionar esquina inferior izquierda"
-              className="absolute -bottom-2 -left-2 w-4 h-4 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-nesw-resize"
+              className="absolute -bottom-1.5 -left-1.5 w-3.5 h-3.5 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-nesw-resize"
             />
-            {/* Bottom-Center (S) */}
-            <div
-              onPointerDown={(e) => handleStartResize(slot, 's', e)}
-              title="Redimensionar altura inferior"
-              className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-ns-resize"
-            />
-            {/* Bottom-Right (SE) */}
             <div
               onPointerDown={(e) => handleStartResize(slot, 'se', e)}
               title="Redimensionar esquina inferior derecha"
-              className="absolute -bottom-2 -right-2 w-4 h-4 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-nwse-resize"
+              className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-white border-2 border-[#0091FF] hover:bg-[#0091FF] hover:scale-125 transition-transform shadow-md pointer-events-auto z-40 cursor-nwse-resize"
             />
 
-            {/* Top-Left Circular Swap Icon Button (Zno Screenshot 2) */}
+            {/* Top-Left Circular Swap Icon Button */}
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                setShowSwapPickerSlotId(showSwapPickerSlotId === slot.id ? null : slot.id);
+                setShowSwapPickerSlotId(slot.id);
               }}
-              title="Intercambiar con otra foto"
-              className="absolute -top-2.5 -left-2.5 w-6 h-6 rounded-full bg-[#0091FF] hover:bg-[#0077D4] text-white flex items-center justify-center shadow-md z-40 transition-transform hover:scale-110"
+              title="Cambiar foto de este marco"
+              className="absolute -top-3 -left-3 w-6 h-6 rounded-full bg-[#8C6D37] hover:bg-[#73582A] text-white flex items-center justify-center shadow-lg z-40 transition-transform hover:scale-110 cursor-pointer border border-white"
             >
               <ArrowLeftRight className="w-3 h-3" />
             </button>
 
-            {/* Frame Move Button (Move entire frame box on page) */}
+            {/* Frame Move Button (Top Right) */}
             <div
               onPointerDown={(e) => handleStartFrameMove(slot, e)}
               title="Arrastra para mover la posición del marco en la página"
-              className="absolute -top-2.5 right-6 w-6 h-6 rounded-full bg-[#1F1C18] text-white flex items-center justify-center shadow-md z-40 cursor-move hover:scale-110 transition-transform"
+              className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-[#1F1C18] text-white flex items-center justify-center shadow-lg z-40 cursor-move hover:scale-110 transition-transform border border-white"
             >
               <Move className="w-3 h-3" />
             </div>
@@ -2919,254 +2891,89 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               </div>
             )}
 
-            {/* Central Pan Hand Tool - Supports interactive drag & displacement */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-              <div
-                onPointerDown={(e) => handleStartPan(slot, e)}
-                onDoubleClick={(e) => {
-                  e.stopPropagation();
-                  handleResetSlotPosition(slot.id);
-                }}
-                title="Arrastra para desplazar la foto / Doble clic para centrar"
-                className={`w-11 h-11 rounded-full bg-black/80 hover:bg-black text-white flex flex-col items-center justify-center shadow-2xl backdrop-blur-xs pointer-events-auto transition-transform ${
-                  panningSlotId === slot.id ? 'cursor-grabbing scale-110 ring-2 ring-[#0091FF]' : 'cursor-grab hover:scale-105 active:scale-95'
-                }`}
-              >
-                <Hand className="w-5 h-5" />
-              </div>
-            </div>
-
-            {/* Floating Dark Action Toolbar - Located inside bottom edge of slot */}
+            {/* Floating Dark Action Toolbar - Floats below the frame to never obstruct the photo */}
             <div 
               onClick={(e) => e.stopPropagation()}
-              className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center bg-[#242220]/95 text-white rounded-xl shadow-2xl px-2 py-1.5 gap-1.5 z-40 border border-white/20 backdrop-blur-md max-w-[95%]"
+              className="absolute top-full mt-2 left-1/2 -translate-x-1/2 flex items-center bg-[#242220]/95 text-white rounded-xl shadow-2xl px-2 py-1 gap-1.5 z-50 border border-white/20 backdrop-blur-md whitespace-nowrap animate-in fade-in zoom-in-95 duration-100"
             >
-              {/* 0. Cambiar Foto / Reemplazar */}
+              {/* 1. Cambiar Foto */}
               <button
                 type="button"
                 onClick={() => setShowSwapPickerSlotId(slot.id)}
                 title="Cambiar foto de este marco (Elegir o subir otra imagen)"
-                className="px-2 py-1 rounded bg-[#8C6D37]/40 hover:bg-[#8C6D37] text-[#ECC880] hover:text-white transition-colors flex items-center gap-1 text-[10px] font-bold shrink-0"
+                className="px-2 py-1 rounded-lg bg-[#8C6D37] hover:bg-[#73582A] text-white transition-colors flex items-center gap-1 text-[10px] font-bold shrink-0 cursor-pointer shadow-xs"
               >
-                <ArrowLeftRight className="w-3.5 h-3.5" />
+                <ArrowLeftRight className="w-3 h-3" />
                 <span>Cambiar</span>
               </button>
 
-              <div className="w-[1px] h-3.5 bg-white/20" />
+              <div className="w-[1px] h-3 bg-white/20" />
 
-              {/* 1. Recortar / Zoom */}
+              {/* 2. Ajustar vs Llenar Marco (Fit / Cover) */}
               <button
                 type="button"
-                onClick={() => handleSlotZoom(slot.id, scale > 1 ? -0.2 : 0.3)}
-                title={scale > 1 ? "Reducir Zoom" : "Aumentar Zoom / Encuadre"}
-                className={`p-1.5 rounded hover:bg-white/20 transition-colors ${scale > 1 ? 'text-[#0091FF]' : 'text-white'}`}
+                onClick={() => handleSlotFitMode(slot.id)}
+                title={fitMode === 'contain' ? "Llenar todo el marco (Cover)" : "Ajustar foto completa al marco (Contain)"}
+                className={`p-1 rounded-lg hover:bg-white/20 transition-colors cursor-pointer ${fitMode === 'contain' ? 'text-[#0091FF] bg-white/15' : 'text-white/80'}`}
               >
-                <Crop className="w-3.5 h-3.5" />
+                {fitMode === 'contain' ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
               </button>
 
-              {/* Reset Pan / Center Button if moved */}
+              {/* 3. Girar 90° */}
+              <button
+                type="button"
+                onClick={() => handleSlotRotate(slot.id)}
+                title="Girar 90°"
+                className="p-1 rounded-lg hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer"
+              >
+                <RotateCw className="w-3.5 h-3.5" />
+              </button>
+
+              {/* 4. Voltear Espejo / Mirror */}
+              <button
+                type="button"
+                onClick={() => handleSlotFlipH(slot.id)}
+                title="Voltear horizontalmente (Espejo)"
+                className={`p-1 rounded-lg hover:bg-white/20 transition-colors cursor-pointer ${flipH ? 'text-[#0091FF] bg-white/15' : 'text-white/80'}`}
+              >
+                <FlipHorizontal className="w-3.5 h-3.5" />
+              </button>
+
+              {/* 5. Reset Pan / Center Button if moved */}
               {(slot.customPosition?.x !== 0 || slot.customPosition?.y !== 0) && (
                 <button
                   type="button"
                   onClick={() => handleResetSlotPosition(slot.id)}
                   title="Restablecer posición centrada"
-                  className="px-1.5 py-0.5 rounded bg-[#0091FF]/30 hover:bg-[#0091FF] text-[#0091FF] hover:text-white text-[9px] font-bold transition-colors"
+                  className="px-1.5 py-0.5 rounded bg-[#0091FF]/30 hover:bg-[#0091FF] text-[#0091FF] hover:text-white text-[9px] font-bold transition-colors cursor-pointer"
                 >
                   Centrar
                 </button>
               )}
 
-              {/* Reset Frame Size/Position if resized or moved */}
+              {/* 6. Reset Frame Size/Position if resized or moved */}
               {Boolean(slot.frameWidthDelta || slot.frameHeightDelta || slot.frameOffsetX || slot.frameOffsetY) && (
                 <button
                   type="button"
                   onClick={() => handleResetFrameDimensions(slot.id)}
                   title="Restablecer tamaño y posición del marco al diseño original"
-                  className="px-1.5 py-0.5 rounded bg-[#8C6D37]/50 hover:bg-[#8C6D37] text-[#ECC880] hover:text-white text-[9px] font-bold transition-colors"
+                  className="px-1.5 py-0.5 rounded bg-[#8C6D37]/50 hover:bg-[#8C6D37] text-[#ECC880] hover:text-white text-[9px] font-bold transition-colors cursor-pointer"
                 >
                   Reset Marco
                 </button>
               )}
 
-              <div className="w-[1px] h-3.5 bg-white/20" />
-
-              {/* 2. Girar 90° */}
-              <button
-                type="button"
-                onClick={() => handleSlotRotate(slot.id)}
-                title="Girar 90°"
-                className="p-1.5 rounded hover:bg-white/20 text-white transition-colors"
-              >
-                <RotateCw className="w-3.5 h-3.5" />
-              </button>
-
-              {/* 3. Voltear Espejo / Mirror */}
-              <button
-                type="button"
-                onClick={() => handleSlotFlipH(slot.id)}
-                title="Voltear horizontalmente (Espejo)"
-                className={`p-1.5 rounded hover:bg-white/20 transition-colors ${flipH ? 'text-[#0091FF]' : 'text-white'}`}
-              >
-                <FlipHorizontal className="w-3.5 h-3.5" />
-              </button>
-
-              {/* 4. Ajustar vs Llenar Marco (Fit / Cover) */}
-              <button
-                type="button"
-                onClick={() => handleSlotFitMode(slot.id)}
-                title={fitMode === 'contain' ? "Llenar todo el marco (Cover)" : "Ajustar foto completa al marco (Contain)"}
-                className={`p-1.5 rounded hover:bg-white/20 transition-colors ${fitMode === 'contain' ? 'text-[#0091FF]' : 'text-white'}`}
-              >
-                {fitMode === 'contain' ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
-              </button>
-
-              <div className="w-[1px] h-3.5 bg-white/20" />
-
-              {/* 5. Marco & Bordes (Passepartout) */}
-              <button
-                type="button"
-                onClick={() => {
-                  setShowFilterMenuSlotId(null);
-                  setShowBorderMenuSlotId(showBorderMenuSlotId === slot.id ? null : slot.id);
-                }}
-                title="Agregar Marco / Bordes"
-                className={`p-1.5 rounded hover:bg-white/20 transition-colors ${borderWidth > 0 || showBorderMenuSlotId === slot.id ? 'text-[#ECC880] bg-white/10' : 'text-white'}`}
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-              </button>
-
-              {/* 6. Filtros & Retoque Fine Art */}
-              <button
-                type="button"
-                onClick={() => {
-                  setShowBorderMenuSlotId(null);
-                  setShowFilterMenuSlotId(showFilterMenuSlotId === slot.id ? null : slot.id);
-                }}
-                title="Retocar / Filtros Fine Art"
-                className={`p-1.5 rounded hover:bg-white/20 transition-colors ${filter !== 'none' || showFilterMenuSlotId === slot.id ? 'text-[#ECC880] bg-white/10' : 'text-[#ECC880]'}`}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-              </button>
-
-              <div className="w-[1px] h-3.5 bg-white/20" />
+              <div className="w-[1px] h-3 bg-white/20" />
 
               {/* 7. Eliminar Foto de la Ranura */}
               <button
                 type="button"
                 onClick={() => handleRemovePhotoFromSlot(slot.id)}
                 title="Eliminar foto de esta ranura"
-                className="p-1.5 rounded hover:bg-rose-600 text-white/90 hover:text-white transition-colors"
+                className="p-1 rounded-lg hover:bg-rose-600 text-white/70 hover:text-white transition-colors cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
-
-              {/* POPOVER 1: Filtros Fine Art - Opens UPWARDS so it's never covered by the bottom layouts bar */}
-              {showFilterMenuSlotId === slot.id && (
-                <div 
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-[#1F1C18] text-white p-3 rounded-2xl shadow-2xl border border-white/25 z-50 w-64 space-y-2 text-xs backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
-                >
-                  <div className="flex items-center justify-between border-b border-white/15 pb-1.5">
-                    <span className="text-[11px] font-bold text-[#ECC880] uppercase tracking-wider flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-[#ECC880]" />
-                      Filtros Fine Art
-                    </span>
-                    <button 
-                      type="button" 
-                      onClick={() => setShowFilterMenuSlotId(null)}
-                      className="text-white/60 hover:text-white p-0.5 rounded"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                    {[
-                      { id: 'none', label: 'Original' },
-                      { id: 'fine-art-bw', label: 'B&N Fine Art' },
-                      { id: 'warm-vintage', label: 'Warm Vintage' },
-                      { id: 'high-contrast', label: 'Alto Contraste' },
-                      { id: 'fuji-film', label: 'Fuji Astia' },
-                      { id: 'kodak-chrome', label: 'Kodak Portra' },
-                      { id: 'matte-portrait', label: 'Matte Portrait' },
-                    ].map((fItem) => (
-                      <button
-                        key={fItem.id}
-                        type="button"
-                        onClick={() => handleSlotFilter(slot.id, fItem.id as any)}
-                        className={`p-2 rounded-lg text-left transition-colors font-medium ${
-                          filter === fItem.id ? 'bg-[#8C6D37] text-white font-bold shadow-xs' : 'bg-white/10 hover:bg-white/20 text-white/90'
-                        }`}
-                      >
-                        {fItem.label}
-                      </button>
-                    ))}
-                  </div>
-                  {/* Arrow Indicator pointing down to the button */}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[#1F1C18]" />
-                </div>
-              )}
-
-              {/* POPOVER 2: Border / Passepartout Menu - Opens UPWARDS */}
-              {showBorderMenuSlotId === slot.id && (
-                <div 
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-[#1F1C18] text-white p-3 rounded-2xl shadow-2xl border border-white/25 z-50 w-56 space-y-2.5 text-xs backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
-                >
-                  <div className="flex items-center justify-between border-b border-white/15 pb-1.5">
-                    <span className="text-[11px] font-bold text-[#ECC880] uppercase tracking-wider">
-                      Marco & Passepartout
-                    </span>
-                    <button 
-                      type="button" 
-                      onClick={() => setShowBorderMenuSlotId(null)}
-                      className="text-white/60 hover:text-white p-0.5 rounded"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-semibold text-white/70 block mb-1">Grosor de Borde:</span>
-                    <div className="grid grid-cols-4 gap-1">
-                      {[0, 2, 4, 8].map((w) => (
-                        <button
-                          key={w}
-                          type="button"
-                          onClick={() => handleSlotBorder(slot.id, w, borderColor)}
-                          className={`py-1 rounded-lg text-center text-[10px] font-bold transition-colors ${
-                            borderWidth === w ? 'bg-[#8C6D37] text-white' : 'bg-white/10 hover:bg-white/20'
-                          }`}
-                        >
-                          {w === 0 ? 'Sin' : `${w}px`}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-semibold text-white/70 block mb-1">Color de Marco:</span>
-                    <div className="flex gap-2">
-                      {[
-                        { color: '#FFFFFF', name: 'Blanco' },
-                        { color: '#C5A059', name: 'Oro Fine Art' },
-                        { color: '#1F1C18', name: 'Negro' },
-                        { color: '#EFE9DE', name: 'Marfil' },
-                      ].map((c) => (
-                        <button
-                          key={c.color}
-                          type="button"
-                          onClick={() => handleSlotBorder(slot.id, borderWidth > 0 ? borderWidth : 4, c.color)}
-                          className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 shadow-xs ${
-                            borderColor === c.color && borderWidth > 0 ? 'ring-2 ring-[#ECC880] scale-105' : 'border-white/40'
-                          }`}
-                          style={{ backgroundColor: c.color }}
-                          title={c.name}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {/* Arrow Indicator pointing down */}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[#1F1C18]" />
-                </div>
-              )}
             </div>
           </>
         )}
