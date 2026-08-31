@@ -44,7 +44,19 @@ import {
   Palette,
   Crop,
   MousePointerClick,
-  RotateCcw
+  RotateCcw,
+  Bold,
+  Italic,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  CheckSquare,
+  Square,
+  Expand,
+  FileCheck2,
+  Heading2,
+  Quote,
+  Tag
 } from 'lucide-react';
 import { 
   BookFormatId, 
@@ -57,7 +69,8 @@ import {
   PageLayoutId, 
   PhotoAsset,
   PhotoFilterMode,
-  PageSlot
+  PageSlot,
+  CustomTextElement
 } from '../types';
 import { 
   BOOK_FORMATS, 
@@ -200,9 +213,45 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   const [spreadPhotoGap, setSpreadPhotoGap] = useState<number>(8);
   const [showBgColorMenu, setShowBgColorMenu] = useState(false);
   const [showGapMenu, setShowGapMenu] = useState(false);
+  const [showFullBleedMenu, setShowFullBleedMenu] = useState(false);
   const [showBorderMenuSlotId, setShowBorderMenuSlotId] = useState<string | null>(null);
   const [showFilterMenuSlotId, setShowFilterMenuSlotId] = useState<string | null>(null);
   const [showSwapPickerSlotId, setShowSwapPickerSlotId] = useState<string | null>(null);
+
+  // Multi-photo selection state
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState<boolean>(false);
+
+  // Floating text layer state
+  const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
+  const [editingTextInlineId, setEditingTextInlineId] = useState<string | null>(null);
+  const spreadCanvasRef = useRef<HTMLDivElement | null>(null);
+  const textDragRef = useRef<{
+    startX: number;
+    startY: number;
+    initX: number;
+    initY: number;
+    textId: string;
+    hasMoved: boolean;
+    containerRect: DOMRect;
+  } | null>(null);
+
+  // Keyboard navigation for spreads
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+      if (e.key === 'ArrowLeft') {
+        setActiveSpreadIndex((prev) => Math.max(0, prev - 1));
+      } else if (e.key === 'ArrowRight') {
+        setActiveSpreadIndex((prev) => Math.min(spreads.length - 1, prev + 1));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [spreads.length]);
 
   // Undo / Redo History Stack (Zno Deshacer / Rehacer)
   const [history, setHistory] = useState<PhotobookSpread[][]>([]);
@@ -1089,6 +1138,332 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   };
 
   const handleAutoPopulateSpreads = handleAutoLayout;
+
+  // Background color changer with persistence per spread & global apply
+  const handleSetSpreadBgColor = (color: string, applyToAll = false) => {
+    recordHistorySnapshot(spreads);
+    setSpreadBgColor(color);
+    setSpreads((prev) =>
+      prev.map((s, i) => {
+        if (applyToAll || i === activeSpreadIndex) {
+          return {
+            ...s,
+            backgroundColor: color,
+            leftPage: { ...s.leftPage, backgroundColor: color },
+            rightPage: { ...s.rightPage, backgroundColor: color },
+          };
+        }
+        return s;
+      })
+    );
+    setShowBgColorMenu(false);
+  };
+
+  // Full-bleed / Zero-margin toggle to force photos to touch spread edges (Sin Bordes)
+  const handleToggleSpreadFlushMargin = (allSpreads = false) => {
+    recordHistorySnapshot(spreads);
+    if (allSpreads) {
+      setSpreads((prev) =>
+        prev.map((s) => ({
+          ...s,
+          isFlushMargin: true,
+          leftPage: {
+            ...s.leftPage,
+            layout: s.leftPage.layout === 'single-bordered' ? 'single-full' : s.leftPage.layout,
+            slots: s.leftPage.slots.map((sl) => ({ ...sl, fitMode: 'cover', borderWidth: 0 })),
+          },
+          rightPage: {
+            ...s.rightPage,
+            layout: s.rightPage.layout === 'single-bordered' ? 'single-full' : s.rightPage.layout,
+            slots: s.rightPage.slots.map((sl) => ({ ...sl, fitMode: 'cover', borderWidth: 0 })),
+          },
+        }))
+      );
+      setSpreadPhotoGap(0);
+    } else {
+      setSpreads((prev) =>
+        prev.map((s, i) => {
+          if (i !== activeSpreadIndex) return s;
+          const nextFlush = !s.isFlushMargin;
+          return {
+            ...s,
+            isFlushMargin: nextFlush,
+            leftPage: {
+              ...s.leftPage,
+              layout: nextFlush && s.leftPage.layout === 'single-bordered' ? 'single-full' : s.leftPage.layout,
+              slots: s.leftPage.slots.map((sl) => ({ ...sl, fitMode: 'cover', borderWidth: 0 })),
+            },
+            rightPage: {
+              ...s.rightPage,
+              layout: nextFlush && s.rightPage.layout === 'single-bordered' ? 'single-full' : s.rightPage.layout,
+              slots: s.rightPage.slots.map((sl) => ({ ...sl, fitMode: 'cover', borderWidth: 0 })),
+            },
+          };
+        })
+      );
+    }
+    setShowFullBleedMenu(false);
+  };
+
+  // Multi-Photo Selection Handlers
+  const handleTogglePhotoSelection = (photoId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedPhotoIds((prev) =>
+      prev.includes(photoId) ? prev.filter((id) => id !== photoId) : [...prev, photoId]
+    );
+  };
+
+  const handleSelectAllPhotos = () => {
+    setSelectedPhotoIds(uploadedPhotos.map((p) => p.id));
+  };
+
+  const handleDeselectAllPhotos = () => {
+    setSelectedPhotoIds([]);
+  };
+
+  // Smart Auto Populate with Selected Photos
+  const handleAutoPopulateWithSelected = (onlyCurrentSpread = false) => {
+    const photosToUse = selectedPhotoIds.length > 0 
+      ? uploadedPhotos.filter((p) => selectedPhotoIds.includes(p.id))
+      : uploadedPhotos;
+
+    if (photosToUse.length === 0) return;
+    recordHistorySnapshot(spreads);
+
+    if (onlyCurrentSpread) {
+      const activeSpread = spreads[activeSpreadIndex];
+      if (!activeSpread) return;
+
+      let photoIndex = 0;
+      const updatedLeftSlots = activeSpread.leftPage.slots.map((s) => {
+        const p = photosToUse[photoIndex % photosToUse.length];
+        photoIndex++;
+        return { ...s, photoId: p?.id || s.photoId };
+      });
+
+      const updatedRightSlots = activeSpread.rightPage.slots.map((s) => {
+        const p = photosToUse[photoIndex % photosToUse.length];
+        photoIndex++;
+        return { ...s, photoId: p?.id || s.photoId };
+      });
+
+      const updatedSpread: PhotobookSpread = {
+        ...activeSpread,
+        isFullSpreadBleed: false,
+        leftPage: { ...activeSpread.leftPage, slots: updatedLeftSlots },
+        rightPage: { ...activeSpread.rightPage, slots: updatedRightSlots },
+      };
+
+      setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+    } else {
+      let photoIdx = 0;
+      const newSpreads: PhotobookSpread[] = [];
+      const spreadCount = Math.max(2, Math.ceil(photosToUse.length / 3));
+
+      for (let i = 0; i < spreadCount; i++) {
+        const p1 = photosToUse[photoIdx % photosToUse.length];
+        const p2 = photosToUse[(photoIdx + 1) % photosToUse.length];
+        const p3 = photosToUse[(photoIdx + 2) % photosToUse.length];
+        photoIdx += 3;
+
+        newSpreads.push({
+          id: `spread-auto-${i + 1}`,
+          spreadNumber: i + 1,
+          backgroundColor: spreadBgColor,
+          leftPage: {
+            id: `p-${i}-L`,
+            layout: i === 0 ? 'editorial-text-photo' : i % 2 === 0 ? 'single-bordered' : 'two-vertical',
+            slots: [
+              { id: `s-${i}-1`, photoId: p1?.id },
+              { id: `s-${i}-2`, photoId: p2?.id }
+            ],
+            customTextHeading: i === 0 ? foilTitleText : undefined,
+            customTextBody: i === 0 ? 'Cada página guarda un instante irrepetible.' : undefined,
+          },
+          rightPage: {
+            id: `p-${i}-R`,
+            layout: i % 2 === 0 ? 'two-vertical' : 'single-full',
+            slots: [
+              { id: `s-${i}-3`, photoId: p3?.id }
+            ],
+          }
+        });
+      }
+
+      setSpreads(newSpreads);
+      setActiveSpreadIndex(0);
+    }
+  };
+
+  // Free Floating Draggable Text Handlers
+  const handleAddFloatingText = (presetType: 'title' | 'subtitle' | 'quote' | 'label' = 'title') => {
+    recordHistorySnapshot(spreads);
+    const activeSpread = spreads[activeSpreadIndex];
+    if (!activeSpread) return;
+
+    interface TextPreset {
+      text: string;
+      fontSize: number;
+      fontFamily: 'serif-luxury' | 'sans-modern' | 'script-hand' | 'mono-clean';
+      color: string;
+      isBold?: boolean;
+      isItalic?: boolean;
+      letterSpacing: string;
+      position: { x: number; y: number };
+    }
+
+    const presets: Record<'title' | 'subtitle' | 'quote' | 'label', TextPreset> = {
+      title: {
+        text: 'Título del Pliego',
+        fontSize: 24,
+        fontFamily: 'serif-luxury',
+        color: '#1F1C18',
+        isBold: true,
+        isItalic: false,
+        letterSpacing: '0.05em',
+        position: { x: 50, y: 15 },
+      },
+      subtitle: {
+        text: 'Lugar & Fecha · 2026',
+        fontSize: 14,
+        fontFamily: 'sans-modern',
+        color: '#736B60',
+        isBold: false,
+        isItalic: false,
+        letterSpacing: '0.1em',
+        position: { x: 50, y: 85 },
+      },
+      quote: {
+        text: '“Los mejores recuerdos son los que creamos juntos.”',
+        fontSize: 16,
+        fontFamily: 'serif-luxury',
+        color: '#595248',
+        isBold: false,
+        isItalic: true,
+        letterSpacing: 'normal',
+        position: { x: 50, y: 50 },
+      },
+      label: {
+        text: 'Momento Especial',
+        fontSize: 11,
+        fontFamily: 'mono-clean',
+        color: '#8C6D37',
+        isBold: true,
+        isItalic: false,
+        letterSpacing: '0.15em',
+        position: { x: 75, y: 88 },
+      },
+    };
+
+    const selectedPreset = presets[presetType];
+    const newTextEl: CustomTextElement = {
+      id: `text-${Date.now()}`,
+      text: selectedPreset.text,
+      fontSize: selectedPreset.fontSize,
+      fontFamily: selectedPreset.fontFamily,
+      color: selectedPreset.color,
+      alignment: 'center',
+      letterSpacing: selectedPreset.letterSpacing,
+      isBold: selectedPreset.isBold,
+      isItalic: selectedPreset.isItalic,
+      position: selectedPreset.position,
+    };
+
+    const existing = activeSpread.textElements || [];
+    const updatedSpread = {
+      ...activeSpread,
+      textElements: [...existing, newTextEl],
+    };
+
+    setSpreads((prev) => prev.map((s, i) => (i === activeSpreadIndex ? updatedSpread : s)));
+    setSelectedTextId(newTextEl.id);
+    setSelectedSlotId(null);
+    setActiveEditorTab('text');
+  };
+
+  const handleUpdateFloatingText = (
+    textId: string, 
+    updater: Partial<CustomTextElement> | ((t: CustomTextElement) => CustomTextElement)
+  ) => {
+    setSpreads((prev) => {
+      const activeSpread = prev[activeSpreadIndex];
+      if (!activeSpread) return prev;
+      const elements = activeSpread.textElements || [];
+      const updated = elements.map((el) => {
+        if (el.id !== textId) return el;
+        if (typeof updater === 'function') {
+          return updater(el);
+        }
+        return { ...el, ...updater };
+      });
+      return prev.map((s, i) => (i === activeSpreadIndex ? { ...s, textElements: updated } : s));
+    });
+  };
+
+  const handleDeleteFloatingText = (textId: string) => {
+    recordHistorySnapshot(spreads);
+    setSpreads((prev) => {
+      const activeSpread = prev[activeSpreadIndex];
+      if (!activeSpread) return prev;
+      const elements = activeSpread.textElements || [];
+      const filtered = elements.filter((el) => el.id !== textId);
+      return prev.map((s, i) => (i === activeSpreadIndex ? { ...s, textElements: filtered } : s));
+    });
+    if (selectedTextId === textId) setSelectedTextId(null);
+  };
+
+  const handleStartTextDrag = (textEl: CustomTextElement, e: React.PointerEvent | React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedTextId(textEl.id);
+    setSelectedSlotId(null);
+
+    const canvasEl = spreadCanvasRef.current;
+    if (!canvasEl) return;
+
+    const rect = canvasEl.getBoundingClientRect();
+    textDragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initX: textEl.position.x,
+      initY: textEl.position.y,
+      textId: textEl.id,
+      hasMoved: false,
+      containerRect: rect,
+    };
+
+    const handlePointerMove = (moveEv: PointerEvent) => {
+      if (!textDragRef.current) return;
+      const dx = moveEv.clientX - textDragRef.current.startX;
+      const dy = moveEv.clientY - textDragRef.current.startY;
+      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+        textDragRef.current.hasMoved = true;
+      }
+
+      const dxPercent = (dx / textDragRef.current.containerRect.width) * 100;
+      const dyPercent = (dy / textDragRef.current.containerRect.height) * 100;
+
+      const newX = Math.min(95, Math.max(5, Math.round((textDragRef.current.initX + dxPercent) * 10) / 10));
+      const newY = Math.min(95, Math.max(5, Math.round((textDragRef.current.initY + dyPercent) * 10) / 10));
+
+      handleUpdateFloatingText(textDragRef.current.textId, (t) => ({
+        ...t,
+        position: { x: newX, y: newY },
+      }));
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      if (textDragRef.current?.hasMoved) {
+        recordHistorySnapshot(spreads);
+      }
+      textDragRef.current = null;
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  };
 
   // Save Project Draft
   const handleSaveDraft = async () => {
@@ -2556,20 +2931,72 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     </button>
                   </div>
 
-                  {/* Smart Auto Layout Quick Card */}
-                  <div className="mb-2.5 rounded-xl border border-[#C5A059]/40 bg-[#F4EFE6] p-2.5 flex items-center justify-between">
-                    <div>
-                      <span className="text-[11px] font-bold text-[#1F1C18] block">Auto-Fill Inteligente</span>
-                      <span className="text-[9px] text-[#736B60]">Distribuye todo el álbum en 1 clic</span>
+                  {/* Smart Auto Layout Quick Card with Multi-Select Support */}
+                  <div className="mb-2.5 rounded-xl border border-[#C5A059]/40 bg-[#F4EFE6] p-2.5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[11px] font-bold text-[#1F1C18] block">Autocompletar / Auto-Fill</span>
+                        <span className="text-[9px] text-[#736B60]">
+                          {selectedPhotoIds.length > 0
+                            ? `${selectedPhotoIds.length} fotos seleccionadas`
+                            : 'Distribuye el álbum inteligentemente'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {selectedPhotoIds.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleDeselectAllPhotos}
+                            className="px-2 py-1 text-[9px] font-bold text-[#736B60] hover:text-[#1F1C18] bg-white rounded-md border border-[#D6CEBE]"
+                          >
+                            Limpiar
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (selectedPhotoIds.length > 0) {
+                              handleAutoPopulateWithSelected();
+                            } else {
+                              handleAutoLayout();
+                            }
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg bg-[#8C6D37] text-white text-[10px] font-bold uppercase tracking-wider hover:bg-[#73582A] flex items-center gap-1 shadow-xs"
+                          title={selectedPhotoIds.length > 0 ? 'Autocompletar con fotos seleccionadas' : 'Autocompletar con todas las fotos'}
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span>{selectedPhotoIds.length > 0 ? `Llenar (${selectedPhotoIds.length})` : 'Auto-Fill'}</span>
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleAutoLayout}
-                      className="px-2.5 py-1.5 rounded-lg bg-[#8C6D37] text-white text-[10px] font-bold uppercase tracking-wider hover:bg-[#73582A] flex items-center gap-1 shadow-xs"
-                    >
-                      <Sparkles className="w-3 h-3" />
-                      <span>Auto-Fill</span>
-                    </button>
+
+                    {/* Multi-selection toggle bar */}
+                    <div className="flex items-center justify-between pt-1 border-t border-[#D6CEBE]/50 text-[10px]">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleSelectAllPhotos}
+                          className="text-[#8C6D37] font-bold hover:underline"
+                        >
+                          Seleccionar Todas
+                        </button>
+                        <span className="text-[#D6CEBE]">·</span>
+                        <span className="text-[#736B60]">
+                          {selectedPhotoIds.length} de {uploadedPhotos.length}
+                        </span>
+                      </div>
+                      {selectedPhotoIds.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleAutoPopulateSpreads()}
+                          className="text-[9px] font-bold text-[#1F1C18] hover:text-[#8C6D37] flex items-center gap-0.5"
+                          title="Crear páginas nuevas con las fotos seleccionadas"
+                        >
+                          <Wand2 className="w-2.5 h-2.5" />
+                          <span>Distribuir en Álbum</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* In-Browser Thumbnail Optimization Progress Banner */}
@@ -2647,7 +3074,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     );
                   })()}
 
-                  {/* Photo Thumbnails Grid with Drag & Drop & Usage Badges */}
+                  {/* Photo Thumbnails Grid with Drag & Drop, Multi-Selection & Quality Badges */}
                   <div className="flex-1 overflow-y-auto grid grid-cols-3 gap-1.5 pr-1 min-h-0">
                     {uploadedPhotos
                       .filter((photo) => {
@@ -2662,6 +3089,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       .map((photo) => {
                         const rating = photo.preflight?.rating || 'buena';
                         const usageCount = getPhotoUsageCount(photo.id);
+                        const isSelected = selectedPhotoIds.includes(photo.id);
 
                         return (
                           <div
@@ -2672,11 +3100,15 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                             onClick={() => {
                               if (selectedSlotId) {
                                 handleAssignPhotoToSlot(selectedSlotId, photo.id);
+                              } else {
+                                handleTogglePhotoSelection(photo.id);
                               }
                             }}
                             className={`group relative aspect-square rounded-lg overflow-hidden border cursor-grab active:cursor-grabbing transition-all ${
-                              selectedSlotId
-                                ? 'border-[#8C6D37] hover:scale-105 shadow-md ring-2 ring-[#8C6D37]'
+                              isSelected
+                                ? 'border-[#8C6D37] ring-2 ring-[#8C6D37] scale-98 shadow-md'
+                                : selectedSlotId
+                                ? 'border-[#8C6D37] hover:scale-105 shadow-md ring-1 ring-[#8C6D37]'
                                 : 'border-[#D6CEBE] hover:border-[#1F1C18]'
                             }`}
                           >
@@ -2686,6 +3118,23 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                               loading="lazy"
                               className="w-full h-full object-cover" 
                             />
+
+                            {/* Multi-Select Checkbox Circle in Top-Right */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTogglePhotoSelection(photo.id);
+                              }}
+                              className={`absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center transition-all z-10 ${
+                                isSelected
+                                  ? 'bg-[#8C6D37] text-white shadow-md'
+                                  : 'bg-black/40 text-transparent hover:bg-black/70 hover:text-white border border-white/60'
+                              }`}
+                              title={isSelected ? 'Deseleccionar foto' : 'Seleccionar foto para autocompletar'}
+                            >
+                              <Check className="w-2.5 h-2.5 stroke-[3]" />
+                            </button>
                             
                             {/* Quality Badge Overlay */}
                             <div className="absolute top-1 left-1 flex items-center gap-0.5">
@@ -2733,7 +3182,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                                 setInspectedPhotoForQuality(photo);
                               }}
                               title="Inspeccionar DPI, sRGB y resolución Fine Art"
-                              className="absolute top-1 right-1 p-0.5 rounded bg-black/60 hover:bg-black text-white text-[8px] font-mono opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5"
+                              className="absolute bottom-1 right-1 p-0.5 rounded bg-black/60 hover:bg-black text-white text-[8px] font-mono opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5"
                             >
                               <Info className="w-2.5 h-2.5" />
                               <span>DPI</span>
@@ -2818,16 +3267,100 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
               {/* TAB 3: TEXT & STORYTELLING */}
               {activeEditorTab === 'text' && (
-                <div className="flex-1 flex flex-col overflow-y-auto space-y-3 min-h-0">
-                  <div className="rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-3 space-y-2">
-                    <span className="text-xs font-bold uppercase text-[#1F1C18] block">Tipografía Editorial</span>
+                <div className="flex-1 flex flex-col overflow-y-auto space-y-3 min-h-0 pr-1">
+                  {/* Floating Text Blocks Adder */}
+                  <div className="rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-3 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase text-[#1F1C18] block">Texto Libre en Pliego</span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#8C6D37]/10 text-[#8C6D37]">Libre</span>
+                    </div>
                     <p className="text-[10px] text-[#736B60]">
-                      Escribe un título de capítulo o una dedicatoria en la página actual.
+                      Agrega cuadros de texto arrastrables que puedes posicionar libremente sobre cualquier parte del pliego.
+                    </p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleAddFloatingText('title')}
+                        className="py-2 px-2.5 rounded-lg bg-[#8C6D37] text-white text-[11px] font-bold hover:bg-[#73582A] flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        <Type className="w-3.5 h-3.5" />
+                        <span>+ Título</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddFloatingText('subtitle')}
+                        className="py-2 px-2.5 rounded-lg border border-[#D6CEBE] bg-[#FAF7F2] text-[#1F1C18] text-[11px] font-bold hover:bg-[#EFE9DE] flex items-center justify-center gap-1.5"
+                      >
+                        <Heading2 className="w-3.5 h-3.5 text-[#8C6D37]" />
+                        <span>+ Subtítulo</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddFloatingText('quote')}
+                        className="py-2 px-2.5 rounded-lg border border-[#D6CEBE] bg-[#FAF7F2] text-[#1F1C18] text-[11px] font-bold hover:bg-[#EFE9DE] flex items-center justify-center gap-1.5"
+                      >
+                        <Quote className="w-3.5 h-3.5 text-[#8C6D37]" />
+                        <span>+ Cita</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddFloatingText('label')}
+                        className="py-2 px-2.5 rounded-lg border border-[#D6CEBE] bg-[#FAF7F2] text-[#1F1C18] text-[11px] font-bold hover:bg-[#EFE9DE] flex items-center justify-center gap-1.5"
+                      >
+                        <Tag className="w-3.5 h-3.5 text-[#8C6D37]" />
+                        <span>+ Dedicatoria</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Active Floating Text Layers on this spread */}
+                  {activeSpread.textElements && activeSpread.textElements.length > 0 && (
+                    <div className="rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-3 space-y-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#1F1C18] block">
+                        Capas de Texto en este Pliego ({activeSpread.textElements.length})
+                      </span>
+                      <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                        {activeSpread.textElements.map((txt) => (
+                          <div
+                            key={txt.id}
+                            onClick={() => setSelectedTextId(txt.id)}
+                            className={`p-2 rounded-lg border flex items-center justify-between cursor-pointer transition-colors text-xs ${
+                              selectedTextId === txt.id
+                                ? 'border-[#8C6D37] bg-[#8C6D37]/10 text-[#8C6D37] font-bold'
+                                : 'border-[#E8E2D5] bg-[#FAF7F2] hover:bg-[#EFE9DE] text-[#1F1C18]'
+                            }`}
+                          >
+                            <div className="truncate pr-2 flex items-center gap-1.5">
+                              <Type className="w-3 h-3 shrink-0" />
+                              <span className="truncate">{txt.text}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteFloatingText(txt.id);
+                              }}
+                              className="text-rose-500 hover:text-rose-700 p-0.5 rounded hover:bg-rose-50"
+                              title="Eliminar capa de texto"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Editorial Layout Option */}
+                  <div className="rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-3 space-y-2">
+                    <span className="text-xs font-bold uppercase text-[#1F1C18] block">Página Editorial Clásica</span>
+                    <p className="text-[10px] text-[#736B60]">
+                      Convierte la página izquierda completa en una composición editorial de texto y marco fotográfico.
                     </p>
                     <button
                       type="button"
                       onClick={() => handleChangePageLayout('left', 'editorial-text-photo')}
-                      className="w-full py-2 rounded-lg bg-[#8C6D37] text-white text-xs font-bold hover:bg-[#73582A] flex items-center justify-center gap-1.5"
+                      className="w-full py-2 rounded-lg border border-[#8C6D37] bg-[#FAF7F2] text-[#8C6D37] text-xs font-bold hover:bg-[#8C6D37] hover:text-white transition-colors flex items-center justify-center gap-1.5"
                     >
                       <Type className="w-3.5 h-3.5" />
                       <span>Convertir Página Izq a Editorial</span>
@@ -2849,18 +3382,47 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               {/* TOP SECONDARY TOOLBAR (Zno Cloud Designer Signature Top Bar - Screenshot 1 Match) */}
               <div className="w-full max-w-5xl flex flex-wrap items-center justify-between gap-1.5 mb-2 bg-[#FDFCF9] p-2 rounded-2xl border border-[#D6CEBE] shadow-xs select-none">
                 <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 text-xs text-[#1F1C18]">
-                  {/* Auto-fill button */}
+                  {/* Auto-fill button with Multi-Select Support */}
                   <button
                     type="button"
-                    onClick={handleAutoPopulateSpreads}
-                    title="Autocompletar inteligentemente todas las páginas con las fotos subidas"
-                    className="px-2.5 py-1.5 rounded-lg bg-[#8C6D37]/10 hover:bg-[#8C6D37] text-[#8C6D37] hover:text-white font-bold text-[11px] flex items-center gap-1.5 transition-colors"
+                    onClick={() => {
+                      if (selectedPhotoIds.length > 0) {
+                        handleAutoPopulateWithSelected();
+                      } else {
+                        handleAutoPopulateSpreads();
+                      }
+                    }}
+                    title={
+                      selectedPhotoIds.length > 0
+                        ? `Autocompletar páginas con las ${selectedPhotoIds.length} fotos seleccionadas`
+                        : "Autocompletar inteligentemente todas las páginas con las fotos subidas"
+                    }
+                    className={`px-2.5 py-1.5 rounded-lg font-bold text-[11px] flex items-center gap-1.5 transition-colors ${
+                      selectedPhotoIds.length > 0
+                        ? 'bg-[#8C6D37] text-white shadow-xs'
+                        : 'bg-[#8C6D37]/10 hover:bg-[#8C6D37] text-[#8C6D37] hover:text-white'
+                    }`}
                   >
                     <Wand2 className="w-3.5 h-3.5" />
-                    <span>Autocompletar</span>
+                    <span>{selectedPhotoIds.length > 0 ? `Auto-Llenar (${selectedPhotoIds.length})` : 'Autocompletar'}</span>
                   </button>
 
                   <div className="h-4 w-[1px] bg-[#D6CEBE] hidden sm:block" />
+
+                  {/* Full Bleed / Rellenar Todo el Pliego sin Bordes (Edge-to-Edge Fill) */}
+                  <button
+                    type="button"
+                    onClick={handleToggleSpreadFlushMargin}
+                    title="Rellenar toda la página eliminando márgenes de borde (Sangrado Completo)"
+                    className={`px-2.5 py-1.5 rounded-lg border font-semibold text-[11px] flex items-center gap-1.5 transition-all ${
+                      activeSpread.isFlushMargin
+                        ? 'bg-[#8C6D37] text-white border-[#8C6D37] shadow-xs'
+                        : 'border-[#D6CEBE] hover:bg-[#F4EFE6] text-[#1F1C18]'
+                    }`}
+                  >
+                    <Maximize2 className="w-3.5 h-3.5 text-[#ECC880]" />
+                    <span>{activeSpread.isFlushMargin ? 'Sin Bordes (Activo)' : 'Rellenar Todo'}</span>
+                  </button>
 
                   {/* Background Color Picker Dropdown */}
                   <div className="relative">
@@ -2872,7 +3434,10 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     >
                       <Palette className="w-3.5 h-3.5 text-[#8C6D37]" />
                       <span>Fondo</span>
-                      <div className="w-2.5 h-2.5 rounded-full border border-black/20" style={{ backgroundColor: spreadBgColor }} />
+                      <div 
+                        className="w-2.5 h-2.5 rounded-full border border-black/20" 
+                        style={{ backgroundColor: activeSpread.backgroundColor || spreadBgColor }} 
+                      />
                     </button>
 
                     {showBgColorMenu && (
@@ -2888,12 +3453,13 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                             { color: '#EFE9DE', name: 'Marfil Algodón' },
                             { color: '#2B2B2B', name: 'Gris Carbón' },
                             { color: '#E2E6DF', name: 'Salvia Editorial' },
+                            { color: '#1B2421', name: 'Verde Bosque Oscuro' },
                           ].map((c) => (
                             <button
                               key={c.color}
                               type="button"
                               onClick={() => {
-                                setSpreadBgColor(c.color);
+                                handleSetSpreadBgColor(c.color);
                                 setShowBgColorMenu(false);
                               }}
                               className="flex items-center gap-1.5 p-1 rounded hover:bg-white/15 text-left"
@@ -2907,18 +3473,15 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     )}
                   </div>
 
-                  {/* Add Text Block Button */}
+                  {/* Add Floating Text Block Button */}
                   <button
                     type="button"
-                    onClick={() => {
-                      recordHistorySnapshot(spreads);
-                      handleChangePageLayout('left', 'editorial-text-photo');
-                    }}
-                    title="Agregar página de texto editorial"
+                    onClick={() => handleAddFloatingText('title')}
+                    title="Agregar cuadro de texto libre en cualquier posición del pliego"
                     className="px-2.5 py-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] font-semibold text-[11px] flex items-center gap-1.5"
                   >
                     <Type className="w-3.5 h-3.5 text-[#736B60]" />
-                    <span>Texto</span>
+                    <span>+ Texto Libre</span>
                   </button>
 
                   {/* Add Photo Slot / Frame Button (Zno "Agregar Marco") */}
@@ -2987,7 +3550,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       className="px-2.5 py-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#F4EFE6] font-semibold text-[11px] flex items-center gap-1.5"
                     >
                       <SlidersHorizontal className="w-3.5 h-3.5 text-[#736B60]" />
-                      <span>Espaciado: {spreadPhotoGap}px</span>
+                      <span>Espacio: {spreadPhotoGap}px</span>
                     </button>
 
                     {showGapMenu && (
@@ -3056,12 +3619,35 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
               {/* The 180° Layflat Open Book Spread Canvas */}
               <div 
+                ref={spreadCanvasRef}
                 className="w-full max-w-5xl aspect-[16/10] rounded-2xl shadow-2xl border border-[#D6CEBE] overflow-hidden flex relative paper-texture select-none transition-colors duration-200"
-                style={{ backgroundColor: spreadBgColor }}
+                style={{ backgroundColor: activeSpread.backgroundColor || spreadBgColor }}
               >
                 {/* Central Gutter / Spine Fold Shadow */}
                 <div className="absolute inset-y-0 left-1/2 -ml-4 w-8 book-gutter-shadow pointer-events-none z-20" />
                 <div className="absolute inset-y-0 left-1/2 w-[1px] bg-black/15 z-20 pointer-events-none" />
+
+                {/* SPREAD NAVIGATION ARROWS: Left Previous Arrow */}
+                <button
+                  type="button"
+                  onClick={() => setActiveSpreadIndex((prev) => Math.max(0, prev - 1))}
+                  disabled={activeSpreadIndex === 0}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-[#1F1C18]/80 hover:bg-[#1F1C18] text-white flex items-center justify-center shadow-2xl backdrop-blur-xs transition-all disabled:opacity-20 disabled:pointer-events-none hover:scale-110 active:scale-95 group"
+                  title="Pliego Anterior (Flecha Izquierda ←)"
+                >
+                  <ChevronLeft className="w-6 h-6 group-hover:-translate-x-0.5 transition-transform" />
+                </button>
+
+                {/* SPREAD NAVIGATION ARROWS: Right Next Arrow */}
+                <button
+                  type="button"
+                  onClick={() => setActiveSpreadIndex((prev) => Math.min(spreads.length - 1, prev + 1))}
+                  disabled={activeSpreadIndex >= spreads.length - 1}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-[#1F1C18]/80 hover:bg-[#1F1C18] text-white flex items-center justify-center shadow-2xl backdrop-blur-xs transition-all disabled:opacity-20 disabled:pointer-events-none hover:scale-110 active:scale-95 group"
+                  title="Siguiente Pliego (Flecha Derecha →)"
+                >
+                  <ChevronRight className="w-6 h-6 group-hover:translate-x-0.5 transition-transform" />
+                </button>
 
                 {/* Safe Margins & Bleed Overlay Guides (Zno CXEditor Feature) */}
                 {showSafeMarginGuides && (
@@ -3123,7 +3709,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 ) : (
                   <>
                     {/* LEFT PAGE CONTAINER */}
-                    <div className="w-1/2 h-full p-4 sm:p-6 flex flex-col justify-between relative border-r border-[#EAE4D8]">
+                    <div className={`w-1/2 h-full flex flex-col justify-between relative border-r border-[#EAE4D8] ${
+                      activeSpread.isFlushMargin ? 'p-0' : 'p-4 sm:p-6'
+                    }`}>
                       {/* Left Layout Quick Switcher */}
                       <div className="absolute top-2.5 left-2.5 z-10">
                         <button
@@ -3142,13 +3730,17 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       </div>
 
                       {/* Page number */}
-                      <span className="text-[9px] font-mono text-[#A89F91] text-left">
+                      <span className={`text-[9px] font-mono text-[#A89F91] text-left ${
+                        activeSpread.isFlushMargin ? 'p-1.5 bg-black/40 text-white rounded-tr' : ''
+                      }`}>
                         {activeSpreadIndex * 2 + 1}
                       </span>
                     </div>
 
                     {/* RIGHT PAGE CONTAINER */}
-                    <div className="w-1/2 h-full p-4 sm:p-6 flex flex-col justify-between relative">
+                    <div className={`w-1/2 h-full flex flex-col justify-between relative ${
+                      activeSpread.isFlushMargin ? 'p-0' : 'p-4 sm:p-6'
+                    }`}>
                       {/* Right Layout Quick Switcher */}
                       <div className="absolute top-2.5 right-2.5 z-10">
                         <button
@@ -3167,12 +3759,91 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       </div>
 
                       {/* Page number */}
-                      <span className="text-[9px] font-mono text-[#A89F91] text-right">
+                      <span className={`text-[9px] font-mono text-[#A89F91] text-right ${
+                        activeSpread.isFlushMargin ? 'p-1.5 bg-black/40 text-white rounded-tl' : ''
+                      }`}>
                         {activeSpreadIndex * 2 + 2}
                       </span>
                     </div>
                   </>
                 )}
+
+                {/* FREE FLOATING TEXT OVERLAYS ON SPREAD CANVAS */}
+                {activeSpread.textElements && activeSpread.textElements.map((txt) => {
+                  const isSelected = selectedTextId === txt.id;
+                  return (
+                    <div
+                      key={txt.id}
+                      onPointerDown={(e) => handleStartTextDrag(txt, e)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTextId(txt.id);
+                      }}
+                      className={`absolute z-30 cursor-move transition-shadow select-none group/text ${
+                        isSelected
+                          ? 'ring-2 ring-[#8C6D37] ring-offset-1 rounded bg-white/70 shadow-lg'
+                          : 'hover:ring-1 hover:ring-[#8C6D37]/50 rounded'
+                      }`}
+                      style={{
+                        left: `${txt.position.x}%`,
+                        top: `${txt.position.y}%`,
+                        transform: 'translate(-50%, -50%)',
+                        fontFamily:
+                          txt.fontFamily === 'serif-luxury'
+                            ? '"Playfair Display", Georgia, serif'
+                            : txt.fontFamily === 'mono-clean'
+                            ? 'ui-monospace, monospace'
+                            : txt.fontFamily === 'script-hand'
+                            ? 'cursive'
+                            : 'inherit',
+                        fontSize: `${txt.fontSize}px`,
+                        fontWeight: txt.isBold ? 'bold' : 'normal',
+                        fontStyle: txt.isItalic ? 'italic' : 'normal',
+                        color: txt.color,
+                        textAlign: txt.alignment,
+                        letterSpacing: txt.letterSpacing,
+                        padding: '4px 8px',
+                        maxWidth: '80%',
+                      }}
+                    >
+                      {/* In-place text editor */}
+                      <input
+                        type="text"
+                        value={txt.text}
+                        onChange={(e) => handleUpdateFloatingText(txt.id, { text: e.target.value })}
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-transparent border-none outline-hidden p-0 m-0 w-full"
+                        style={{
+                          fontFamily: 'inherit',
+                          fontSize: 'inherit',
+                          fontWeight: 'inherit',
+                          fontStyle: 'inherit',
+                          color: 'inherit',
+                          textAlign: 'inherit',
+                          letterSpacing: 'inherit',
+                        }}
+                      />
+
+                      {/* Selection handle & delete button */}
+                      {isSelected && (
+                        <div className="absolute -top-7 left-0 flex items-center gap-1 bg-[#1F1C18] text-white px-2 py-0.5 rounded text-[10px] font-sans shadow-md z-40">
+                          <span className="font-bold">Texto</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteFloatingText(txt.id);
+                            }}
+                            className="text-rose-400 hover:text-rose-200 ml-1"
+                            title="Eliminar texto"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
 
                 {/* Floating Layout Selector Modal Drawer */}
                 {activeLayoutMenuSide && (
@@ -3915,7 +4586,11 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     Herramientas & Ajustes
                   </span>
                 </div>
-                {selectedSlotData ? (
+                {selectedTextId ? (
+                  <span className="px-2 py-0.5 rounded-full bg-[#8C6D37] text-white font-bold text-[10px]">
+                    Capa de Texto
+                  </span>
+                ) : selectedSlotData ? (
                   <span className="px-2 py-0.5 rounded-full bg-[#0091FF]/10 text-[#0091FF] font-bold text-[10px] border border-[#0091FF]/30">
                     Pág. {selectedSlotData.pageNumber}
                   </span>
@@ -3926,8 +4601,180 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 )}
               </div>
 
-              {/* Panel Body: Mode 1 - Selected Slot Inspector & Sliders */}
-              {selectedSlotData ? (
+              {/* Panel Body: Mode 0 - Floating Text Element Inspector */}
+              {selectedTextId && activeSpread.textElements?.find((t) => t.id === selectedTextId) ? (() => {
+                const txt = activeSpread.textElements!.find((t) => t.id === selectedTextId)!;
+                return (
+                  <div className="p-4 space-y-5">
+                    {/* Header */}
+                    <div className="p-3 rounded-xl border border-[#8C6D37]/40 bg-[#FAF7F2] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase text-[#8C6D37] flex items-center gap-1.5">
+                          <Type className="w-3.5 h-3.5" />
+                          <span>Texto Libre</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteFloatingText(txt.id)}
+                          className="text-rose-600 hover:text-rose-800 text-[10px] font-bold flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Eliminar</span>
+                        </button>
+                      </div>
+                      <textarea
+                        value={txt.text}
+                        onChange={(e) => handleUpdateFloatingText(txt.id, { text: e.target.value })}
+                        rows={2}
+                        className="w-full p-2 text-xs rounded-lg border border-[#D6CEBE] bg-white text-[#1F1C18] focus:outline-hidden focus:ring-1 focus:ring-[#8C6D37]"
+                        placeholder="Escribe tu texto..."
+                      />
+                    </div>
+
+                    {/* Font Family Selection */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
+                        Tipografía
+                      </label>
+                      <div className="grid grid-cols-3 gap-1.5 text-[10px]">
+                        {[
+                          { id: 'serif-luxury', label: 'Playfair', desc: 'Serif Clásico' },
+                          { id: 'sans-modern', label: 'Moderna', desc: 'Sans-Serif' },
+                          { id: 'mono-clean', label: 'Máquina', desc: 'Monospace' },
+                        ].map((f) => (
+                          <button
+                            key={f.id}
+                            type="button"
+                            onClick={() => handleUpdateFloatingText(txt.id, { fontFamily: f.id as any })}
+                            className={`p-2 rounded-lg border text-center transition-all ${
+                              txt.fontFamily === f.id
+                                ? 'bg-[#8C6D37] text-white border-[#8C6D37] font-bold shadow-xs'
+                                : 'bg-white text-[#1F1C18] border-[#D6CEBE] hover:bg-[#FAF7F2]'
+                            }`}
+                          >
+                            <span className="block font-bold">{f.label}</span>
+                            <span className="text-[8px] opacity-75">{f.desc}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Font Size Slider */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248]">
+                          Tamaño de Fuente
+                        </label>
+                        <span className="font-mono font-bold text-xs text-[#8C6D37] bg-[#8C6D37]/10 px-2 py-0.5 rounded">
+                          {txt.fontSize} px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="12"
+                        max="72"
+                        step="1"
+                        value={txt.fontSize}
+                        onChange={(e) => handleUpdateFloatingText(txt.id, { fontSize: parseInt(e.target.value) })}
+                        className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
+                      />
+                    </div>
+
+                    {/* Weight, Italic, Alignment */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
+                        Estilo & Alineación
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleUpdateFloatingText(txt.id, {
+                              isBold: !txt.isBold,
+                            })
+                          }
+                          className={`flex-1 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                            txt.isBold
+                              ? 'bg-[#1F1C18] text-white border-[#1F1C18]'
+                              : 'bg-white text-[#1F1C18] border-[#D6CEBE]'
+                          }`}
+                        >
+                          Negrita
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleUpdateFloatingText(txt.id, {
+                              isItalic: !txt.isItalic,
+                            })
+                          }
+                          className={`flex-1 py-1.5 rounded-lg border text-xs italic font-serif transition-all ${
+                            txt.isItalic
+                              ? 'bg-[#1F1C18] text-white border-[#1F1C18]'
+                              : 'bg-white text-[#1F1C18] border-[#D6CEBE]'
+                          }`}
+                        >
+                          Cursiva
+                        </button>
+                        {(['left', 'center', 'right'] as const).map((align) => (
+                          <button
+                            key={align}
+                            type="button"
+                            onClick={() => handleUpdateFloatingText(txt.id, { alignment: align })}
+                            className={`p-2 rounded-lg border text-xs transition-all ${
+                              txt.alignment === align
+                                ? 'bg-[#8C6D37] text-white border-[#8C6D37]'
+                                : 'bg-white text-[#1F1C18] border-[#D6CEBE]'
+                            }`}
+                            title={`Alinear a ${align}`}
+                          >
+                            {align === 'left' ? '⇤' : align === 'center' ? '⇥⇤' : '⇥'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Text Color Picker */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
+                        Color de Texto
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {[
+                          { color: '#1F1C18', name: 'Negro Carbón' },
+                          { color: '#8C6D37', name: 'Oro Fine Art' },
+                          { color: '#595248', name: 'Gris Cálido' },
+                          { color: '#FFFFFF', name: 'Blanco' },
+                          { color: '#802B2B', name: 'Borgoña' },
+                          { color: '#2B4A3D', name: 'Salvia Oscuro' },
+                        ].map((c) => (
+                          <button
+                            key={c.color}
+                            type="button"
+                            onClick={() => handleUpdateFloatingText(txt.id, { color: c.color })}
+                            className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 shadow-xs ${
+                              txt.color === c.color ? 'ring-2 ring-[#8C6D37] scale-110' : 'border-[#D6CEBE]'
+                            }`}
+                            style={{ backgroundColor: c.color }}
+                            title={c.name}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Deselect text */}
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTextId(null)}
+                        className="w-full py-2 rounded-xl bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#595248] text-xs font-bold transition-colors"
+                      >
+                        Listo / Deseleccionar Texto
+                      </button>
+                    </div>
+                  </div>
+                );
+              })() : selectedSlotData ? (
                 <div className="p-4 space-y-5">
                   {/* Photo Header Card */}
                   <div className="p-2.5 rounded-xl border border-[#D6CEBE] bg-[#F4EFE6]/70 flex items-center justify-between gap-2.5">
@@ -4509,20 +5356,10 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         <button
                           key={bg.color}
                           type="button"
-                          onClick={() => {
-                            setSpreads((prev) =>
-                              prev.map((s, i) =>
-                                i === activeSpreadIndex
-                                  ? {
-                                      ...s,
-                                      leftPage: { ...s.leftPage, backgroundColor: bg.color },
-                                      rightPage: { ...s.rightPage, backgroundColor: bg.color },
-                                    }
-                                  : s
-                              )
-                            );
-                          }}
-                          className="w-7 h-7 rounded-full border-2 border-[#D6CEBE] hover:scale-110 transition-transform shadow-xs flex items-center justify-center"
+                          onClick={() => handleSetSpreadBgColor(bg.color)}
+                          className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 shadow-xs flex items-center justify-center ${
+                            (activeSpread.backgroundColor || spreadBgColor) === bg.color ? 'ring-2 ring-[#8C6D37] scale-110' : 'border-[#D6CEBE]'
+                          }`}
                           style={{ backgroundColor: bg.color }}
                           title={bg.name}
                         />
@@ -4535,6 +5372,18 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     <span className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
                       Composición del Pliego
                     </span>
+                    <button
+                      type="button"
+                      onClick={handleToggleSpreadFlushMargin}
+                      className={`w-full p-2 rounded-xl border text-[11px] font-bold flex items-center justify-center gap-2 shadow-xs transition-colors ${
+                        activeSpread.isFlushMargin
+                          ? 'bg-[#8C6D37] text-white border-[#8C6D37]'
+                          : 'bg-white border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18]'
+                      }`}
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      <span>{activeSpread.isFlushMargin ? 'Bordes Desactivados (Sin Margen)' : 'Rellenar Todo el Pliego (Full Bleed)'}</span>
+                    </button>
                     <div className="grid grid-cols-2 gap-1.5">
                       <button
                         type="button"

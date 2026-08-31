@@ -188,6 +188,9 @@ export interface PhotobookSpread {
   rightPage: PhotobookPage;
   isFullSpreadBleed?: boolean;
   fullSpreadPhotoId?: string;
+  backgroundColor?: string;
+  isFlushMargin?: boolean;
+  textElements?: CustomTextElement[];
 }
 
 export interface PhotobookProject {
