@@ -122,7 +122,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   // Current Builder Step
-  const [currentStep, setCurrentStep] = useState<'format' | 'cover' | 'paper' | 'editor' | 'preview'>('format');
+  const [currentStep, setCurrentStep] = useState<'config' | 'format' | 'cover' | 'paper' | 'editor' | 'preview'>('config');
 
   // Photobook Configuration State
   const [projectId, setProjectId] = useState<string>(initialProject?.id || `proj-${Date.now()}`);
@@ -3325,25 +3325,29 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
         {/* Step Tabs */}
         <div className="hidden md:flex items-center gap-1 rounded-full border border-[#D6CEBE] bg-[#F2ECE1]/70 p-1 text-xs">
           {[
-            { id: 'format', label: '1. Formato' },
-            { id: 'cover', label: '2. Tapa & Grabado' },
-            { id: 'paper', label: '3. Papel' },
-            { id: 'editor', label: '4. Diseñar Páginas' },
-            { id: 'preview', label: '5. Hojeado 3D' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setCurrentStep(tab.id as any)}
-              className={`px-3.5 py-1.5 rounded-full font-medium transition-all ${
-                currentStep === tab.id
-                  ? 'bg-[#1F1C18] text-[#FDFCF9] shadow-sm'
-                  : 'text-[#736B60] hover:text-[#1F1C18]'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+            { id: 'config', label: '1. Configuración del Libro' },
+            { id: 'editor', label: '2. Diseñar Páginas' },
+            { id: 'preview', label: '3. Hojeado 3D' },
+          ].map((tab) => {
+            const isActive =
+              currentStep === tab.id ||
+              (tab.id === 'config' &&
+                (currentStep === 'format' || currentStep === 'cover' || currentStep === 'paper'));
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setCurrentStep(tab.id as any)}
+                className={`px-4 py-1.5 rounded-full font-medium transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-[#1F1C18] text-[#FDFCF9] shadow-sm'
+                    : 'text-[#736B60] hover:text-[#1F1C18]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Price & Action Buttons */}
@@ -3387,413 +3391,461 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
       {/* Main Workspace based on Step */}
       <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* STEP 1: FORMAT & SIZES */}
-        {currentStep === 'format' && (
-          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col justify-between p-3 sm:p-4">
-            <div className="max-w-4xl w-full mx-auto flex flex-col justify-center flex-1 my-auto">
-              <div className="text-center max-w-xl mx-auto mb-2">
-                <span className="text-[9px] font-bold tracking-widest text-[#8C6D37] uppercase">Paso 1 de 5</span>
-                <h2 className="font-serif-luxury text-lg sm:text-xl font-bold text-[#1F1C18]">
-                  Elegí el formato y tamaño de tu libro
-                </h2>
-                <p className="text-[10px] sm:text-[11px] text-[#595248]">
-                  Encuadernación rígida 100% Layflat de apertura plana a 180° en auténtico papel químico Fuji.
-                </p>
-              </div>
-
-              {/* 6 Formats in 3 Columns x 2 Rows (Compact single-view cards) */}
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5">
-                {BOOK_FORMATS.map((fmt) => {
-                  const isSelected = fmt.id === formatId;
-                  return (
-                    <div
-                      key={fmt.id}
-                      onClick={() => setFormatId(fmt.id)}
-                      className={`cursor-pointer rounded-xl border p-2 sm:p-2.5 transition-all relative flex flex-col justify-between ${
-                        isSelected
-                          ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-md ring-2 ring-[#8C6D37]/40'
-                          : 'border-[#D6CEBE] bg-[#F4EFE6]/60 hover:bg-[#FDFCF9] hover:border-[#B8AB98]'
-                      }`}
-                    >
-                      {fmt.popular && (
-                        <span className="absolute top-1.5 right-1.5 bg-[#8C6D37] text-white text-[7.5px] tracking-wider uppercase font-bold px-1.5 py-0.2 rounded-full shadow-xs">
-                          Más Elegido
-                        </span>
-                      )}
-
-                      <div>
-                        <div className="flex items-baseline justify-between gap-1 mb-0.5 pr-12">
-                          <h3 className="font-serif-luxury text-xs sm:text-sm font-bold text-[#1F1C18] leading-tight">
-                            {fmt.name}
-                          </h3>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-1.5 mb-1">
-                          <span className="font-mono text-[9.5px] sm:text-[10px] text-[#8C6D37] font-bold">{fmt.dimensions}</span>
-                          <span className="font-serif-luxury text-xs sm:text-sm font-bold text-[#1F1C18]">
-                            {formatPriceARS(fmt.basePrice)}
-                          </span>
-                        </div>
-
-                        <p className="text-[9.5px] text-[#595248] leading-tight line-clamp-1 mb-1">
-                          {fmt.description}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between border-t border-[#E8E2D5] pt-1 text-[8.5px] sm:text-[9px] text-[#736B60]">
-                        <span>{fmt.basePages} pág. rígidas</span>
-                        <span className="font-semibold text-[#1F1C18]">Fotos: {fmt.idealPhotos}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Bottom Continue Action Bar */}
-              <div className="mt-3 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep('cover')}
-                  className="px-5 py-2 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
-                >
-                  <span>Continuar a Tapa & Grabado</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 2: COVER, MATERIAL & FOIL STAMPING */}
-        {currentStep === 'cover' && (
-          <div className="photobook-builder-cover-section w-full flex-1 overflow-y-auto min-h-0 flex flex-col justify-between p-2 sm:p-3">
-            <div className="max-w-4xl w-full mx-auto my-auto grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
-              {/* Left Column: Live 3D Cover Mockup (Compact & Dynamic) */}
-              <div className="lg:col-span-5 flex flex-col items-center justify-center">
-                <div className="w-full max-w-[175px] sm:max-w-[205px]">
-                  <span className="text-[8.5px] font-bold tracking-widest text-[#8C6D37] uppercase mb-1 block text-center">
-                    VISTA PREVIA EN TIEMPO REAL
-                  </span>
-
-                  {/* The Luxury Book Cover Card with Dynamic Texture & Color */}
-                  <div 
-                    className={`aspect-[4/5] rounded-xl p-3 sm:p-4 flex flex-col justify-between shadow-xl relative border border-black/15 transition-all duration-500 overflow-hidden ${currentCover.textureClass}`}
-                    style={{ backgroundColor: currentCover.colorHex }}
-                  >
-                    {/* Layered Realistic Texture Overlay */}
-                    <div className={`absolute inset-0 ${currentCover.textureClass} opacity-40 pointer-events-none`} />
-                    <div className="absolute inset-0 bg-gradient-to-tr from-black/10 via-transparent to-white/15 pointer-events-none" />
-
-                    {/* Left Spine Crease Shadow */}
-                    <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-black/35 via-black/15 to-transparent pointer-events-none" />
-
-                    {/* Optional Cover Photo Window */}
-                    {hasCoverWindow ? (
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto my-auto rounded-lg border-2 border-[#C5A059]/50 overflow-hidden shadow-md relative bg-white ring-1 ring-black/10">
-                        <img
-                          src={uploadedPhotos[0]?.url || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=600&q=80'}
-                          alt="Foto de Portada"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-2" />
-                    )}
-
-                    {/* Embossed & Stamped Hot Foil Title */}
-                    <div className="text-center relative z-10 my-auto px-1">
-                      <span 
-                        className="font-brand text-xs sm:text-sm font-bold tracking-[0.18em] block uppercase foil-stamping-emboss drop-shadow-xs truncate"
-                        style={{
-                          color: FOIL_OPTIONS.find(f => f.id === foilColor)?.colorHex || '#D4AF37',
-                        }}
-                      >
-                        {foilTitleText || 'HALO FINE ART'}
-                      </span>
-
-                      <span 
-                        className="font-serif-luxury text-[8.5px] sm:text-[9.5px] tracking-[0.12em] block uppercase mt-0.5 font-medium opacity-90 foil-stamping-emboss truncate"
-                        style={{
-                          color: FOIL_OPTIONS.find(f => f.id === foilColor)?.colorHex || '#D4AF37',
-                        }}
-                      >
-                        {foilSubtitleText}
-                      </span>
-                    </div>
-
-                    {/* Bottom Spine & Brand Stamp */}
-                    <div className="text-center text-[6.5px] tracking-[0.25em] uppercase opacity-60 font-brand">
-                      {currentCover.name} · FINE ART LAB
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Customization Controls */}
-              <div className="lg:col-span-7 space-y-2">
+        {/* UNIFIED STEP 1: ALL-IN-ONE PHOTOBOOK CONFIGURATION (Formato, Tapas/Grabado & Papel) */}
+        {(currentStep === 'config' || currentStep === 'format' || currentStep === 'cover' || currentStep === 'paper') && (
+          <div className="w-full flex-1 overflow-y-auto bg-[#FAF8F5] p-3 sm:p-5 lg:p-6">
+            <div className="max-w-7xl mx-auto">
+              {/* Header Title Bar */}
+              <div className="mb-4 sm:mb-6 text-left border-b border-[#E8E2D5] pb-3 sm:pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
                 <div>
-                  <span className="text-[9px] font-bold tracking-widest text-[#8C6D37] uppercase">Paso 2 de 5</span>
-                  <h2 className="font-serif-luxury text-base sm:text-lg font-bold text-[#1F1C18] leading-tight">
-                    Tapas, Materiales & Grabado en Oro
-                  </h2>
-                </div>
-
-                {/* Material Family Category Tabs */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[8.5px] font-bold uppercase tracking-wider text-[#1F1C18] block">
-                      Material y Textura:
-                    </label>
-                    <div className="flex items-center gap-1 text-[8.5px]">
-                      {[
-                        { id: 'all', label: 'Todos' },
-                        { id: 'lino', label: 'Lino' },
-                        { id: 'cuero', label: 'Cuero' },
-                        { id: 'seda', label: 'Seda' },
-                        { id: 'terciopelo', label: 'Terciopelo' },
-                      ].map((cat) => (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setCoverMaterialCategoryFilter(cat.id as any)}
-                          className={`px-1.5 py-0.5 rounded-full font-bold transition-colors ${
-                            coverMaterialCategoryFilter === cat.id
-                              ? 'bg-[#8C6D37] text-white'
-                              : 'bg-[#EFE9DE] text-[#736B60] hover:text-[#1F1C18]'
-                          }`}
-                        >
-                          {cat.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Cover Materials Swatches Grid */}
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1 max-h-32 overflow-y-auto pr-0.5">
-                    {COVER_MATERIALS
-                      .filter((cov) => coverMaterialCategoryFilter === 'all' || cov.category === coverMaterialCategoryFilter)
-                      .map((cov) => {
-                        const isSelected = cov.id === coverMaterialId;
-                        return (
-                          <button
-                            key={cov.id}
-                            type="button"
-                            onClick={() => setCoverMaterialId(cov.id)}
-                            className={`flex flex-col items-center text-center p-1 rounded-lg border transition-all ${
-                              isSelected
-                                ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-xs ring-2 ring-[#8C6D37]/50 scale-[1.02]'
-                                : 'border-[#D6CEBE] bg-[#F4EFE6]/50 hover:bg-[#FDFCF9]'
-                            }`}
-                          >
-                            <div
-                              className="w-4 h-4 rounded-full border border-black/15 shadow-xs mb-0.5"
-                              style={{ backgroundColor: cov.colorHex }}
-                            />
-                            <span className="text-[8px] font-semibold text-[#1F1C18] truncate w-full leading-tight">{cov.name}</span>
-                            <span className="text-[7px] text-[#736B60]">
-                              {cov.priceDelta > 0 ? `+${formatPriceARS(cov.priceDelta)}` : 'Incl.'}
-                            </span>
-                          </button>
-                        );
-                      })}
-                  </div>
-                </div>
-
-                {/* Foil Stamping Color */}
-                <div>
-                  <label className="text-[8.5px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
-                    Color de Grabado en Hot Stamping:
-                  </label>
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-1">
-                    {FOIL_OPTIONS.map((f) => {
-                      const isSelected = f.id === foilColor;
-                      return (
-                        <button
-                          key={f.id}
-                          type="button"
-                          onClick={() => setFoilColor(f.id)}
-                          className={`flex items-center gap-1 p-1 rounded-md border text-left transition-all ${
-                            isSelected
-                              ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-xs ring-1.5 ring-[#8C6D37]'
-                              : 'border-[#D6CEBE] bg-[#F4EFE6]/50 hover:bg-[#FDFCF9]'
-                          }`}
-                        >
-                          <div
-                            className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0 shadow-2xs"
-                            style={{ backgroundColor: f.colorHex }}
-                          />
-                          <span className="text-[8.5px] font-medium text-[#1F1C18] truncate">{f.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Foil Title Input & Window Toggle */}
-                <div className="space-y-1 rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-1.5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                    <div>
-                      <label className="text-[8px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
-                        Título Principal:
-                      </label>
-                      <input
-                        type="text"
-                        value={foilTitleText}
-                        onChange={(e) => setFoilTitleText(e.target.value.toUpperCase())}
-                        placeholder="EJ: NUESTRA HISTORIA"
-                        className="w-full rounded border border-[#D6CEBE] bg-[#F4EFE6]/40 px-2 py-0.5 text-[11px] font-brand tracking-wider text-[#1F1C18] focus:border-[#8C6D37] focus:outline-none"
-                        maxLength={35}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[8px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
-                        Subtítulo / Fecha / Lugar:
-                      </label>
-                      <input
-                        type="text"
-                        value={foilSubtitleText}
-                        onChange={(e) => setFoilSubtitleText(e.target.value.toUpperCase())}
-                        placeholder="EJ: 2026 · PATAGONIA"
-                        className="w-full rounded border border-[#D6CEBE] bg-[#F4EFE6]/40 px-2 py-0.5 text-[11px] font-serif-luxury tracking-wide text-[#1F1C18] focus:border-[#8C6D37] focus:outline-none"
-                        maxLength={45}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Cover Window toggle */}
-                  <div className="flex items-center justify-between border-t border-[#E8E2D5] pt-1">
-                    <div>
-                      <span className="text-[9.5px] font-bold text-[#1F1C18] block leading-none">Ventana Fotográfica Calada</span>
-                      <span className="text-[8px] text-[#736B60]">Troquelado con marco biselado en el centro</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={hasCoverWindow}
-                      onChange={(e) => setHasCoverWindow(e.target.checked)}
-                      className="w-3.5 h-3.5 accent-[#8C6D37] rounded cursor-pointer"
-                    />
-                  </div>
-                </div>
-
-                {/* Navigation Action Buttons */}
-                <div className="flex justify-between items-center pt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep('format')}
-                    className="text-[11px] font-semibold text-[#736B60] hover:text-[#1F1C18] flex items-center gap-1 transition-colors"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                    <span>Volver a Formatos</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep('paper')}
-                    className="px-4 py-2 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
-                  >
-                    <span>Continuar a Papel</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: PAPER & LAYFLAT */}
-        {currentStep === 'paper' && (
-          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col justify-between p-3 sm:p-4">
-            <div className="max-w-4xl w-full mx-auto flex flex-col justify-center flex-1 my-auto">
-              <div className="text-center max-w-xl mx-auto mb-2">
-                <span className="text-[9px] font-bold tracking-widest text-[#8C6D37] uppercase">Paso 3 de 5</span>
-                <h2 className="font-serif-luxury text-lg sm:text-xl font-bold text-[#1F1C18]">
-                  Auténtico Papel Fotográfico Fine Art
-                </h2>
-                <p className="text-[10px] sm:text-[11px] text-[#595248]">
-                  Papel fotográfico químico de máxima durabilidad tonal (100+ años).
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-2.5">
-                {PAPER_FINISHES.map((paper) => {
-                  const isSelected = paper.id === paperFinishId;
-                  return (
-                    <div
-                      key={paper.id}
-                      onClick={() => setPaperFinishId(paper.id)}
-                      className={`cursor-pointer rounded-xl border p-2.5 transition-all flex flex-col justify-between ${
-                        isSelected
-                          ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-md ring-2 ring-[#8C6D37]/40'
-                          : 'border-[#D6CEBE] bg-[#F4EFE6]/60 hover:bg-[#FDFCF9]'
-                      }`}
-                    >
-                      <div>
-                        <span className="inline-block bg-[#8C6D37]/15 text-[#8C6D37] text-[8px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded-full mb-1">
-                          {paper.badge}
-                        </span>
-                        <h3 className="font-serif-luxury text-xs sm:text-sm font-bold text-[#1F1C18] mb-0.5">{paper.name}</h3>
-                        <p className="text-[9.5px] text-[#8C6D37] font-semibold mb-1">{paper.subtitle}</p>
-                        <p className="text-[9.5px] text-[#595248] leading-tight mb-1.5 line-clamp-2">{paper.description}</p>
-                      </div>
-
-                      <div className="border-t border-[#E8E2D5] pt-1 flex items-center justify-between text-[9.5px]">
-                        <span className="text-[#736B60] font-mono">{paper.grammage}</span>
-                        <span className="font-bold text-[#1F1C18]">
-                          {paper.priceDelta > 0 ? `+${formatPriceARS(paper.priceDelta)} ARS` : 'Incluido'}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Gift Box Addon */}
-              <div className="mt-2 rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-2 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-[#EFE9DE] flex items-center justify-center text-[#8C6D37] shrink-0">
-                    <Gift className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <h4 className="font-serif-luxury text-xs font-bold text-[#1F1C18]">Cofre / Caja de Presentación en Lino</h4>
-                    <p className="text-[9.5px] text-[#595248]">
-                      Caja rígida forrada en lino con cinta de satén para extracción suave y protección.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="font-serif-luxury text-xs font-bold text-[#1F1C18]">
-                    +{formatPriceARS(28000)} ARS
+                  <span className="text-[10px] font-bold tracking-widest text-[#8C6D37] uppercase block mb-1">
+                    Paso 1 de 3 · Configuración Integral
                   </span>
-                  <input
-                    type="checkbox"
-                    checked={giftBoxIncluded}
-                    onChange={(e) => setGiftBoxIncluded(e.target.checked)}
-                    className="w-3.5 h-3.5 accent-[#8C6D37] rounded cursor-pointer"
-                  />
+                  <h1 className="font-serif-luxury text-xl sm:text-2xl lg:text-3xl font-bold text-[#1F1C18] leading-tight">
+                    Configuración de tu Fotolibro Fine Art
+                  </h1>
+                  <p className="text-xs sm:text-sm text-[#595248] mt-1">
+                    Personaliza el formato, los materiales de portada, el grabado en oro y el papel químico en una sola vista.
+                  </p>
                 </div>
-              </div>
-
-              {/* Navigation Action Buttons */}
-              <div className="mt-2.5 flex justify-between items-center">
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep('cover')}
-                  className="text-[11px] font-semibold text-[#736B60] hover:text-[#1F1C18] flex items-center gap-1 transition-colors"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                  <span>Volver a Tapas</span>
-                </button>
 
                 <button
                   type="button"
                   onClick={() => setCurrentStep('editor')}
-                  className="px-5 py-2 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2 shrink-0 cursor-pointer self-start sm:self-auto"
                 >
                   <span>Continuar a Diseñar Páginas</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  <ChevronRight className="w-4 h-4 text-[#ECC880]" />
                 </button>
+              </div>
+
+              {/* 2-Column Responsive Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                {/* LEFT COLUMN: Sticky Real-time 3D Preview & Specs Card */}
+                <div className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-3 space-y-4">
+                  <div className="rounded-2xl border border-[#D6CEBE] bg-[#FDFCF9] p-4 sm:p-5 shadow-lg space-y-4">
+                    <div className="flex items-center justify-between border-b border-[#E8E2D5] pb-2.5">
+                      <span className="text-[9px] font-bold tracking-widest text-[#8C6D37] uppercase">
+                        Vista Previa en Tiempo Real
+                      </span>
+                      <span className="text-[10px] font-bold text-[#1F1C18] bg-[#EFE9DE] px-2 py-0.5 rounded-full">
+                        {currentFormat.dimensions}
+                      </span>
+                    </div>
+
+                    {/* The Luxury Book Cover Live Mockup */}
+                    <div className="flex justify-center py-2">
+                      <div className="w-full max-w-[210px] sm:max-w-[230px]">
+                        <div 
+                          className={`aspect-[4/5] rounded-xl p-4 flex flex-col justify-between shadow-2xl relative border border-black/15 transition-all duration-500 overflow-hidden ${currentCover.textureClass}`}
+                          style={{ backgroundColor: currentCover.colorHex }}
+                        >
+                          {/* Layered Realistic Texture Overlay */}
+                          <div className={`absolute inset-0 ${currentCover.textureClass} opacity-40 pointer-events-none`} />
+                          <div className="absolute inset-0 bg-gradient-to-tr from-black/10 via-transparent to-white/15 pointer-events-none" />
+
+                          {/* Left Spine Crease Shadow */}
+                          <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-black/35 via-black/15 to-transparent pointer-events-none" />
+
+                          {/* Optional Cover Photo Window */}
+                          {hasCoverWindow ? (
+                            <div className="w-14 h-14 mx-auto my-auto rounded-lg border-2 border-[#C5A059]/60 overflow-hidden shadow-md relative bg-white ring-1 ring-black/10">
+                              <img
+                                src={uploadedPhotos[0]?.url || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=600&q=80'}
+                                alt="Foto de Portada"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-3" />
+                          )}
+
+                          {/* Embossed & Stamped Hot Foil Title */}
+                          <div className="text-center relative z-10 my-auto px-1">
+                            <span 
+                              className="font-brand text-xs sm:text-sm font-bold tracking-[0.18em] block uppercase foil-stamping-emboss drop-shadow-xs truncate"
+                              style={{
+                                color: FOIL_OPTIONS.find(f => f.id === foilColor)?.colorHex || '#D4AF37',
+                              }}
+                            >
+                              {foilTitleText || 'HALO FINE ART'}
+                            </span>
+
+                            <span 
+                              className="font-serif-luxury text-[9px] sm:text-[10px] tracking-[0.12em] block uppercase mt-0.5 font-medium opacity-90 foil-stamping-emboss truncate"
+                              style={{
+                                color: FOIL_OPTIONS.find(f => f.id === foilColor)?.colorHex || '#D4AF37',
+                              }}
+                            >
+                              {foilSubtitleText}
+                            </span>
+                          </div>
+
+                          {/* Bottom Spine & Brand Stamp */}
+                          <div className="text-center text-[7px] tracking-[0.25em] uppercase opacity-60 font-brand">
+                            {currentCover.name} · FINE ART LAB
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Summary Technical Specs */}
+                    <div className="rounded-xl bg-[#F5EFE6]/60 border border-[#E8E2D5] p-3 space-y-2 text-xs">
+                      <div className="flex justify-between items-center text-[#595248]">
+                        <span className="font-semibold text-[#1F1C18]">Formato:</span>
+                        <span className="font-bold text-[#8C6D37]">{currentFormat.name}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[#595248]">
+                        <span className="font-semibold text-[#1F1C18]">Material Tapa:</span>
+                        <span className="font-medium text-[#1F1C18] truncate max-w-[150px]">{currentCover.name}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[#595248]">
+                        <span className="font-semibold text-[#1F1C18]">Hot Stamping:</span>
+                        <span className="font-medium text-[#1F1C18]">{FOIL_OPTIONS.find(f => f.id === foilColor)?.name}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[#595248]">
+                        <span className="font-semibold text-[#1F1C18]">Papel Químico:</span>
+                        <span className="font-medium text-[#1F1C18] truncate max-w-[150px]">{currentPaper.name}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[#595248]">
+                        <span className="font-semibold text-[#1F1C18]">Cofre Presentación:</span>
+                        <span className={`font-semibold ${giftBoxIncluded ? 'text-emerald-700' : 'text-[#736B60]'}`}>
+                          {giftBoxIncluded ? 'Incluido' : 'Sin cofre'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Total Price & Large Action CTA */}
+                    <div className="pt-2 border-t border-[#E8E2D5] space-y-3">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-xs uppercase font-bold text-[#736B60] tracking-wider">Inversión Final</span>
+                        <span className="font-serif-luxury text-xl sm:text-2xl font-bold text-[#1F1C18]">
+                          {formatPriceARS(totalPrice)} ARS
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setCurrentStep('editor')}
+                        className="w-full py-3 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-bold hover:bg-[#3D352E] shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <span>Comenzar a Diseñar Páginas</span>
+                        <ChevronRight className="w-4 h-4 text-[#ECC880]" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* RIGHT COLUMN: Unified Configuration Controls (3 Sections in One) */}
+                <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+                  {/* SECCIÓN 1: FORMATO Y TAMAÑO */}
+                  <div className="rounded-2xl border border-[#D6CEBE] bg-[#FDFCF9] p-4 sm:p-5 shadow-sm space-y-3">
+                    <div className="border-b border-[#E8E2D5] pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-[#8C6D37] text-white flex items-center justify-center text-xs font-bold">
+                          1
+                        </span>
+                        <h2 className="font-serif-luxury text-base sm:text-lg font-bold text-[#1F1C18]">
+                          Formato y Tamaño del Libro
+                        </h2>
+                      </div>
+                      <p className="text-xs text-[#595248] mt-0.5 ml-8">
+                        Encuadernación rígida 100% Layflat de apertura plana a 180° en auténtico papel químico Fuji.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
+                      {BOOK_FORMATS.map((fmt) => {
+                        const isSelected = fmt.id === formatId;
+                        return (
+                          <div
+                            key={fmt.id}
+                            onClick={() => setFormatId(fmt.id)}
+                            className={`cursor-pointer rounded-xl border p-3 transition-all relative flex flex-col justify-between ${
+                              isSelected
+                                ? 'border-[#8C6D37] bg-[#FAF6EF] shadow-md ring-2 ring-[#8C6D37]/40'
+                                : 'border-[#D6CEBE] bg-[#F4EFE6]/40 hover:bg-[#FDFCF9] hover:border-[#B8AB98]'
+                            }`}
+                          >
+                            {fmt.popular && (
+                              <span className="absolute top-2 right-2 bg-[#8C6D37] text-white text-[8px] tracking-wider uppercase font-bold px-2 py-0.5 rounded-full shadow-xs">
+                                Más Elegido
+                              </span>
+                            )}
+
+                            <div>
+                              <div className="flex items-baseline justify-between gap-1 mb-1 pr-14">
+                                <h3 className="font-serif-luxury text-sm font-bold text-[#1F1C18] leading-tight">
+                                  {fmt.name}
+                                </h3>
+                              </div>
+
+                              <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                                <span className="font-mono text-xs text-[#8C6D37] font-bold">{fmt.dimensions}</span>
+                                <span className="font-serif-luxury text-sm font-bold text-[#1F1C18]">
+                                  {formatPriceARS(fmt.basePrice)}
+                                </span>
+                              </div>
+
+                              <p className="text-[10px] text-[#595248] leading-tight line-clamp-2 mb-2">
+                                {fmt.description}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center justify-between border-t border-[#E8E2D5] pt-1.5 text-[10px] text-[#736B60]">
+                              <span>{fmt.basePages} pág. rígidas</span>
+                              <span className="font-semibold text-[#1F1C18]">Fotos: {fmt.idealPhotos}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* SECCIÓN 2: TAPAS, MATERIALES & GRABADO */}
+                  <div className="rounded-2xl border border-[#D6CEBE] bg-[#FDFCF9] p-4 sm:p-5 shadow-sm space-y-4">
+                    <div className="border-b border-[#E8E2D5] pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-[#8C6D37] text-white flex items-center justify-center text-xs font-bold">
+                          2
+                        </span>
+                        <h2 className="font-serif-luxury text-base sm:text-lg font-bold text-[#1F1C18]">
+                          Tapas, Materiales & Grabado en Oro
+                        </h2>
+                      </div>
+                      <p className="text-xs text-[#595248] mt-0.5 ml-8">
+                        Telas de lino natural, cueros de grano fino, sedas y grabado artesanal en caliente.
+                      </p>
+                    </div>
+
+                    {/* Material Family Category Tabs */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-[#1F1C18] block">
+                          Material y Textura:
+                        </label>
+                        <div className="flex items-center gap-1.5 text-[10px]">
+                          {[
+                            { id: 'all', label: 'Todos' },
+                            { id: 'lino', label: 'Lino' },
+                            { id: 'cuero', label: 'Cuero' },
+                            { id: 'seda', label: 'Seda' },
+                            { id: 'terciopelo', label: 'Terciopelo' },
+                          ].map((cat) => (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => setCoverMaterialCategoryFilter(cat.id as any)}
+                              className={`px-2 py-1 rounded-full font-bold transition-colors cursor-pointer ${
+                                coverMaterialCategoryFilter === cat.id
+                                  ? 'bg-[#8C6D37] text-white'
+                                  : 'bg-[#EFE9DE] text-[#736B60] hover:text-[#1F1C18]'
+                              }`}
+                            >
+                              {cat.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Cover Materials Swatches Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                        {COVER_MATERIALS
+                          .filter((cov) => coverMaterialCategoryFilter === 'all' || cov.category === coverMaterialCategoryFilter)
+                          .map((cov) => {
+                            const isSelected = cov.id === coverMaterialId;
+                            return (
+                              <button
+                                key={cov.id}
+                                type="button"
+                                onClick={() => setCoverMaterialId(cov.id)}
+                                className={`flex flex-col items-center text-center p-2 rounded-xl border transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'border-[#8C6D37] bg-[#FAF6EF] shadow-sm ring-2 ring-[#8C6D37]/50 scale-[1.02]'
+                                    : 'border-[#D6CEBE] bg-[#F4EFE6]/50 hover:bg-[#FDFCF9]'
+                                }`}
+                              >
+                                <div
+                                  className="w-6 h-6 rounded-full border border-black/15 shadow-xs mb-1"
+                                  style={{ backgroundColor: cov.colorHex }}
+                                />
+                                <span className="text-[9.5px] font-bold text-[#1F1C18] truncate w-full leading-tight">{cov.name}</span>
+                                <span className="text-[8.5px] text-[#736B60] mt-0.5">
+                                  {cov.priceDelta > 0 ? `+${formatPriceARS(cov.priceDelta)}` : 'Incluido'}
+                                </span>
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {/* Foil Stamping Color */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-[#1F1C18] block">
+                        Color de Grabado en Hot Stamping:
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                        {FOIL_OPTIONS.map((f) => {
+                          const isSelected = f.id === foilColor;
+                          return (
+                            <button
+                              key={f.id}
+                              type="button"
+                              onClick={() => setFoilColor(f.id)}
+                              className={`flex items-center gap-1.5 p-2 rounded-xl border text-left transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'border-[#8C6D37] bg-[#FAF6EF] shadow-xs ring-2 ring-[#8C6D37]'
+                                  : 'border-[#D6CEBE] bg-[#F4EFE6]/50 hover:bg-[#FDFCF9]'
+                              }`}
+                            >
+                              <div
+                                className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0 shadow-2xs"
+                                style={{ backgroundColor: f.colorHex }}
+                              />
+                              <span className="text-[10px] font-medium text-[#1F1C18] truncate">{f.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Foil Title Input & Window Toggle */}
+                    <div className="space-y-2 rounded-xl border border-[#D6CEBE] bg-[#FAF7F2] p-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[9.5px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-1">
+                            Título Principal de Portada:
+                          </label>
+                          <input
+                            type="text"
+                            value={foilTitleText}
+                            onChange={(e) => setFoilTitleText(e.target.value.toUpperCase())}
+                            placeholder="EJ: NUESTRA HISTORIA"
+                            className="w-full rounded-lg border border-[#D6CEBE] bg-white px-2.5 py-1.5 text-xs font-brand tracking-wider text-[#1F1C18] focus:border-[#8C6D37] focus:outline-none shadow-xs"
+                            maxLength={35}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[9.5px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-1">
+                            Subtítulo / Fecha / Lugar:
+                          </label>
+                          <input
+                            type="text"
+                            value={foilSubtitleText}
+                            onChange={(e) => setFoilSubtitleText(e.target.value.toUpperCase())}
+                            placeholder="EJ: 2026 · PATAGONIA"
+                            className="w-full rounded-lg border border-[#D6CEBE] bg-white px-2.5 py-1.5 text-xs font-serif-luxury tracking-wide text-[#1F1C18] focus:border-[#8C6D37] focus:outline-none shadow-xs"
+                            maxLength={45}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Cover Window toggle */}
+                      <div className="flex items-center justify-between border-t border-[#E8E2D5] pt-2.5">
+                        <div>
+                          <span className="text-xs font-bold text-[#1F1C18] block">Ventana Fotográfica Calada</span>
+                          <span className="text-[10px] text-[#736B60]">Troquelado con marco biselado en el centro de la portada</span>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={hasCoverWindow}
+                          onChange={(e) => setHasCoverWindow(e.target.checked)}
+                          className="w-4 h-4 accent-[#8C6D37] rounded cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECCIÓN 3: PAPEL FOTOGRÁFICO FINE ART & PRESENTACIÓN */}
+                  <div className="rounded-2xl border border-[#D6CEBE] bg-[#FDFCF9] p-4 sm:p-5 shadow-sm space-y-4">
+                    <div className="border-b border-[#E8E2D5] pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-[#8C6D37] text-white flex items-center justify-center text-xs font-bold">
+                          3
+                        </span>
+                        <h2 className="font-serif-luxury text-base sm:text-lg font-bold text-[#1F1C18]">
+                          Auténtico Papel Fotográfico Fine Art & Presentación
+                        </h2>
+                      </div>
+                      <p className="text-xs text-[#595248] mt-0.5 ml-8">
+                        Papel químico de máxima durabilidad tonal (100+ años) y accesorios de conservación.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {PAPER_FINISHES.map((paper) => {
+                        const isSelected = paper.id === paperFinishId;
+                        return (
+                          <div
+                            key={paper.id}
+                            onClick={() => setPaperFinishId(paper.id)}
+                            className={`cursor-pointer rounded-xl border p-3 transition-all flex flex-col justify-between ${
+                              isSelected
+                                ? 'border-[#8C6D37] bg-[#FAF6EF] shadow-md ring-2 ring-[#8C6D37]/40'
+                                : 'border-[#D6CEBE] bg-[#F4EFE6]/40 hover:bg-[#FDFCF9]'
+                            }`}
+                          >
+                            <div>
+                              <span className="inline-block bg-[#8C6D37]/15 text-[#8C6D37] text-[8.5px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full mb-1.5">
+                                {paper.badge}
+                              </span>
+                              <h3 className="font-serif-luxury text-sm font-bold text-[#1F1C18] mb-0.5">{paper.name}</h3>
+                              <p className="text-[10px] text-[#8C6D37] font-semibold mb-1">{paper.subtitle}</p>
+                              <p className="text-[10px] text-[#595248] leading-tight mb-2 line-clamp-2">{paper.description}</p>
+                            </div>
+
+                            <div className="border-t border-[#E8E2D5] pt-1.5 flex items-center justify-between text-[10px]">
+                              <span className="text-[#736B60] font-mono">{paper.grammage}</span>
+                              <span className="font-bold text-[#1F1C18]">
+                                {paper.priceDelta > 0 ? `+${formatPriceARS(paper.priceDelta)} ARS` : 'Incluido'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Gift Box Addon */}
+                    <div className="rounded-xl border border-[#D6CEBE] bg-[#FAF7F2] p-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-[#EFE9DE] flex items-center justify-center text-[#8C6D37] shrink-0 shadow-2xs">
+                          <Gift className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="font-serif-luxury text-xs font-bold text-[#1F1C18]">Cofre / Caja de Presentación en Lino</h4>
+                          <p className="text-[10px] text-[#595248]">
+                            Caja rígida forrada en lino con cinta de satén para extracción suave y protección.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 shrink-0">
+                        <span className="font-serif-luxury text-xs font-bold text-[#1F1C18]">
+                          +{formatPriceARS(28000)} ARS
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={giftBoxIncluded}
+                          onChange={(e) => setGiftBoxIncluded(e.target.checked)}
+                          className="w-4 h-4 accent-[#8C6D37] rounded cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Final Continue Button Footer */}
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep('editor')}
+                      className="px-6 py-3 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>Guardar Configuración y Continuar a Diseñar Páginas</span>
+                      <ChevronRight className="w-4 h-4 text-[#ECC880]" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
