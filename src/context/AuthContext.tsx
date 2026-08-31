@@ -166,6 +166,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       city: data.city ?? profile?.city,
       postalCode: data.postalCode ?? profile?.postalCode,
       avatarUrl: data.avatarUrl ?? profile?.avatarUrl,
+      // isAdmin is DB-only (profiles.is_admin) and never sent in an update payload;
+      // carry the value already loaded from the server forward instead of dropping it.
+      isAdmin: profile?.isAdmin,
     };
 
     const { error } = await upsertProfile(merged);
