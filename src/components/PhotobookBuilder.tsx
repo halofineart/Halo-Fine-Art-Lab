@@ -4861,24 +4861,96 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               </div>
 
               {/* Canvas Stage Wrapper */}
-              <div className="w-full flex-1 flex flex-col items-center justify-start relative min-h-0 pb-6 overflow-visible">
-                {/* Floating Canvas Top Bar Controls */}
-                <div className="w-full max-w-[1500px] 2xl:max-w-[1750px] flex items-center justify-between px-1 mb-1 text-[11px] text-[#736B60]">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-[#1F1C18]">
-                      Pliego {activeSpreadIndex + 1} de {spreads.length}
-                    </span>
-                    <span className="text-[10px] text-[#8C6D37] bg-[#FAF6EF] border border-[#8C6D37]/20 px-2 py-0.5 rounded-full font-medium">
-                      Págs. {activeSpreadIndex * 2 + 1} y {activeSpreadIndex * 2 + 2}
-                    </span>
+              <div className="w-full flex-1 flex flex-col items-center justify-start relative min-h-0 pb-3 overflow-visible">
+                {/* Unified Top Action & Navigation Toolbar */}
+                <div className="w-full max-w-[1500px] 2xl:max-w-[1750px] flex flex-wrap items-center justify-between gap-2 px-1 mb-1.5 text-[11px] text-[#736B60]">
+                  {/* Left: Spread Navigation & Addition */}
+                  <div className="flex items-center gap-1.5 bg-[#FDFCF9] border border-[#D6CEBE] p-1 rounded-xl shadow-xs">
+                    <button
+                      type="button"
+                      onClick={() => setActiveSpreadIndex((prev) => Math.max(0, prev - 1))}
+                      disabled={activeSpreadIndex === 0}
+                      className="px-2.5 py-1 rounded-lg border border-[#D6CEBE] bg-[#FAF7F2] text-[#1F1C18] hover:bg-[#EFE9DE] disabled:opacity-30 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Pliego Anterior"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Anterior</span>
+                    </button>
+
+                    <div className="flex items-center gap-1.5 px-2 py-0.5">
+                      <span className="font-bold text-xs text-[#1F1C18]">
+                        Pliego {activeSpreadIndex + 1} de {spreads.length}
+                      </span>
+                      <span className="text-[10px] text-[#8C6D37] bg-[#FAF6EF] border border-[#8C6D37]/20 px-1.5 py-0.5 rounded-full font-medium hidden md:inline">
+                        Págs. {activeSpreadIndex * 2 + 1} y {activeSpreadIndex * 2 + 2}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveSpreadIndex((prev) => Math.min(spreads.length - 1, prev + 1))}
+                      disabled={activeSpreadIndex === spreads.length - 1}
+                      className="px-2.5 py-1 rounded-lg border border-[#D6CEBE] bg-[#FAF7F2] text-[#1F1C18] hover:bg-[#EFE9DE] disabled:opacity-30 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Siguiente Pliego"
+                    >
+                      <span className="hidden sm:inline">Siguiente</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+
+                    <div className="w-[1px] h-4 bg-[#E0D8C8] mx-0.5" />
+
+                    <button
+                      type="button"
+                      onClick={handleAddSpread}
+                      className="px-2.5 py-1 rounded-lg bg-[#1F1C18] text-[#FDFCF9] text-xs font-bold hover:bg-[#3D352E] flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                      title="Añadir nuevo pliego (2 páginas)"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-[#ECC880]" />
+                      <span>+ Pliego</span>
+                    </button>
                   </div>
 
+                  {/* Middle: Undo / Redo / Swap Sides */}
+                  <div className="flex items-center gap-1 bg-[#FDFCF9] border border-[#D6CEBE] p-1 rounded-xl shadow-xs">
+                    <button
+                      type="button"
+                      onClick={handleUndo}
+                      disabled={historyIndex <= 0}
+                      className="p-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#FAF7F2] text-[#736B60] hover:text-[#1F1C18] disabled:opacity-30 transition-colors cursor-pointer"
+                      title="Deshacer (Ctrl+Z)"
+                    >
+                      <Undo2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRedo}
+                      disabled={historyIndex >= history.length - 1}
+                      className="p-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#FAF7F2] text-[#736B60] hover:text-[#1F1C18] disabled:opacity-30 transition-colors cursor-pointer"
+                      title="Rehacer (Ctrl+Y)"
+                    >
+                      <Redo2 className="w-3.5 h-3.5" />
+                    </button>
+
+                    <div className="w-[1px] h-4 bg-[#E0D8C8] mx-0.5" />
+
+                    <button
+                      type="button"
+                      onClick={handleFlipSpreadSides}
+                      className="px-2 py-1 rounded-lg border border-[#D6CEBE] bg-[#FAF7F2] text-[10px] font-bold text-[#1F1C18] hover:bg-[#EFE9DE] flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Invertir páginas izquierda y derecha"
+                    >
+                      <ArrowLeftRight className="w-3.5 h-3.5 text-[#8C6D37]" />
+                      <span className="hidden lg:inline">Invertir Lados</span>
+                    </button>
+                  </div>
+
+                  {/* Right: Safe Margins, Zoom & Focus Mode */}
                   <div className="flex items-center gap-1 bg-[#FDFCF9] border border-[#D6CEBE] p-1 rounded-xl shadow-xs">
                     {/* Safe Margins Toggle */}
                     <button
                       type="button"
                       onClick={() => setShowSafeMarginGuides(!showSafeMarginGuides)}
-                      className={`px-2 py-1 rounded-lg font-bold flex items-center gap-1 transition-all ${
+                      className={`px-2 py-1 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer ${
                         showSafeMarginGuides
                           ? 'bg-[#8C6D37] text-white shadow-xs'
                           : 'text-[#736B60] hover:bg-[#FAF7F2]'
@@ -4886,7 +4958,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       title="Mostrar u ocultar guías de corte y márgenes seguros de impresión"
                     >
                       <Scan className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Guías de Impresión</span>
+                      <span className="hidden sm:inline">Guías</span>
                     </button>
 
                     <div className="w-[1px] h-4 bg-[#E0D8C8]" />
@@ -4939,7 +5011,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       title="Modo Enfoque: oculta paneles laterales para máxima amplitud de diseño"
                     >
                       {isFocusMode ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
-                      <span className="hidden md:inline">{isFocusMode ? 'Salir de Enfoque' : 'Modo Enfoque'}</span>
+                      <span className="hidden md:inline">{isFocusMode ? 'Salir de Enfoque' : 'Enfoque'}</span>
                     </button>
                   </div>
                 </div>
@@ -5417,77 +5489,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 )}
               </div>
 
-                </div>
-              </div>
-
-              {/* Floating Bottom Spread Navigation & Quick Actions Dock */}
-              <div className="w-full max-w-[1500px] 2xl:max-w-[1750px] mt-2 flex flex-wrap items-center justify-between gap-2 bg-[#FDFCF9] rounded-2xl border border-[#D6CEBE] px-3.5 py-2 shadow-xs select-none shrink-0">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveSpreadIndex((prev) => Math.max(0, prev - 1))}
-                    disabled={activeSpreadIndex === 0}
-                    className="px-3 py-1.5 rounded-xl border border-[#D6CEBE] bg-[#FAF7F2] text-[#1F1C18] hover:bg-[#EFE9DE] disabled:opacity-30 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    <span>Anterior</span>
-                  </button>
-
-                  <div className="px-3 py-1 rounded-xl bg-[#EFE9DE] font-semibold text-xs text-[#1F1C18]">
-                    Pliego {activeSpreadIndex + 1} de {spreads.length}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveSpreadIndex((prev) => Math.min(spreads.length - 1, prev + 1))}
-                    disabled={activeSpreadIndex === spreads.length - 1}
-                    className="px-3 py-1.5 rounded-xl border border-[#D6CEBE] bg-[#FAF7F2] text-[#1F1C18] hover:bg-[#EFE9DE] disabled:opacity-30 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                  >
-                    <span>Siguiente</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={handleUndo}
-                    disabled={historyIndex <= 0}
-                    className="p-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#FAF7F2] text-[#736B60] hover:text-[#1F1C18] disabled:opacity-30 transition-colors cursor-pointer"
-                    title="Deshacer (Ctrl+Z)"
-                  >
-                    <Undo2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRedo}
-                    disabled={historyIndex >= history.length - 1}
-                    className="p-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#FAF7F2] text-[#736B60] hover:text-[#1F1C18] disabled:opacity-30 transition-colors cursor-pointer"
-                    title="Rehacer (Ctrl+Y)"
-                  >
-                    <Redo2 className="w-4 h-4" />
-                  </button>
-
-                  <div className="w-[1px] h-4 bg-[#E0D8C8] mx-1" />
-
-                  <button
-                    type="button"
-                    onClick={handleFlipSpreadSides}
-                    className="px-2.5 py-1.5 rounded-xl border border-[#D6CEBE] bg-white text-[11px] font-bold text-[#1F1C18] hover:bg-[#FAF7F2] flex items-center gap-1 transition-colors cursor-pointer"
-                    title="Invertir páginas izquierda y derecha"
-                  >
-                    <ArrowLeftRight className="w-3.5 h-3.5 text-[#8C6D37]" />
-                    <span className="hidden sm:inline">Invertir Lados</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleAddSpread}
-                    className="px-3 py-1.5 rounded-xl bg-[#1F1C18] text-[#FDFCF9] text-xs font-bold hover:bg-[#3D352E] flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5 text-[#ECC880]" />
-                    <span>+ Pliego</span>
-                  </button>
                 </div>
               </div>
             </div>
