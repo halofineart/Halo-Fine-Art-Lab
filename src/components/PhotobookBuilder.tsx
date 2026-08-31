@@ -256,6 +256,30 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
 
   // Resize Guide Handlers for Left, Right, and Top Predefined Panels
+  const handleZoomIn = () => {
+    setCanvasZoomLevel((prev) => {
+      const pct = Math.round(prev * 100);
+      if (pct < 75) return 0.75;
+      if (pct < 90) return 0.90;
+      if (pct < 100) return 1.0;
+      if (pct < 110) return 1.10;
+      if (pct < 125) return 1.25;
+      return Math.min(1.5, Number(((pct + 10) / 100).toFixed(2)));
+    });
+  };
+
+  const handleZoomOut = () => {
+    setCanvasZoomLevel((prev) => {
+      const pct = Math.round(prev * 100);
+      if (pct > 125) return 1.25;
+      if (pct > 110) return 1.10;
+      if (pct > 100) return 1.0;
+      if (pct > 90) return 0.90;
+      if (pct > 75) return 0.75;
+      return Math.max(0.6, Number(((pct - 10) / 100).toFixed(2)));
+    });
+  };
+
   const handleStartResizeTop = (e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -4861,9 +4885,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               </div>
 
               {/* Canvas Stage Wrapper */}
-              <div className="w-full flex-1 flex flex-col items-center justify-start relative min-h-0 pb-3 overflow-visible">
-                {/* Unified Top Action & Navigation Toolbar */}
-                <div className="w-full max-w-[1500px] 2xl:max-w-[1750px] flex flex-wrap items-center justify-between gap-2 px-1 mb-1.5 text-[11px] text-[#736B60]">
+              <div className="w-full flex-1 flex flex-col items-center justify-start relative min-h-0 pb-6 overflow-visible">
+                {/* Unified Top Action & Navigation Toolbar (Sticky & Always on Top) */}
+                <div className="sticky top-0 z-40 w-full max-w-[1500px] 2xl:max-w-[1750px] flex flex-wrap items-center justify-between gap-2 px-2 py-1.5 mb-2 text-[11px] text-[#736B60] bg-[#EFECE3]/95 backdrop-blur-md rounded-2xl border border-[#D6CEBE]/70 shadow-xs">
                   {/* Left: Spread Navigation & Addition */}
                   <div className="flex items-center gap-1.5 bg-[#FDFCF9] border border-[#D6CEBE] p-1 rounded-xl shadow-xs">
                     <button
@@ -4966,7 +4990,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     {/* Zoom Out */}
                     <button
                       type="button"
-                      onClick={() => setCanvasZoomLevel((prev) => Math.max(0.75, Number((prev - 0.1).toFixed(2))))}
+                      onClick={handleZoomOut}
                       className="p-1 rounded-lg hover:bg-[#FAF7F2] text-[#736B60] hover:text-[#1F1C18] cursor-pointer"
                       title="Reducir Zoom"
                     >
@@ -4976,8 +5000,8 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     <button
                       type="button"
                       onClick={() => setCanvasZoomLevel(1)}
-                      className="px-1.5 py-0.5 rounded-md font-mono text-[10px] font-bold text-[#1F1C18] hover:bg-[#FAF7F2] cursor-pointer"
-                      title="Restablecer Zoom a 100%"
+                      className="px-1.5 py-0.5 rounded-md font-mono text-[10px] font-bold text-[#1F1C18] hover:bg-[#FAF7F2] cursor-pointer bg-[#FAF7F2] border border-[#D6CEBE]/60"
+                      title="Restablecer Zoom a 100% (Clic para reajustar)"
                     >
                       {Math.round(canvasZoomLevel * 100)}%
                     </button>
@@ -4985,7 +5009,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     {/* Zoom In */}
                     <button
                       type="button"
-                      onClick={() => setCanvasZoomLevel((prev) => Math.min(1.4, Number((prev + 0.1).toFixed(2))))}
+                      onClick={handleZoomIn}
                       className="p-1 rounded-lg hover:bg-[#FAF7F2] text-[#736B60] hover:text-[#1F1C18] cursor-pointer"
                       title="Aumentar Zoom"
                     >
@@ -5020,10 +5044,10 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 <div
                   style={{
                     transform: canvasZoomLevel !== 1 ? `scale(${canvasZoomLevel})` : undefined,
-                    transformOrigin: 'center center',
+                    transformOrigin: 'top center',
                     transition: 'transform 0.2s ease-out'
                   }}
-                  className="w-full max-w-[1500px] 2xl:max-w-[1750px] flex items-center justify-center pt-1"
+                  className="w-full max-w-[1500px] 2xl:max-w-[1750px] flex items-center justify-center pt-1 z-10"
                 >
                   <div 
                     ref={spreadCanvasRef}
