@@ -1,4 +1,5 @@
 import React, { useState, Suspense, lazy } from 'react';
+import { AnimatePresence } from 'motion/react';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
 import { StorytellingBanner } from './components/StorytellingBanner';
@@ -347,81 +348,84 @@ function MainAppContent() {
         </button>
       </div>
 
-      {/* Interactive Photobook Builder Modal */}
-      {isBuilderOpen && (
-        <Suspense fallback={<ModalLoadingFallback />}>
-          <PhotobookBuilder
-            initialProject={builderInitialProject}
-            onClose={() => {
-              setIsBuilderOpen(false);
-              setBuilderInitialProject(null);
-            }}
-            onAddToCart={handleAddProjectToCart}
-            onOpenAuth={() => setIsAuthModalOpen(true)}
-          />
-        </Suspense>
-      )}
+      {/* Modals with graceful fade/scale entrance & exit transitions */}
+      <AnimatePresence mode="wait">
+        {/* Interactive Photobook Builder Modal */}
+        {isBuilderOpen && (
+          <Suspense key="photobook-builder-modal" fallback={<ModalLoadingFallback />}>
+            <PhotobookBuilder
+              initialProject={builderInitialProject}
+              onClose={() => {
+                setIsBuilderOpen(false);
+                setBuilderInitialProject(null);
+              }}
+              onAddToCart={handleAddProjectToCart}
+              onOpenAuth={() => setIsAuthModalOpen(true)}
+            />
+          </Suspense>
+        )}
 
-      {/* Concierge "Nosotros lo Diseñamos" Modal */}
-      {isConciergeOpen && (
-        <Suspense fallback={<ModalLoadingFallback />}>
-          <ConciergeDesignModal
-            onClose={() => setIsConciergeOpen(false)}
-            onSubmitRequest={handleAddConciergeRequest}
-            onOrderPlaced={handleOrderPlaced}
-            onOpenTracker={handleOpenTrackerForOrder}
-          />
-        </Suspense>
-      )}
+        {/* Concierge "Nosotros lo Diseñamos" Modal */}
+        {isConciergeOpen && (
+          <Suspense key="concierge-modal" fallback={<ModalLoadingFallback />}>
+            <ConciergeDesignModal
+              onClose={() => setIsConciergeOpen(false)}
+              onSubmitRequest={handleAddConciergeRequest}
+              onOrderPlaced={handleOrderPlaced}
+              onOpenTracker={handleOpenTrackerForOrder}
+            />
+          </Suspense>
+        )}
 
-      {/* Shopping Cart & Checkout Modal */}
-      {isCartOpen && (
-        <Suspense fallback={<ModalLoadingFallback />}>
-          <CartCheckoutModal
-            cartItems={cartItems}
-            onClose={() => setIsCartOpen(false)}
-            onRemoveItem={handleRemoveCartItem}
-            onClearCart={handleClearCart}
-            onOrderPlaced={handleOrderPlaced}
-            onOpenTracker={handleOpenTrackerForOrder}
-          />
-        </Suspense>
-      )}
+        {/* Shopping Cart & Checkout Modal */}
+        {isCartOpen && (
+          <Suspense key="cart-checkout-modal" fallback={<ModalLoadingFallback />}>
+            <CartCheckoutModal
+              cartItems={cartItems}
+              onClose={() => setIsCartOpen(false)}
+              onRemoveItem={handleRemoveCartItem}
+              onClearCart={handleClearCart}
+              onOrderPlaced={handleOrderPlaced}
+              onOpenTracker={handleOpenTrackerForOrder}
+            />
+          </Suspense>
+        )}
 
-      {/* Order Tracker & History Modal */}
-      {isTrackerOpen && (
-        <Suspense fallback={<ModalLoadingFallback />}>
-          <OrderTrackerModal
-            orders={trackedOrders}
-            selectedOrderId={selectedTrackerOrderId}
-            onClose={() => setIsTrackerOpen(false)}
-            onSelectOrder={(id) => setSelectedTrackerOrderId(id)}
-            onUpdateOrderStatus={handleUpdateOrderStatus}
-          />
-        </Suspense>
-      )}
+        {/* Order Tracker & History Modal */}
+        {isTrackerOpen && (
+          <Suspense key="order-tracker-modal" fallback={<ModalLoadingFallback />}>
+            <OrderTrackerModal
+              orders={trackedOrders}
+              selectedOrderId={selectedTrackerOrderId}
+              onClose={() => setIsTrackerOpen(false)}
+              onSelectOrder={(id) => setSelectedTrackerOrderId(id)}
+              onUpdateOrderStatus={handleUpdateOrderStatus}
+            />
+          </Suspense>
+        )}
 
-      {/* Full Email Notification Viewer Modal */}
-      {selectedEmailModal && (
-        <Suspense fallback={<ModalLoadingFallback />}>
-          <EmailViewerModal
-            notification={selectedEmailModal.notification}
-            order={selectedEmailModal.order}
-            emailHistory={selectedEmailModal.order?.emailHistory || [selectedEmailModal.notification]}
-            onClose={() => setSelectedEmailModal(null)}
-            onSelectHistoricalEmail={(histEmail) => {
-              setSelectedEmailModal({
-                ...selectedEmailModal,
-                notification: histEmail,
-              });
-            }}
-            onOpenTracker={(ordId) => {
-              setSelectedEmailModal(null);
-              handleOpenTrackerForOrder(ordId);
-            }}
-          />
-        </Suspense>
-      )}
+        {/* Full Email Notification Viewer Modal */}
+        {selectedEmailModal && (
+          <Suspense key="email-viewer-modal" fallback={<ModalLoadingFallback />}>
+            <EmailViewerModal
+              notification={selectedEmailModal.notification}
+              order={selectedEmailModal.order}
+              emailHistory={selectedEmailModal.order?.emailHistory || [selectedEmailModal.notification]}
+              onClose={() => setSelectedEmailModal(null)}
+              onSelectHistoricalEmail={(histEmail) => {
+                setSelectedEmailModal({
+                  ...selectedEmailModal,
+                  notification: histEmail,
+                });
+              }}
+              onOpenTracker={(ordId) => {
+                setSelectedEmailModal(null);
+                handleOpenTrackerForOrder(ordId);
+              }}
+            />
+          </Suspense>
+        )}
+      </AnimatePresence>
 
       {/* User Auth Modal (Login / Sign Up / Forgot Password) */}
       {isAuthModalOpen && (
