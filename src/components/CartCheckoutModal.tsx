@@ -1,0 +1,491 @@
+import React, { useState } from 'react';
+import { X, ShoppingBag, CheckCircle2, ShieldCheck, Truck, CreditCard, Sparkles, BookOpen, Phone, MapPin, Package, Clock, Database } from 'lucide-react';
+import confetti from 'canvas-confetti';
+import { PhotobookProject, DesignServiceRequest, TrackedOrder } from '../types';
+import { BOOK_FORMATS, COVER_MATERIALS, PAPER_FINISHES, formatPriceARS, STORE_CONFIG } from '../data/mockData';
+import { saveOrderToDatabase, isSupabaseConfigured } from '../lib/supabase';
+
+export interface CartItem {
+  type: 'custom-album' | 'concierge-request';
+  id: string;
+  title: string;
+  details: string;
+  price: number;
+  project?: PhotobookProject;
+  request?: DesignServiceRequest;
+}
+
+interface CartCheckoutModalProps {
+  cartItems: CartItem[];
+  onClose: () => void;
+  onRemoveItem: (id: string) => void;
+  onClearCart: () => void;
+  onOrderPlaced?: (order: TrackedOrder) => void;
+  onOpenTracker?: (orderId: string) => void;
+}
+
+export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
+  cartItems,
+  onClose,
+  onRemoveItem,
+  onClearCart,
+  onOrderPlaced,
+  onOpenTracker,
+}) => {
+  const [step, setStep] = useState<'cart' | 'checkout' | 'success'>('cart');
+  const [recipientName, setRecipientName] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [recipientAddress, setRecipientAddress] = useState('');
+  const [recipientCity, setRecipientCity] = useState('');
+  const [recipientProvince, setRecipientProvince] = useState('Buenos Aires');
+  const [recipientPostal, setRecipientPostal] = useState('');
+  const [recipientPhone, setRecipientPhone] = useState('');
+  const [shippingMethod, setShippingMethod] = useState<'pilar-free' | 'correo-nacional'>('pilar-free');
+  const [paymentMethod, setPaymentMethod] = useState<'mercadopago' | 'transfer' | 'card'>('mercadopago');
+  const [createdOrderNumber, setCreatedOrderNumber] = useState<string>('');
+  const [createdOrderId, setCreatedOrderId] = useState<string>('');
+
+  const subtotal = cartItems.reduce((acc, item) => acc + item.price, 0);
+  const shippingCost = shippingMethod === 'pilar-free' ? 0 : (subtotal > 200000 ? 0 : 9500);
+  const total = subtotal + shippingCost;
+
+  const handlePlaceOrder = (e: React.FormEvent) => {
+    e.preventDefault();
+    const generatedOrderNum = `HALO-${Math.floor(100000 + Math.random() * 900000)}`;
+    const generatedOrderId = `ord-${Date.now()}`;
+    setCreatedOrderNumber(generatedOrderNum);
+    setCreatedOrderId(generatedOrderId);
+    setStep('success');
+
+    // Create the TrackedOrder entity to append to the order tracker
+    const newTrackedOrder: TrackedOrder = {
+      id: generatedOrderId,
+      orderNumber: generatedOrderNum,
+      customerName: recipientName || 'Cliente HALO',
+      customerEmail: recipientEmail || 'cliente@ejemplo.com',
+      customerPhone: recipientPhone,
+      shippingAddress: recipientAddress || 'Dirección de Entrega',
+      shippingCity: recipientCity || 'Pilar, Buenos Aires',
+      shippingMethod: shippingMethod === 'pilar-free' ? 'pilar_direct' : 'correo_nacional',
+      status: 'en_diseno',
+      createdAt: new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' }),
+      estimatedDeliveryDate: '4 a 6 días hábiles',
+      estimatedDays: '4 a 6 días hábiles',
+      totalPrice: total,
+      paymentMethod: paymentMethod === 'mercadopago' 
+        ? 'Mercado Pago' 
+        : paymentMethod === 'transfer' 
+        ? 'Transferencia Bancaria' 
+        : 'Tarjeta de Crédito',
+      items: cartItems.map((ci) => ({
+        title: ci.title,
+        format: ci.project?.formatId || 'Formato Fine Art',
+        cover: ci.project?.coverMaterialId || 'Lino Seleccionado',
+        foil: ci.project?.foilColor || 'Oro Champagne',
+        pages: ci.project ? ci.project.spreads.length * 2 : 20,
+        price: ci.price,
+        previewUrl: ci.project?.photos[0]?.url || 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80',
+        hasGiftBox: true,
+      })),
+      timeline: [
+        {
+          stage: 'en_diseno',
+          title: 'Orden Registrada & Control de Archivos',
+          description: 'Recibimos tu pedido en el laboratorio de Pilar. Iniciando calibración de perfiles de color.',
+          date: 'Hoy',
+          time: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+          completed: false,
+          current: true,
+        },
+        {
+          stage: 'en_impresion',
+          title: 'Revelado Químico & Encuadernación',
+          description: 'Prensado de hojas Layflat y estampado Hot Stamping en tapa.',
+          date: 'Próximamente',
+          completed: false,
+          current: false,
+        },
+        {
+          stage: 'enviado',
+          title: 'Despacho & Embalaje Rígido',
+          description: 'Salida desde Pilar con logística asegurada.',
+          date: 'En 3 a 5 días hábiles',
+          completed: false,
+          current: false,
+        },
+        {
+          stage: 'entregado',
+          title: 'Entrega en Domicilio',
+          description: 'Recepción en tu domicilio.',
+          date: 'En 4 a 6 días hábiles',
+          completed: false,
+          current: false,
+        }
+      ],
+      labNotes: 'Pedido recién ingresado al sistema. Revisión por maestro de encuadernación en curso.',
+    };
+
+    if (onOrderPlaced) {
+      onOrderPlaced(newTrackedOrder);
+    }
+
+    // Persistir orden en Supabase (si está configurado)
+    saveOrderToDatabase({
+      order_code: generatedOrderNum,
+      customer_name: recipientName || 'Cliente HALO',
+      customer_email: recipientEmail || 'cliente@ejemplo.com',
+      customer_phone: recipientPhone || undefined,
+      shipping_address: recipientAddress || undefined,
+      city: recipientCity || undefined,
+      format_title: cartItems[0]?.title || 'Fotolibro Fine Art',
+      cover_type: cartItems[0]?.project?.coverMaterialId || 'Lino Natural',
+      paper_type: cartItems[0]?.project?.paperType || 'Fuji Lustre HD',
+      total_price: total,
+      status: 'confirmado',
+    }).catch((err) => {
+      console.warn('Error no bloqueante al sincronizar pedido con Supabase:', err);
+    });
+
+    // Trigger celebration confetti
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#ECC880', '#C5A059', '#1F1C18', '#D8CFBC'],
+      });
+    } catch (err) {
+      // safe fallback
+    }
+  };
+
+  const whatsappConfirmationUrl = `https://wa.me/${STORE_CONFIG.whatsappRaw}?text=${encodeURIComponent(
+    `¡Hola HALO Fine Art Lab! Acabo de generar la Orden #${createdOrderNumber || 'NUEVA'} por ${formatPriceARS(total)} ARS a nombre de ${recipientName || 'Cliente'}. ¿Me confirman los datos para el pago y envío a ${recipientCity || 'Pilar'}?`
+  )}`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md overflow-y-auto">
+      <div className="relative my-8 w-full max-w-2xl rounded-3xl border border-[#D6CEBE] bg-[#FDFCF9] shadow-2xl overflow-hidden text-[#1F1C18]">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[#E8E2D5] bg-[#F4EFE6] px-6 py-4">
+          <div className="flex items-center gap-2.5">
+            <ShoppingBag className="w-5 h-5 text-[#8C6D37]" />
+            <h2 className="font-serif-luxury text-xl font-bold text-[#1F1C18]">
+              {step === 'cart' && 'Tu Carrito en HALO Fine Art'}
+              {step === 'checkout' && 'Detalles de Envío & Facturación'}
+              {step === 'success' && '¡Orden Registrada con Éxito!'}
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-full text-[#736B60] hover:bg-[#E8E2D5]"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content based on step */}
+        {step === 'cart' && (
+          <div className="p-6 sm:p-8 space-y-6">
+            {cartItems.length === 0 ? (
+              <div className="text-center py-12 space-y-3">
+                <BookOpen className="w-12 h-12 text-[#A89F91] mx-auto opacity-50" />
+                <h3 className="font-serif-luxury text-xl font-semibold text-[#1F1C18]">Tu carrito está vacío</h3>
+                <p className="text-xs text-[#736B60]">Diseñá tu fotolibro con nuestro editor o solicitá el servicio de diseño asistido.</p>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="mt-4 px-6 py-2.5 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs font-semibold uppercase tracking-wider"
+                >
+                  Explorar Formatos
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-4 max-h-60 overflow-y-auto pr-1">
+                  {cartItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-4 rounded-2xl border border-[#D6CEBE] bg-[#F4EFE6]/50 flex items-center justify-between gap-4"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6D37] bg-[#EFE9DE] px-2 py-0.5 rounded">
+                            {item.type === 'custom-album' ? 'Fotolibro a Medida' : 'Servicio Concierge'}
+                          </span>
+                        </div>
+                        <h4 className="font-serif-luxury text-lg font-bold text-[#1F1C18]">{item.title}</h4>
+                        <p className="text-xs text-[#595248]">{item.details}</p>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="font-serif-luxury text-xl font-bold text-[#1F1C18] block">
+                          {formatPriceARS(item.price)} ARS
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onRemoveItem(item.id)}
+                          className="text-[11px] text-red-600 hover:underline mt-1"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Logistics & Delivery Highlights */}
+                <div className="rounded-2xl border border-[#D6CEBE] bg-[#F4EFE6]/60 p-4 text-xs text-[#595248] space-y-2">
+                  <div className="flex items-center gap-2 text-[#1F1C18] font-bold">
+                    <MapPin className="w-4 h-4 text-[#8C6D37]" />
+                    <span>Fabricación Artesanal en Pilar, Zona Norte (Bs. As.)</span>
+                  </div>
+                  <p className="text-[11px]">
+                    • Plazo de elaboración: <strong>4 a 6 días hábiles</strong>.<br />
+                    • Envío sin costo en Pilar y radio de 20 km. Envíos asegurados por Correo a toda la Argentina.
+                  </p>
+                </div>
+
+                {/* Totals Breakdown */}
+                <div className="rounded-2xl border border-[#E8E2D5] bg-[#FDFCF9] p-4 space-y-2 text-xs text-[#595248]">
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <strong className="text-[#1F1C18]">{formatPriceARS(subtotal)} ARS</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Entrega en Pilar y zona norte (radio 20km):</span>
+                    <strong className="text-emerald-700">GRATIS</strong>
+                  </div>
+                  <div className="border-t border-[#E8E2D5] pt-2 flex justify-between text-sm font-bold text-[#1F1C18]">
+                    <span>Total Final Estimado:</span>
+                    <span className="font-serif-luxury text-xl text-[#8C6D37]">{formatPriceARS(subtotal)} ARS</span>
+                  </div>
+                </div>
+
+                {/* Proceed Button */}
+                <button
+                  type="button"
+                  onClick={() => setStep('checkout')}
+                  className="w-full py-4 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-widest font-bold hover:bg-[#3D352E] shadow-xl flex items-center justify-center gap-2"
+                >
+                  <ShieldCheck className="w-4 h-4 text-[#ECC880]" />
+                  <span>Continuar con Datos de Entrega</span>
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {step === 'checkout' && (
+          <form onSubmit={handlePlaceOrder} className="p-6 sm:p-8 space-y-5 max-h-[80vh] overflow-y-auto">
+            {/* 1. Recipient info */}
+            <div className="space-y-3">
+              <h3 className="font-serif-luxury text-base font-bold text-[#1F1C18] border-b border-[#E8E2D5] pb-1">
+                1. Datos de Quien Recibe
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  required
+                  value={recipientName}
+                  onChange={(e) => setRecipientName(e.target.value)}
+                  placeholder="Nombre y Apellido completo"
+                  className="w-full rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] px-3 py-2 text-xs"
+                />
+                <input
+                  type="email"
+                  required
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                  placeholder="Email para seguimiento"
+                  className="w-full rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] px-3 py-2 text-xs"
+                />
+                <input
+                  type="tel"
+                  required
+                  value={recipientPhone}
+                  onChange={(e) => setRecipientPhone(e.target.value)}
+                  placeholder="Teléfono / WhatsApp de contacto"
+                  className="w-full rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] px-3 py-2 text-xs"
+                />
+                <input
+                  type="text"
+                  required
+                  value={recipientAddress}
+                  onChange={(e) => setRecipientAddress(e.target.value)}
+                  placeholder="Calle, Número, Piso / Depto / Barrio cerrado"
+                  className="w-full rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] px-3 py-2 text-xs"
+                />
+                <input
+                  type="text"
+                  required
+                  value={recipientCity}
+                  onChange={(e) => setRecipientCity(e.target.value)}
+                  placeholder="Localidad (Ej: Pilar, Nordelta, CABA, Córdoba...)"
+                  className="w-full rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] px-3 py-2 text-xs"
+                />
+                <input
+                  type="text"
+                  required
+                  value={recipientPostal}
+                  onChange={(e) => setRecipientPostal(e.target.value)}
+                  placeholder="Código Postal"
+                  className="w-full rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] px-3 py-2 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* 2. Delivery options */}
+            <div className="space-y-3">
+              <h3 className="font-serif-luxury text-base font-bold text-[#1F1C18] border-b border-[#E8E2D5] pb-1">
+                2. Método de Entrega
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setShippingMethod('pilar-free')}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    shippingMethod === 'pilar-free'
+                      ? 'border-[#8C6D37] bg-[#FDFCF9] ring-1 ring-[#8C6D37] shadow-sm'
+                      : 'border-[#D6CEBE] bg-[#F4EFE6]/40'
+                  }`}
+                >
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-[#1F1C18]">Zona Pilar & Alrededores (20km)</span>
+                    <span className="text-emerald-700 font-bold uppercase text-[10px]">Sin Costo</span>
+                  </div>
+                  <p className="text-[11px] text-[#736B60]">Entrega directa protegida desde nuestro laboratorio</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShippingMethod('correo-nacional')}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    shippingMethod === 'correo-nacional'
+                      ? 'border-[#8C6D37] bg-[#FDFCF9] ring-1 ring-[#8C6D37] shadow-sm'
+                      : 'border-[#D6CEBE] bg-[#F4EFE6]/40'
+                  }`}
+                >
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-[#1F1C18]">Envío Correo a Todo el País</span>
+                    <span className="font-bold text-[#1F1C18]">
+                      {subtotal > 200000 ? 'GRATIS' : `${formatPriceARS(9500)} ARS`}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#736B60]">Embalaje rígido de alta seguridad con seguimiento online</p>
+                </button>
+              </div>
+            </div>
+
+            {/* 3. Payment Method */}
+            <div className="space-y-3">
+              <h3 className="font-serif-luxury text-base font-bold text-[#1F1C18] border-b border-[#E8E2D5] pb-1">
+                3. Forma de Pago (Pesos Argentinos)
+              </h3>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                {[
+                  { id: 'mercadopago', label: '💙 Mercado Pago / Débito' },
+                  { id: 'transfer', label: '🏦 Transferencia Bancaria (CBU)' },
+                  { id: 'card', label: '💳 Tarjetas en Cuotas' },
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setPaymentMethod(m.id as any)}
+                    className={`py-2.5 px-2 rounded-xl border font-medium text-center transition-all ${
+                      paymentMethod === m.id
+                        ? 'border-[#8C6D37] bg-[#8C6D37] text-white shadow-sm'
+                        : 'border-[#D6CEBE] bg-[#F4EFE6]/50 text-[#1F1C18]'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-3 border-t border-[#E8E2D5]">
+              <button
+                type="button"
+                onClick={() => setStep('cart')}
+                className="text-xs font-semibold text-[#736B60] hover:text-[#1F1C18]"
+              >
+                ← Volver al Carrito
+              </button>
+
+              <button
+                type="submit"
+                className="px-8 py-3.5 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-widest font-bold hover:bg-[#3D352E] shadow-xl"
+              >
+                Confirmar Orden ({formatPriceARS(total)} ARS)
+              </button>
+            </div>
+          </form>
+        )}
+
+        {step === 'success' && (
+          <div className="p-8 sm:p-10 text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-[#EFE9DE] text-[#8C6D37] flex items-center justify-center mx-auto mb-2 border border-[#D6CEBE]">
+              <Sparkles className="w-8 h-8" />
+            </div>
+            <h3 className="font-serif-luxury text-3xl font-bold text-[#1F1C18]">
+              ¡Tu Pedido fue Registrado con Éxito!
+            </h3>
+            <p className="text-sm text-[#595248] max-w-md mx-auto leading-relaxed">
+              Orden: <strong className="font-mono text-[#8C6D37]">#{createdOrderNumber}</strong><br />
+              Total: <strong className="text-[#1F1C18]">{formatPriceARS(total)} ARS</strong>
+            </p>
+            <div className="p-4 rounded-2xl border border-[#D6CEBE] bg-[#F4EFE6] text-xs text-[#595248] max-w-md mx-auto text-left space-y-2">
+              <p className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#8C6D37] shrink-0" />
+                <span>Tiempo de elaboración & entrega: <strong>4 a 6 días hábiles</strong> desde nuestro taller en Pilar.</span>
+              </p>
+              <p>• Te enviamos la confirmación a <strong>{recipientEmail || 'tu email'}</strong>.</p>
+              <p>• Podés seguir el avance de diseño, impresión y envío en tiempo real con tu número de orden.</p>
+            </div>
+
+            <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
+              {onOpenTracker && createdOrderId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClearCart();
+                    onClose();
+                    onOpenTracker(createdOrderId);
+                  }}
+                  className="px-6 py-3 rounded-full bg-[#8C6D37] text-white text-xs uppercase tracking-wider font-bold hover:bg-[#73582A] flex items-center gap-2 shadow-md transition-transform hover:scale-105"
+                >
+                  <Package className="w-4 h-4" />
+                  <span>Ver Tracker de Pedido</span>
+                </button>
+              )}
+
+              <a
+                href={whatsappConfirmationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-3 rounded-full bg-[#25D366] text-white text-xs uppercase tracking-wider font-semibold hover:bg-[#1EBE5D] flex items-center gap-2 shadow-sm"
+              >
+                <Phone className="w-4 h-4" />
+                <span>Confirmar por WhatsApp</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onClearCart();
+                  onClose();
+                }}
+                className="px-5 py-3 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E]"
+              >
+                Volver a la Tienda
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
