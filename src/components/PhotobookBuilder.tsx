@@ -60,7 +60,14 @@ import {
   Heading2,
   Quote,
   Tag,
-  LayoutGrid
+  LayoutGrid,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  Scan,
+  Maximize,
+  Minimize
 } from 'lucide-react';
 import { 
   BookFormatId, 
@@ -229,6 +236,13 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   const [isMultiSelectMode, setIsMultiSelectMode] = useState<boolean>(false);
   const [photoUsageFilter, setPhotoUsageFilter] = useState<'all' | 'unused' | 'used'>('all');
   const [isCanvasDragOver, setIsCanvasDragOver] = useState<boolean>(false);
+
+  // Pro Studio Workspace Paneling & Zoom State
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState<boolean>(false);
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState<boolean>(false);
+  const [leftSidebarTab, setLeftSidebarTab] = useState<'photos' | 'spreads'>('photos');
+  const [canvasZoomLevel, setCanvasZoomLevel] = useState<number>(1);
+  const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
 
   // Template 4-Squares [ < ] [ ⊞ ] [ > ] Popover & Hover Preview State
   const [showTemplateGridModal, setShowTemplateGridModal] = useState<boolean>(false);
@@ -3889,7 +3903,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
         {/* STEP 4: INTERACTIVE SPREAD & PHOTO EDITOR (Optimized Unified Layout) */}
         {currentStep === 'editor' && (
-          <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+          <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
             {/* Hidden file input for uploading photos from any upload trigger */}
             <input
               ref={fileInputRef}
@@ -3900,10 +3914,422 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               onChange={handleFileUpload}
             />
 
+            {/* LEFT SIDEBAR: BANCO DE FOTOS & TIRA DE PLIEGOS (Pro Studio Panel) */}
+            <div
+              className={`transition-all duration-300 border-r border-[#E0D8C8] bg-[#FDFCF9] flex flex-col shrink-0 z-20 ${
+                isLeftSidebarCollapsed ? 'w-14 items-center' : 'w-72 2xl:w-80'
+              }`}
+            >
+              {isLeftSidebarCollapsed ? (
+                <div className="flex flex-col items-center py-3 gap-4 w-full h-full">
+                  <button
+                    type="button"
+                    onClick={() => setIsLeftSidebarCollapsed(false)}
+                    className="p-2 rounded-xl bg-[#FAF7F2] border border-[#D6CEBE] text-[#8C6D37] hover:bg-[#EFE9DE] shadow-xs transition-colors"
+                    title="Expandir Galería de Fotos y Pliegos"
+                  >
+                    <PanelLeftOpen className="w-5 h-5" />
+                  </button>
+
+                  <div className="w-8 h-[1px] bg-[#E8E2D5]" />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLeftSidebarTab('photos');
+                      setIsLeftSidebarCollapsed(false);
+                    }}
+                    className={`relative p-2.5 rounded-xl transition-all ${
+                      leftSidebarTab === 'photos'
+                        ? 'bg-[#1F1C18] text-[#ECC880] shadow-sm'
+                        : 'text-[#736B60] hover:bg-[#FAF7F2]'
+                    }`}
+                    title={`Galería de Fotos (${uploadedPhotos.length})`}
+                  >
+                    <ImageIcon className="w-5 h-5" />
+                    <span className="absolute -top-1 -right-1 bg-[#8C6D37] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                      {uploadedPhotos.length}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLeftSidebarTab('spreads');
+                      setIsLeftSidebarCollapsed(false);
+                    }}
+                    className={`relative p-2.5 rounded-xl transition-all ${
+                      leftSidebarTab === 'spreads'
+                        ? 'bg-[#1F1C18] text-[#ECC880] shadow-sm'
+                        : 'text-[#736B60] hover:bg-[#FAF7F2]'
+                    }`}
+                    title={`Tira de Pliegos (${spreads.length})`}
+                  >
+                    <Layers className="w-5 h-5" />
+                    <span className="absolute -top-1 -right-1 bg-[#8C6D37] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                      {spreads.length}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2.5 rounded-xl bg-[#FAF7F2] border border-dashed border-[#8C6D37] text-[#8C6D37] hover:bg-[#EFE9DE] mt-auto mb-2 transition-colors"
+                    title="Subir Fotos"
+                  >
+                    <Upload className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col h-full overflow-hidden">
+                  {/* Header Tabs */}
+                  <div className="p-2.5 border-b border-[#E0D8C8] bg-[#F9F6EE] flex items-center justify-between gap-1.5">
+                    <div className="flex items-center gap-1 bg-[#EFE9DE] p-0.5 rounded-xl">
+                      <button
+                        type="button"
+                        onClick={() => setLeftSidebarTab('photos')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                          leftSidebarTab === 'photos'
+                            ? 'bg-[#1F1C18] text-[#FDFCF9] shadow-xs'
+                            : 'text-[#595248] hover:text-[#1F1C18]'
+                        }`}
+                      >
+                        <ImageIcon className="w-3.5 h-3.5 text-[#ECC880]" />
+                        <span>Fotos ({uploadedPhotos.length})</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setLeftSidebarTab('spreads')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                          leftSidebarTab === 'spreads'
+                            ? 'bg-[#1F1C18] text-[#FDFCF9] shadow-xs'
+                            : 'text-[#595248] hover:text-[#1F1C18]'
+                        }`}
+                      >
+                        <Layers className="w-3.5 h-3.5 text-[#ECC880]" />
+                        <span>Pliegos ({spreads.length})</span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsLeftSidebarCollapsed(true)}
+                      className="p-1.5 rounded-lg text-[#736B60] hover:text-[#1F1C18] hover:bg-[#EFE9DE] transition-colors"
+                      title="Colapsar Panel Lateral"
+                    >
+                      <PanelLeftClose className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Tab 1: Fotos Panel */}
+                  {leftSidebarTab === 'photos' && (
+                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                      {/* Action Bar */}
+                      <div className="p-2.5 border-b border-[#E8E2D5] bg-[#FDFCF9] space-y-2 shrink-0">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex-1 py-1.5 px-2.5 rounded-xl bg-[#8C6D37] text-white hover:bg-[#73582A] text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>+ Subir Fotos</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSelectedPhotoIds(
+                                selectedPhotoIds.length === uploadedPhotos.length ? [] : uploadedPhotos.map((p) => p.id)
+                              )
+                            }
+                            className="px-2 py-1.5 rounded-xl border border-[#D6CEBE] hover:bg-[#FAF7F2] text-[10px] font-bold text-[#595248]"
+                          >
+                            {selectedPhotoIds.length === uploadedPhotos.length ? 'Deseleccionar' : 'Seleccionar Todo'}
+                          </button>
+                        </div>
+
+                        {/* Filter Chips */}
+                        <div className="flex items-center gap-1 text-[10px]">
+                          {[
+                            { id: 'all', label: `Todas (${uploadedPhotos.length})` },
+                            {
+                              id: 'unused',
+                              label: `Sin usar (${
+                                uploadedPhotos.filter((p) => getPhotoUsageCount(p.id) === 0).length
+                              })`,
+                            },
+                            {
+                              id: 'used',
+                              label: `En uso (${
+                                uploadedPhotos.filter((p) => getPhotoUsageCount(p.id) > 0).length
+                              })`,
+                            },
+                          ].map((f) => (
+                            <button
+                              key={f.id}
+                              type="button"
+                              onClick={() => setPhotoUsageFilter(f.id as any)}
+                              className={`flex-1 py-1 px-1.5 rounded-lg text-center font-medium transition-colors ${
+                                photoUsageFilter === f.id
+                                  ? 'bg-[#8C6D37] text-white font-bold'
+                                  : 'bg-[#EFE9DE] text-[#595248] hover:bg-[#E2D8C7]'
+                              }`}
+                            >
+                              {f.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Multi-selection Banner */}
+                        {selectedPhotoIds.length > 0 && (
+                          <div className="p-2 rounded-xl bg-[#FAF6EF] border border-[#C5A059]/40 flex items-center justify-between gap-1.5">
+                            <span className="text-[10px] font-bold text-[#8C6D37]">
+                              {selectedPhotoIds.length} seleccionada(s)
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={handleAutoPopulateWithSelected}
+                                className="px-2 py-1 rounded-lg bg-[#8C6D37] text-white text-[10px] font-bold hover:bg-[#73582A] flex items-center gap-1 shadow-xs"
+                              >
+                                <Sparkles className="w-3 h-3 text-[#ECC880]" />
+                                <span>Llenar</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedPhotoIds([])}
+                                className="text-[10px] text-[#736B60] hover:text-[#1F1C18] underline ml-1"
+                              >
+                                Limpiar
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Scrollable Photos Grid */}
+                      <div className="flex-1 overflow-y-auto p-2.5 min-h-0">
+                        {uploadedPhotos.length === 0 ? (
+                          <div className="h-full flex flex-col items-center justify-center p-4 text-center">
+                            <ImageIcon className="w-8 h-8 text-[#A89F91] mb-2" />
+                            <p className="text-xs font-bold text-[#1F1C18]">No hay fotos subidas</p>
+                            <p className="text-[10px] text-[#736B60] mt-1 mb-3">Sube tus fotos para empezar a diseñar</p>
+                            <button
+                              type="button"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="px-3 py-1.5 rounded-xl bg-[#8C6D37] text-white text-xs font-bold hover:bg-[#73582A]"
+                            >
+                              Subir Fotos
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-2">
+                            {uploadedPhotos
+                              .filter((p) => {
+                                const usage = getPhotoUsageCount(p.id);
+                                if (photoUsageFilter === 'unused') return usage === 0;
+                                if (photoUsageFilter === 'used') return usage > 0;
+                                return true;
+                              })
+                              .map((photo) => {
+                                const usageCount = getPhotoUsageCount(photo.id);
+                                const isSelected = selectedPhotoIds.includes(photo.id);
+
+                                return (
+                                  <div
+                                    key={photo.id}
+                                    draggable
+                                    onDragStart={(e) => {
+                                      e.dataTransfer.setData('text/plain', photo.id);
+                                      setDraggedPhotoId(photo.id);
+                                    }}
+                                    onDragEnd={() => setDraggedPhotoId(null)}
+                                    onClick={() => {
+                                      setSelectedPhotoIds((prev) =>
+                                        prev.includes(photo.id)
+                                          ? prev.filter((id) => id !== photo.id)
+                                          : [...prev, photo.id]
+                                      );
+                                    }}
+                                    onDoubleClick={() => {
+                                      if (selectedSlotId) {
+                                        updateActiveSlot(selectedSlotId, (s) => ({ ...s, photoId: photo.id }));
+                                      } else {
+                                        const currentSpread = spreads[activeSpreadIndex];
+                                        const emptyLeft = currentSpread?.leftPage.slots.find((s) => !s.photoId);
+                                        const emptyRight = currentSpread?.rightPage.slots.find((s) => !s.photoId);
+                                        const targetSlot = emptyLeft || emptyRight;
+                                        if (targetSlot) {
+                                          updateActiveSlot(targetSlot.id, (s) => ({ ...s, photoId: photo.id }));
+                                        }
+                                      }
+                                    }}
+                                    className={`group relative aspect-square rounded-xl border-2 transition-all p-1 bg-white cursor-grab active:cursor-grabbing flex flex-col justify-between ${
+                                      isSelected
+                                        ? 'border-[#8C6D37] ring-2 ring-[#8C6D37]/40 shadow-md scale-[1.02]'
+                                        : 'border-[#D6CEBE] hover:border-[#8C6D37] hover:shadow-xs'
+                                    }`}
+                                    title="Arrastra al pliego o doble clic para colocar"
+                                  >
+                                    <div className="w-full h-full rounded-lg overflow-hidden bg-[#EFE9DE] relative">
+                                      <img
+                                        src={getThumbnailSrc(photo)}
+                                        alt={photo.name}
+                                        className="w-full h-full object-cover select-none pointer-events-none"
+                                      />
+
+                                      {/* Usage badge */}
+                                      {usageCount > 0 ? (
+                                        <span className="absolute top-1 left-1 bg-[#8C6D37] text-white text-[8px] font-bold px-1.5 py-0.2 rounded-full shadow-xs">
+                                          {usageCount}x
+                                        </span>
+                                      ) : (
+                                        <span className="absolute top-1 left-1 bg-black/55 text-white text-[7px] font-medium px-1 rounded-full backdrop-blur-xs">
+                                          Sin usar
+                                        </span>
+                                      )}
+
+                                      {/* Checkmark */}
+                                      <div
+                                        className={`absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center transition-opacity ${
+                                          isSelected
+                                            ? 'bg-[#8C6D37] text-white opacity-100'
+                                            : 'bg-black/30 text-transparent group-hover:opacity-100 opacity-0'
+                                        }`}
+                                      >
+                                        <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tab 2: Pliegos Panel */}
+                  {leftSidebarTab === 'spreads' && (
+                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                      <div className="p-2.5 border-b border-[#E8E2D5] bg-[#FDFCF9] flex items-center justify-between shrink-0">
+                        <span className="text-[11px] font-bold text-[#595248]">
+                          {spreads.length} Pliegos ({spreads.length * 2} Págs.)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleAddSpread}
+                          className="px-2.5 py-1 rounded-lg bg-[#8C6D37] text-white text-[10px] font-bold hover:bg-[#73582A] flex items-center gap-1 shadow-xs transition-colors"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>+ Pliego</span>
+                        </button>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 min-h-0">
+                        {spreads.map((spread, idx) => {
+                          const isActive = idx === activeSpreadIndex;
+                          const leftPhoto = uploadedPhotos.find((p) => p.id === spread.leftPage.slots[0]?.photoId);
+                          const rightPhoto = uploadedPhotos.find((p) => p.id === spread.rightPage.slots[0]?.photoId);
+
+                          return (
+                            <div
+                              key={spread.id}
+                              onClick={() => setActiveSpreadIndex(idx)}
+                              className={`p-2 rounded-xl border-2 transition-all cursor-pointer bg-white ${
+                                isActive
+                                  ? 'border-[#8C6D37] ring-2 ring-[#8C6D37]/30 shadow-md'
+                                  : 'border-[#D6CEBE] hover:border-[#8C6D37]/60 hover:shadow-xs'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between text-[10px] font-bold mb-1.5">
+                                <span className={isActive ? 'text-[#8C6D37]' : 'text-[#1F1C18]'}>
+                                  Pliego {idx + 1}
+                                </span>
+                                <span className="text-[9px] text-[#736B60]">
+                                  Págs. {idx * 2 + 1} - {idx * 2 + 2}
+                                </span>
+                              </div>
+
+                              {/* Miniature */}
+                              <div className="w-full aspect-[16/10] rounded-lg bg-[#FAF7F2] border border-[#E8E2D5] flex overflow-hidden relative">
+                                {spread.isFullSpreadBleed ? (
+                                  <div className="w-full h-full bg-[#E2D8C7] flex items-center justify-center overflow-hidden">
+                                    {uploadedPhotos.find((p) => p.id === spread.fullSpreadPhotoId) ? (
+                                      <img
+                                        src={getThumbnailSrc(uploadedPhotos.find((p) => p.id === spread.fullSpreadPhotoId)!)}
+                                        alt="Panorámica"
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      <span className="text-[8px] font-bold text-[#736B60]">Panorámica</span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="w-1/2 h-full border-r border-[#E8E2D5] bg-[#F4EFE6] overflow-hidden flex items-center justify-center">
+                                      {leftPhoto ? (
+                                        <img src={getThumbnailSrc(leftPhoto)} alt="L" className="w-full h-full object-cover" />
+                                      ) : (
+                                        <span className="text-[7px] text-[#A89F91]">P.{idx * 2 + 1}</span>
+                                      )}
+                                    </div>
+                                    <div className="w-1/2 h-full bg-[#F4EFE6] overflow-hidden flex items-center justify-center">
+                                      {rightPhoto ? (
+                                        <img src={getThumbnailSrc(rightPhoto)} alt="R" className="w-full h-full object-cover" />
+                                      ) : (
+                                        <span className="text-[7px] text-[#A89F91]">P.{idx * 2 + 2}</span>
+                                      )}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+
+                              {/* Actions */}
+                              <div className="flex items-center justify-end gap-1 mt-1.5 pt-1 border-t border-[#F0EBE1]">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDuplicateSpread(idx);
+                                  }}
+                                  className="p-1 text-[#736B60] hover:text-[#1F1C18] text-[9px] font-medium flex items-center gap-0.5"
+                                  title="Duplicar pliego"
+                                >
+                                  <Copy className="w-2.5 h-2.5" />
+                                  <span>Duplicar</span>
+                                </button>
+                                {spreads.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteSpread(idx);
+                                    }}
+                                    className="p-1 text-rose-600 hover:text-rose-800 text-[9px] font-medium flex items-center gap-0.5 ml-1"
+                                    title="Eliminar pliego"
+                                  >
+                                    <Trash2 className="w-2.5 h-2.5" />
+                                    <span>Eliminar</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Center Area: Double Page Spread Canvas (Zno CXEditor Style) */}
-            <div className="flex-1 flex flex-col overflow-y-auto p-2 sm:p-3 bg-[#EFECE3] items-center justify-between min-h-0 gap-2">
+            <div className="flex-1 flex flex-col overflow-y-auto p-2 sm:p-3 bg-[#EFECE3] items-center justify-between min-h-0 gap-2 relative">
               {/* TOP BAR: DISEÑOS PREDEFINIDOS (Predefined Layouts Strip) */}
-              <div className="w-full max-w-5xl bg-[#FDFCF9] rounded-2xl border border-[#D6CEBE] p-2 sm:p-2.5 shadow-xs select-none space-y-2 shrink-0">
+              <div className="w-full max-w-[1500px] 2xl:max-w-[1750px] bg-[#FDFCF9] rounded-2xl border border-[#D6CEBE] p-2 sm:p-2.5 shadow-xs select-none space-y-2 shrink-0">
                 {/* Header with Title, Photo Count Filters, and Full Modal Button */}
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E8E2D5] pb-2">
                   <div className="flex items-center gap-2">
@@ -4240,22 +4666,114 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 </div>
               </div>
 
-              {/* The 180° Layflat Open Book Spread Canvas */}
-              <div 
-                ref={spreadCanvasRef}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsCanvasDragOver(true);
-                }}
-                onDragLeave={() => setIsCanvasDragOver(false)}
-                onDrop={(e) => handleDropPhotosOnTarget('spread', e)}
-                className={`w-full max-w-5xl aspect-[16/10] rounded-2xl shadow-2xl border overflow-hidden flex relative paper-texture select-none transition-all duration-200 ${
-                  isCanvasDragOver
-                    ? 'border-[#8C6D37] ring-4 ring-[#8C6D37]/40'
-                    : 'border-[#D6CEBE]'
-                }`}
-                style={{ backgroundColor: displaySpread.backgroundColor || spreadBgColor }}
-              >
+              {/* Canvas Stage Wrapper */}
+              <div className="w-full flex-1 flex flex-col items-center justify-center relative min-h-0 my-auto">
+                {/* Floating Canvas Top Bar Controls */}
+                <div className="w-full max-w-[1500px] 2xl:max-w-[1750px] flex items-center justify-between px-1 mb-1 text-[11px] text-[#736B60]">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-[#1F1C18]">
+                      Pliego {activeSpreadIndex + 1} de {spreads.length}
+                    </span>
+                    <span className="text-[10px] text-[#8C6D37] bg-[#FAF6EF] border border-[#8C6D37]/20 px-2 py-0.5 rounded-full font-medium">
+                      Págs. {activeSpreadIndex * 2 + 1} y {activeSpreadIndex * 2 + 2}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-[#FDFCF9] border border-[#D6CEBE] p-1 rounded-xl shadow-xs">
+                    {/* Safe Margins Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setShowSafeMarginGuides(!showSafeMarginGuides)}
+                      className={`px-2 py-1 rounded-lg font-bold flex items-center gap-1 transition-all ${
+                        showSafeMarginGuides
+                          ? 'bg-[#8C6D37] text-white shadow-xs'
+                          : 'text-[#736B60] hover:bg-[#FAF7F2]'
+                      }`}
+                      title="Mostrar u ocultar guías de corte y márgenes seguros de impresión"
+                    >
+                      <Scan className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Guías de Impresión</span>
+                    </button>
+
+                    <div className="w-[1px] h-4 bg-[#E0D8C8]" />
+
+                    {/* Zoom Out */}
+                    <button
+                      type="button"
+                      onClick={() => setCanvasZoomLevel((prev) => Math.max(0.75, Number((prev - 0.1).toFixed(2))))}
+                      className="p-1 rounded-lg hover:bg-[#FAF7F2] text-[#736B60] hover:text-[#1F1C18] cursor-pointer"
+                      title="Reducir Zoom"
+                    >
+                      <ZoomOut className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCanvasZoomLevel(1)}
+                      className="px-1.5 py-0.5 rounded-md font-mono text-[10px] font-bold text-[#1F1C18] hover:bg-[#FAF7F2] cursor-pointer"
+                      title="Restablecer Zoom a 100%"
+                    >
+                      {Math.round(canvasZoomLevel * 100)}%
+                    </button>
+
+                    {/* Zoom In */}
+                    <button
+                      type="button"
+                      onClick={() => setCanvasZoomLevel((prev) => Math.min(1.4, Number((prev + 0.1).toFixed(2))))}
+                      className="p-1 rounded-lg hover:bg-[#FAF7F2] text-[#736B60] hover:text-[#1F1C18] cursor-pointer"
+                      title="Aumentar Zoom"
+                    >
+                      <ZoomIn className="w-3.5 h-3.5" />
+                    </button>
+
+                    <div className="w-[1px] h-4 bg-[#E0D8C8]" />
+
+                    {/* Focus Mode */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = !isFocusMode;
+                        setIsFocusMode(next);
+                        setIsLeftSidebarCollapsed(next);
+                        setIsRightSidebarCollapsed(next);
+                      }}
+                      className={`px-2 py-1 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                        isFocusMode
+                          ? 'bg-[#1F1C18] text-[#ECC880]'
+                          : 'text-[#736B60] hover:bg-[#FAF7F2]'
+                      }`}
+                      title="Modo Enfoque: oculta paneles laterales para máxima amplitud de diseño"
+                    >
+                      {isFocusMode ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
+                      <span className="hidden md:inline">{isFocusMode ? 'Salir de Enfoque' : 'Modo Enfoque'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* The 180° Layflat Open Book Spread Canvas */}
+                <div
+                  style={{
+                    transform: canvasZoomLevel !== 1 ? `scale(${canvasZoomLevel})` : undefined,
+                    transformOrigin: 'center center',
+                    transition: 'transform 0.2s ease-out'
+                  }}
+                  className="w-full max-w-[1500px] 2xl:max-w-[1750px] flex items-center justify-center"
+                >
+                  <div 
+                    ref={spreadCanvasRef}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsCanvasDragOver(true);
+                    }}
+                    onDragLeave={() => setIsCanvasDragOver(false)}
+                    onDrop={(e) => handleDropPhotosOnTarget('spread', e)}
+                    className={`w-full aspect-[16/10] rounded-2xl shadow-2xl border overflow-hidden flex relative paper-texture select-none transition-all duration-200 ${
+                      isCanvasDragOver
+                        ? 'border-[#8C6D37] ring-4 ring-[#8C6D37]/40'
+                        : 'border-[#D6CEBE]'
+                    }`}
+                    style={{ backgroundColor: displaySpread.backgroundColor || spreadBgColor }}
+                  >
                 {/* Live Real-time Template Hover Preview Badge */}
                 {hoveredLayoutTemplateId && (
                   <div className="absolute top-3 inset-x-1/2 -translate-x-1/2 z-40 px-3.5 py-1.5 rounded-full bg-[#1F1C18]/95 border border-[#ECC880] text-[#ECC880] text-[11px] font-bold flex items-center gap-2 shadow-2xl backdrop-blur-md animate-pulse pointer-events-none whitespace-nowrap">
@@ -4705,340 +5223,153 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 )}
               </div>
 
-              {/* BOTTOM BAR: GALERÍA DE FOTOS & TIRA DE PLIEGOS (Zno Workspace Layout) */}
-              <div className="w-full max-w-5xl mt-2 bg-[#FDFCF9] rounded-2xl border border-[#D6CEBE] p-2.5 shadow-xs select-none space-y-2 shrink-0">
-                {/* Mode Selector & Filter Tabs */}
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E8E2D5] pb-2">
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setBottomBarMode('photos')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                        bottomBarMode === 'photos'
-                          ? 'bg-[#1F1C18] text-[#FDFCF9] shadow-xs'
-                          : 'bg-[#EFE9DE] text-[#736B60] hover:text-[#1F1C18]'
-                      }`}
-                    >
-                      <ImageIcon className="w-3.5 h-3.5 text-[#ECC880]" />
-                      <span>Galería de Fotos ({uploadedPhotos.length})</span>
-                    </button>
+                </div>
+              </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setBottomBarMode('pages')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                        bottomBarMode === 'pages'
-                          ? 'bg-[#1F1C18] text-[#FDFCF9] shadow-xs'
-                          : 'bg-[#EFE9DE] text-[#736B60] hover:text-[#1F1C18]'
-                      }`}
-                    >
-                      <Layers className="w-3.5 h-3.5 text-[#ECC880]" />
-                      <span>Tira de Pliegos ({spreads.length})</span>
-                    </button>
+              {/* Floating Bottom Spread Navigation & Quick Actions Dock */}
+              <div className="w-full max-w-[1500px] 2xl:max-w-[1750px] mt-2 flex flex-wrap items-center justify-between gap-2 bg-[#FDFCF9] rounded-2xl border border-[#D6CEBE] px-3.5 py-2 shadow-xs select-none shrink-0">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveSpreadIndex((prev) => Math.max(0, prev - 1))}
+                    disabled={activeSpreadIndex === 0}
+                    className="px-3 py-1.5 rounded-xl border border-[#D6CEBE] bg-[#FAF7F2] text-[#1F1C18] hover:bg-[#EFE9DE] disabled:opacity-30 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Anterior</span>
+                  </button>
+
+                  <div className="px-3 py-1 rounded-xl bg-[#EFE9DE] font-semibold text-xs text-[#1F1C18]">
+                    Pliego {activeSpreadIndex + 1} de {spreads.length}
                   </div>
 
-                  {/* Center & Right: Photo Filters & Action Buttons */}
-                  {bottomBarMode === 'photos' ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      {/* Photo Usage Filter Chips */}
-                      <div className="flex items-center gap-1 text-[10px]">
-                        {[
-                          { id: 'all', label: `Todas (${uploadedPhotos.length})` },
-                          {
-                            id: 'unused',
-                            label: `Sin usar (${
-                              uploadedPhotos.filter((p) => getPhotoUsageCount(p.id) === 0).length
-                            })`,
-                          },
-                          {
-                            id: 'used',
-                            label: `En uso (${
-                              uploadedPhotos.filter((p) => getPhotoUsageCount(p.id) > 0).length
-                            })`,
-                          },
-                        ].map((filter) => (
-                          <button
-                            key={filter.id}
-                            type="button"
-                            onClick={() => setPhotoUsageFilter(filter.id as any)}
-                            className={`px-2 py-0.5 rounded-full font-medium transition-colors ${
-                              photoUsageFilter === filter.id
-                                ? 'bg-[#8C6D37] text-white font-bold'
-                                : 'bg-[#EFE9DE] text-[#595248] hover:bg-[#E2D8C7]'
-                            }`}
-                          >
-                            {filter.label}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Multi-selection info / Auto-populate */}
-                      {selectedPhotoIds.length > 0 && (
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={handleAutoPopulateWithSelected}
-                            className="px-2.5 py-1 rounded-lg bg-[#8C6D37] text-white text-[10px] font-bold hover:bg-[#73582A] flex items-center gap-1 shadow-xs"
-                          >
-                            <Sparkles className="w-3 h-3 text-[#ECC880]" />
-                            <span>Llenar ({selectedPhotoIds.length})</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedPhotoIds([])}
-                            className="text-[10px] text-[#736B60] hover:text-[#1F1C18] underline"
-                          >
-                            Limpiar
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Upload Photos Trigger */}
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="px-2.5 py-1 rounded-lg bg-[#FAF7F2] border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[11px] font-bold text-[#8C6D37] flex items-center gap-1 transition-colors"
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>+ Subir Fotos</span>
-                      </button>
-                    </div>
-                  ) : (
-                    /* Pliegos actions */
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleDuplicateSpread(activeSpreadIndex)}
-                        className="px-2.5 py-1 rounded-lg border border-[#D6CEBE] bg-white text-[11px] font-semibold hover:bg-[#F4EFE6] flex items-center gap-1"
-                      >
-                        <Copy className="w-3 h-3 text-[#736B60]" />
-                        <span>Duplicar Pliego</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleAddSpread}
-                        className="px-3 py-1 rounded-lg bg-[#1F1C18] text-[#FDFCF9] text-[11px] font-bold hover:bg-[#3D352E] flex items-center gap-1"
-                      >
-                        <Plus className="w-3 h-3 text-[#ECC880]" />
-                        <span>+ Pliego</span>
-                      </button>
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveSpreadIndex((prev) => Math.min(spreads.length - 1, prev + 1))}
+                    disabled={activeSpreadIndex === spreads.length - 1}
+                    className="px-3 py-1.5 rounded-xl border border-[#D6CEBE] bg-[#FAF7F2] text-[#1F1C18] hover:bg-[#EFE9DE] disabled:opacity-30 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <span>Siguiente</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
                 </div>
 
-                {/* CONTENT AREA: 1. PHOTOS TRAY (Bottom Photo Gallery) */}
-                {bottomBarMode === 'photos' && (
-                  <div className="flex items-center gap-2 overflow-x-auto py-1 px-1 scrollbar-thin min-h-[88px]">
-                    {uploadedPhotos
-                      .filter((p) => {
-                        const usage = getPhotoUsageCount(p.id);
-                        if (photoUsageFilter === 'unused') return usage === 0;
-                        if (photoUsageFilter === 'used') return usage > 0;
-                        return true;
-                      })
-                      .map((photo) => {
-                        const usageCount = getPhotoUsageCount(photo.id);
-                        const isSelected = selectedPhotoIds.includes(photo.id);
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleUndo}
+                    disabled={historyIndex <= 0}
+                    className="p-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#FAF7F2] text-[#736B60] hover:text-[#1F1C18] disabled:opacity-30 transition-colors cursor-pointer"
+                    title="Deshacer (Ctrl+Z)"
+                  >
+                    <Undo2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRedo}
+                    disabled={historyIndex >= history.length - 1}
+                    className="p-1.5 rounded-lg border border-[#D6CEBE] hover:bg-[#FAF7F2] text-[#736B60] hover:text-[#1F1C18] disabled:opacity-30 transition-colors cursor-pointer"
+                    title="Rehacer (Ctrl+Y)"
+                  >
+                    <Redo2 className="w-4 h-4" />
+                  </button>
 
-                        return (
-                          <div
-                            key={photo.id}
-                            draggable
-                            onDragStart={(e) => {
-                              e.dataTransfer.setData('text/plain', photo.id);
-                              setDraggedPhotoId(photo.id);
-                            }}
-                            onDragEnd={() => setDraggedPhotoId(null)}
-                            onClick={() => {
-                              setSelectedPhotoIds((prev) =>
-                                prev.includes(photo.id)
-                                  ? prev.filter((id) => id !== photo.id)
-                                  : [...prev, photo.id]
-                              );
-                            }}
-                            onDoubleClick={() => {
-                              if (selectedSlotId) {
-                                updateActiveSlot(selectedSlotId, (s) => ({ ...s, photoId: photo.id }));
-                              } else {
-                                const currentSpread = spreads[activeSpreadIndex];
-                                const emptyLeft = currentSpread?.leftPage.slots.find((s) => !s.photoId);
-                                const emptyRight = currentSpread?.rightPage.slots.find((s) => !s.photoId);
-                                const targetSlot = emptyLeft || emptyRight;
-                                if (targetSlot) {
-                                  updateActiveSlot(targetSlot.id, (s) => ({ ...s, photoId: photo.id }));
-                                }
-                              }
-                            }}
-                            className={`group relative flex-shrink-0 cursor-grab active:cursor-grabbing rounded-xl border-2 transition-all p-1 w-20 h-20 flex flex-col items-center justify-center bg-white ${
-                              isSelected
-                                ? 'border-[#8C6D37] ring-2 ring-[#8C6D37]/40 shadow-md scale-105'
-                                : 'border-[#D6CEBE] hover:border-[#8C6D37] hover:shadow-xs'
-                            }`}
-                            title="Arrastra al pliego o haz doble clic para colocar"
-                          >
-                            {/* Photo Thumbnail */}
-                            <div className="w-full h-full rounded-lg overflow-hidden bg-[#EFE9DE] relative">
-                              <img
-                                src={getThumbnailSrc(photo)}
-                                alt={photo.name}
-                                className="w-full h-full object-cover select-none pointer-events-none"
-                              />
+                  <div className="w-[1px] h-4 bg-[#E0D8C8] mx-1" />
 
-                              {/* Usage Indicator Badge */}
-                              {usageCount > 0 ? (
-                                <span className="absolute top-0.5 left-0.5 bg-[#8C6D37] text-white text-[8px] font-bold px-1 rounded-full shadow-xs">
-                                  {usageCount}x
-                                </span>
-                              ) : (
-                                <span className="absolute top-0.5 left-0.5 bg-black/50 text-white text-[7px] font-medium px-1 rounded-full backdrop-blur-xs">
-                                  Nuevo
-                                </span>
-                              )}
+                  <button
+                    type="button"
+                    onClick={handleFlipSpreadSides}
+                    className="px-2.5 py-1.5 rounded-xl border border-[#D6CEBE] bg-white text-[11px] font-bold text-[#1F1C18] hover:bg-[#FAF7F2] flex items-center gap-1 transition-colors cursor-pointer"
+                    title="Invertir páginas izquierda y derecha"
+                  >
+                    <ArrowLeftRight className="w-3.5 h-3.5 text-[#8C6D37]" />
+                    <span className="hidden sm:inline">Invertir Lados</span>
+                  </button>
 
-                              {/* Selection Checkbox overlay */}
-                              <div
-                                className={`absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center transition-opacity ${
-                                  isSelected
-                                    ? 'bg-[#8C6D37] text-white opacity-100'
-                                    : 'bg-black/30 text-transparent group-hover:opacity-100 opacity-0'
-                                }`}
-                              >
-                                <Check className="w-2.5 h-2.5 stroke-[3]" />
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                    {/* Empty placeholder or upload prompt */}
-                    {uploadedPhotos.length === 0 && (
-                      <div className="w-full flex items-center justify-center py-4 text-center">
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="px-4 py-2 rounded-xl border border-dashed border-[#8C6D37] bg-[#FAF7F2] text-[#8C6D37] hover:bg-[#EFE9DE] text-xs font-bold flex items-center gap-2"
-                        >
-                          <Upload className="w-4 h-4" />
-                          <span>Subir fotos a tu galería</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* CONTENT AREA: 2. SPREADS FILMSTRIP */}
-                {bottomBarMode === 'pages' && (
-                  <div className="flex items-center justify-between gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setActiveSpreadIndex((prev) => Math.max(0, prev - 1))}
-                      disabled={activeSpreadIndex === 0}
-                      className="p-2 rounded-full border border-[#D6CEBE] bg-[#FDFCF9] text-[#736B60] hover:text-[#1F1C18] disabled:opacity-30 shrink-0"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-
-                    {/* Filmstrip thumbnails */}
-                    <div className="flex-1 flex items-center gap-2 overflow-x-auto py-1 px-2 scrollbar-thin">
-                      {spreads.map((s, idx) => {
-                        const isCurrent = idx === activeSpreadIndex;
-                        const leftPhoto = uploadedPhotos.find((p) => p.id === s.leftPage.slots[0]?.photoId);
-                        const rightPhoto = uploadedPhotos.find((p) => p.id === s.rightPage.slots[0]?.photoId);
-
-                        return (
-                          <div
-                            key={s.id}
-                            onClick={() => setActiveSpreadIndex(idx)}
-                            className={`group relative flex-shrink-0 cursor-pointer rounded-xl border-2 transition-all p-1 ${
-                              isCurrent
-                                ? 'border-[#8C6D37] bg-white ring-2 ring-[#8C6D37]/30 shadow-md'
-                                : 'border-[#D6CEBE] bg-[#FDFCF9] hover:border-[#1F1C18]'
-                            }`}
-                          >
-                            {/* Mini open spread preview */}
-                            <div className="w-24 h-15 rounded bg-[#EFE9DE] overflow-hidden flex border border-[#D6CEBE]/60">
-                              {s.isFullSpreadBleed ? (
-                                <div className="w-full h-full bg-[#E2D8C7] flex items-center justify-center overflow-hidden">
-                                  {uploadedPhotos.find((p) => p.id === s.fullSpreadPhotoId) ? (
-                                    <img
-                                      src={getThumbnailSrc(uploadedPhotos.find((p) => p.id === s.fullSpreadPhotoId)!)}
-                                      alt="Spread"
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <span className="text-[8px] font-bold text-[#736B60]">Panorámica</span>
-                                  )}
-                                </div>
-                              ) : (
-                                <>
-                                  <div className="w-1/2 h-full border-r border-[#D6CEBE] bg-[#F4EFE6] overflow-hidden flex items-center justify-center">
-                                    {leftPhoto ? (
-                                      <img src={getThumbnailSrc(leftPhoto)} alt="L" className="w-full h-full object-cover" />
-                                    ) : (
-                                      <span className="text-[7px] text-[#A89F91]">P.{idx * 2 + 1}</span>
-                                    )}
-                                  </div>
-                                  <div className="w-1/2 h-full bg-[#F4EFE6] overflow-hidden flex items-center justify-center">
-                                    {rightPhoto ? (
-                                      <img src={getThumbnailSrc(rightPhoto)} alt="R" className="w-full h-full object-cover" />
-                                    ) : (
-                                      <span className="text-[7px] text-[#A89F91]">P.{idx * 2 + 2}</span>
-                                    )}
-                                  </div>
-                                </>
-                              )}
-                            </div>
-
-                            {/* Label */}
-                            <span
-                              className={`block text-center text-[10px] font-bold mt-1 ${
-                                isCurrent ? 'text-[#8C6D37]' : 'text-[#736B60]'
-                              }`}
-                            >
-                              Pliego {idx + 1}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveSpreadIndex((prev) => Math.min(spreads.length - 1, prev + 1))}
-                      disabled={activeSpreadIndex === spreads.length - 1}
-                      className="p-2 rounded-full border border-[#D6CEBE] bg-[#FDFCF9] text-[#736B60] hover:text-[#1F1C18] disabled:opacity-30 shrink-0"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
+                  <button
+                    type="button"
+                    onClick={handleAddSpread}
+                    className="px-3 py-1.5 rounded-xl bg-[#1F1C18] text-[#FDFCF9] text-xs font-bold hover:bg-[#3D352E] flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-[#ECC880]" />
+                    <span>+ Pliego</span>
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Right Sidebar: Permanent Inspector & Tool Sliders Panel */}
-            <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-[#E0D8C8] bg-[#FDFCF9] flex flex-col overflow-y-auto shrink-0 z-20">
-              {/* Panel Header */}
-              <div className="p-3.5 border-b border-[#E0D8C8] bg-[#F9F6EE] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <SlidersHorizontal className="w-4 h-4 text-[#8C6D37]" />
-                  <span className="font-bold text-xs uppercase tracking-wider text-[#1F1C18]">
-                    Herramientas & Ajustes
-                  </span>
+            {/* Right Sidebar: Permanent Inspector & Tool Sliders Panel (Collapsible) */}
+            <div
+              className={`transition-all duration-300 border-t lg:border-t-0 lg:border-l border-[#E0D8C8] bg-[#FDFCF9] flex flex-col shrink-0 z-20 ${
+                isRightSidebarCollapsed ? 'w-full lg:w-14 items-center overflow-hidden' : 'w-full lg:w-80 overflow-y-auto'
+              }`}
+            >
+              {isRightSidebarCollapsed ? (
+                <div className="flex flex-row lg:flex-col items-center justify-between lg:justify-start py-2 lg:py-3 px-3 lg:px-0 gap-3 w-full h-auto lg:h-full">
+                  <button
+                    type="button"
+                    onClick={() => setIsRightSidebarCollapsed(false)}
+                    className="p-2 rounded-xl bg-[#FAF7F2] border border-[#D6CEBE] text-[#8C6D37] hover:bg-[#EFE9DE] shadow-xs transition-colors cursor-pointer"
+                    title="Expandir Herramientas y Ajustes"
+                  >
+                    <PanelRightOpen className="w-5 h-5" />
+                  </button>
+
+                  <div className="hidden lg:block w-8 h-[1px] bg-[#E8E2D5]" />
+
+                  <button
+                    type="button"
+                    onClick={() => setIsRightSidebarCollapsed(false)}
+                    className="p-2.5 rounded-xl text-[#736B60] hover:bg-[#FAF7F2] hover:text-[#1F1C18] transition-colors cursor-pointer"
+                    title="Herramientas y Ajustes"
+                  >
+                    <SlidersHorizontal className="w-5 h-5 text-[#8C6D37]" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsRightSidebarCollapsed(false)}
+                    className="p-2.5 rounded-xl text-[#736B60] hover:bg-[#FAF7F2] hover:text-[#1F1C18] transition-colors cursor-pointer"
+                    title="Paleta y Estilos"
+                  >
+                    <Palette className="w-5 h-5 text-[#8C6D37]" />
+                  </button>
                 </div>
-                {selectedTextId ? (
-                  <span className="px-2 py-0.5 rounded-full bg-[#8C6D37] text-white font-bold text-[10px]">
-                    Capa de Texto
-                  </span>
-                ) : selectedSlotData ? (
-                  <span className="px-2 py-0.5 rounded-full bg-[#0091FF]/10 text-[#0091FF] font-bold text-[10px] border border-[#0091FF]/30">
-                    Pág. {selectedSlotData.pageNumber}
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 rounded-full bg-[#8C6D37]/10 text-[#8C6D37] font-bold text-[10px] border border-[#8C6D37]/30">
-                    Pliego {activeSpreadIndex + 1}
-                  </span>
-                )}
-              </div>
+              ) : (
+                <>
+                  {/* Panel Header */}
+                  <div className="p-3.5 border-b border-[#E0D8C8] bg-[#F9F6EE] flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <SlidersHorizontal className="w-4 h-4 text-[#8C6D37]" />
+                      <span className="font-bold text-xs uppercase tracking-wider text-[#1F1C18]">
+                        Herramientas & Ajustes
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {selectedTextId ? (
+                        <span className="px-2 py-0.5 rounded-full bg-[#8C6D37] text-white font-bold text-[10px]">
+                          Capa de Texto
+                        </span>
+                      ) : selectedSlotData ? (
+                        <span className="px-2 py-0.5 rounded-full bg-[#0091FF]/10 text-[#0091FF] font-bold text-[10px] border border-[#0091FF]/30">
+                          Pág. {selectedSlotData.pageNumber}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-[#8C6D37]/10 text-[#8C6D37] font-bold text-[10px] border border-[#8C6D37]/30">
+                          Pliego {activeSpreadIndex + 1}
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setIsRightSidebarCollapsed(true)}
+                        className="p-1 rounded-lg text-[#736B60] hover:text-[#1F1C18] hover:bg-[#EFE9DE] transition-colors cursor-pointer ml-1"
+                        title="Colapsar Panel"
+                      >
+                        <PanelRightClose className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
 
               {/* Panel Body: Mode 0 - Floating Text Element Inspector */}
               {selectedTextId && activeSpread.textElements?.find((t) => t.id === selectedTextId) ? (() => {
@@ -5906,6 +6237,8 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     </button>
                   </div>
                 </div>
+              )}
+                </>
               )}
             </div>
           </div>
