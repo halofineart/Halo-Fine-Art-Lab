@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { 
   Smartphone, 
   PenTool, 
@@ -21,62 +21,31 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   onOpenConcierge,
   onExploreCatalog,
 }) => {
-  const [scrollY, setScrollY] = useState(0);
-
-  useEffect(() => {
-    let ticking = false;
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          setScrollY(window.scrollY);
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   return (
     <section className="relative overflow-hidden bg-[#FAF8F5] border-b border-[#E8E2D5]/70">
       
-      {/* Parallax Translucent Background Image Section (Hero Cover) */}
-      <div className="relative min-h-[580px] sm:min-h-[680px] lg:min-h-[740px] flex items-center justify-center overflow-hidden">
-        
-        {/* Parallax Background Layer with Translucent Ambient Photo */}
-        <div 
-          className="absolute inset-0 w-full h-[125%] -top-[12%] pointer-events-none will-change-transform"
-          style={{
-            transform: `translate3d(0, ${scrollY * 0.28}px, 0)`,
-          }}
-        >
-          <img
-            src={heroSpreadImg}
-            onError={(e) => {
-              e.currentTarget.src = 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1600&q=85';
-            }}
-            alt="HALO Fine Art Fotolibro abierto artesanal"
-            className="w-full h-full object-cover object-center opacity-45 sm:opacity-50 scale-105 filter saturate-[0.85] contrast-[0.95]"
-            referrerPolicy="no-referrer"
-          />
-          {/* Subtle Warm Beige Overlays & Diffuse Radial Glow */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#FAF8F5]/85 via-[#FAF8F5]/60 to-[#FAF8F5]" />
-          <div className="absolute inset-0 bg-radial-at-center from-[#FAF8F5]/30 via-transparent to-[#FAF8F5]/80" />
-        </div>
+      {/* Fixed Parallax Background Section */}
+      <div 
+        className="relative min-h-[580px] sm:min-h-[660px] lg:min-h-[720px] flex items-center justify-center overflow-hidden bg-fixed bg-center bg-cover"
+        style={{
+          backgroundImage: `url(${heroSpreadImg})`,
+        }}
+      >
+        {/* Semi-transparent warm veil to create the exact translucent effect from the image */}
+        <div className="absolute inset-0 bg-[#FAF8F5]/82 backdrop-blur-[1px]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#FAF8F5]/90 via-[#FAF8F5]/70 to-[#FAF8F5]" />
 
-        {/* Floating Editorial Content Directly Over the Translucent Image */}
+        {/* Floating Editorial Content Directly Over the Translucent Background */}
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-16 sm:py-24 text-center">
           
           {/* Editorial Top Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#D6CEBE]/90 bg-[#FBF9F5]/90 backdrop-blur-md text-[#736B60] text-[10px] sm:text-[11px] uppercase tracking-[0.22em] font-medium mb-7 shadow-xs">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#D6CEBE]/90 bg-[#FBF9F5]/90 backdrop-blur-md text-[#736B60] text-[10px] sm:text-[11px] uppercase tracking-[0.22em] font-medium mb-7 shadow-2xs">
             <Lock className="w-3 h-3 text-[#8C6D37]" />
             <span>Laboratorio de Encuadernación Artesanal</span>
           </div>
 
           {/* Main Editorial Headline */}
-          <h1 className="font-serif-luxury text-4xl sm:text-6xl lg:text-[76px] font-normal text-[#1F1C18] tracking-tight leading-[1.08] mb-6 drop-shadow-xs">
+          <h1 className="font-serif-luxury text-4xl sm:text-6xl lg:text-[76px] font-normal text-[#1F1C18] tracking-tight leading-[1.08] mb-6">
             Tus recuerdos merecen<br className="hidden sm:inline" /> algo más que una pantalla.
           </h1>
 
@@ -120,12 +89,29 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
         </div>
 
-        {/* Bottom Soft Dissolve Gradient into the rest of the page */}
+        {/* Bottom Soft Dissolve Gradient */}
         <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-[#FAF8F5] via-[#FAF8F5]/80 to-transparent pointer-events-none" />
       </div>
 
+      {/* Main Central Showcase Image (Restored with refined presentation) */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 sm:-mt-14 relative z-20 mb-20">
+        <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-[#E8E2D5] bg-[#EFE9DE]">
+          <img
+            src={heroSpreadImg}
+            onError={(e) => {
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1200&q=80';
+            }}
+            alt="Fotolibro abierto sobre mesa de lectura con café"
+            className="w-full h-[320px] sm:h-[480px] lg:h-[560px] object-cover object-center"
+            referrerPolicy="no-referrer"
+          />
+          {/* Subtle warm overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/10 pointer-events-none" />
+        </div>
+      </div>
+
       {/* Section: Un proceso simple, pensado para emocionarte */}
-      <div id="how-it-works" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 scroll-mt-24">
+      <div id="how-it-works" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 scroll-mt-24">
         <div className="text-center max-w-2xl mx-auto mb-14">
           <h2 className="font-serif-luxury text-3xl sm:text-4xl text-[#1F1C18] font-normal">
             Un proceso simple, pensado para emocionarte.
