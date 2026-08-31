@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import { X, ShoppingBag, CheckCircle2, ShieldCheck, Truck, CreditCard, Sparkles, BookOpen, Phone, MapPin, Package, Clock, Database } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { PhotobookProject, DesignServiceRequest, TrackedOrder } from '../types';
@@ -164,8 +165,20 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
   )}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md overflow-y-auto">
-      <div className="relative my-8 w-full max-w-2xl rounded-3xl border border-[#D6CEBE] bg-[#FDFCF9] shadow-2xl overflow-hidden text-[#1F1C18]">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.22, ease: 'easeOut' }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md overflow-y-auto"
+    >
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 14 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+        className="relative my-8 w-full max-w-2xl rounded-3xl border border-[#D6CEBE] bg-[#FDFCF9] shadow-2xl overflow-hidden text-[#1F1C18]"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#E8E2D5] bg-[#F4EFE6] px-6 py-4">
           <div className="flex items-center gap-2.5">
@@ -485,7 +498,7 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
             </div>
           </div>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };

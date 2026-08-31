@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import { 
   X, 
   ShieldCheck, 
@@ -237,8 +238,20 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-[#1F1C18]/80 backdrop-blur-md animate-fade-in overflow-y-auto">
-      <div className="bg-[#FAF8F5] border border-[#D6CEBE] w-full max-w-6xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.22, ease: 'easeOut' }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-[#1F1C18]/80 backdrop-blur-md overflow-y-auto"
+    >
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 14 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+        className="bg-[#FAF8F5] border border-[#D6CEBE] w-full max-w-6xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+      >
         
         {/* TOP BAR */}
         <div className="bg-[#1F1C18] text-[#FDFCF9] px-6 py-4 flex items-center justify-between border-b border-[#3D352E]">
@@ -1236,7 +1249,7 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
             </div>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* INVOICE PDF PREVIEW MODAL */}
       {invoicePreviewOrder && invoicePreviewUrl && (
@@ -1304,6 +1317,6 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };

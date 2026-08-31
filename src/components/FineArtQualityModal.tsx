@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import {
   X,
   CheckCircle2,
@@ -30,8 +31,20 @@ export const FineArtQualityModal: React.FC<FineArtQualityModalProps> = ({
   const rating = pre?.rating || 'buena';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-      <div className="bg-[#FAF8F5] w-full max-w-xl rounded-2xl border border-[#D6CEBE] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.22, ease: 'easeOut' }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+    >
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 8 }}
+        transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+        className="bg-[#FAF8F5] w-full max-w-xl rounded-2xl border border-[#D6CEBE] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+      >
         
         {/* Header */}
         <div className="px-6 py-4 bg-[#F4EFE6] border-b border-[#E8E2D5] flex items-center justify-between">
@@ -235,7 +248,7 @@ export const FineArtQualityModal: React.FC<FineArtQualityModalProps> = ({
           </button>
         </div>
 
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };

@@ -34,10 +34,30 @@
   background-position: 0 0, 15px 15px;
 }
 
+/* Photorealistic Material Textures for Photobook Covers */
 .linen-texture {
   background-color: #EFE9DE;
-  background-image: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.015) 0, rgba(0, 0, 0, 0.015) 1px, transparent 0, transparent 4px),
-                    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.015) 0, rgba(0, 0, 0, 0.015) 1px, transparent 0, transparent 4px);
+  background-image: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.025) 0, rgba(0, 0, 0, 0.025) 1px, transparent 0, transparent 4px),
+                    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.025) 0, rgba(0, 0, 0, 0.025) 1px, transparent 0, transparent 4px),
+                    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.04) 0, rgba(255, 255, 255, 0.04) 2px, transparent 0, transparent 4px);
+}
+
+.leather-texture {
+  background-image: radial-gradient(rgba(0, 0, 0, 0.08) 15%, transparent 16%),
+                    radial-gradient(rgba(0, 0, 0, 0.08) 15%, transparent 16%),
+                    linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%, rgba(0,0,0,0.18) 100%);
+  background-size: 6px 6px, 6px 6px, 100% 100%;
+  background-position: 0 0, 3px 3px, 0 0;
+}
+
+.velvet-texture {
+  background-image: linear-gradient(125deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 30%, transparent 60%, rgba(0,0,0,0.22) 100%),
+                    radial-gradient(circle at 20% 20%, rgba(255,255,255,0.15) 0%, transparent 40%);
+}
+
+.silk-texture {
+  background-image: linear-gradient(110deg, rgba(255,255,255,0.2) 0%, transparent 35%, rgba(255,255,255,0.12) 65%, rgba(0,0,0,0.15) 100%),
+                    repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px, transparent 0, transparent 3px);
 }
 
 /* 3D Book Spine Shadow & Layflat Gutter */

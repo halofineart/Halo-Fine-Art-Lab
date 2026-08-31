@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import { 
   X, 
   Mail, 
@@ -106,8 +107,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-md bg-[#FDFCF9] rounded-3xl border border-[#D6CEBE] shadow-2xl overflow-hidden">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.22, ease: 'easeOut' }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+    >
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 14 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+        className="relative w-full max-w-md bg-[#FDFCF9] rounded-3xl border border-[#D6CEBE] shadow-2xl overflow-hidden"
+      >
         {/* Top Decorative Header */}
         <div className="bg-gradient-to-r from-[#2B2621] to-[#1F1C18] p-6 text-white text-center relative">
           <button
@@ -303,7 +316,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <span>Datos protegidos con encriptación SSL y Supabase Auth</span>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };

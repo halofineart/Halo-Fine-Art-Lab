@@ -31,6 +31,9 @@ export type CoverMaterialId =
   | 'leather-taupe' 
   | 'leather-cognac'
   | 'leather-ebony'
+  | 'silk-pearl'
+  | 'silk-champagne'
+  | 'silk-platinum'
   | 'photo-hardcover' 
   | 'velvet-rose'
   | 'velvet-emerald'
@@ -40,7 +43,7 @@ export type CoverMaterialId =
 export interface CoverMaterial {
   id: CoverMaterialId;
   name: string;
-  category: 'lino' | 'cuero' | 'fotografica' | 'terciopelo';
+  category: 'lino' | 'cuero' | 'seda' | 'terciopelo' | 'fotografica';
   colorHex: string;
   textureClass: string;
   priceDelta: number;

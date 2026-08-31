@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, 
   ChevronLeft, 
@@ -231,6 +232,10 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   // Template 4-Squares [ < ] [ ⊞ ] [ > ] Popover & Hover Preview State
   const [showTemplateGridModal, setShowTemplateGridModal] = useState<boolean>(false);
   const [hoveredLayoutTemplateId, setHoveredLayoutTemplateId] = useState<string | null>(null);
+  const [showLayoutsMenu, setShowLayoutsMenu] = useState<boolean>(false);
+  const [showTextMenu, setShowTextMenu] = useState<boolean>(false);
+  const [coverMaterialCategoryFilter, setCoverMaterialCategoryFilter] = useState<'all' | 'lino' | 'cuero' | 'seda' | 'terciopelo'>('all');
+  const [layoutTabMode, setLayoutTabMode] = useState<'page' | 'spread'>('page');
 
   // Floating text layer state
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
@@ -3372,7 +3377,13 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   })();
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#F7F5EE] text-[#1F1C18] select-none overflow-hidden">
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.99 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.99 }}
+      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+      className="fixed inset-0 z-50 flex flex-col bg-[#F7F5EE] text-[#1F1C18] select-none overflow-hidden"
+    >
       {/* Top Header / Step Bar */}
       <div className="flex items-center justify-between border-b border-[#E0D8C8] bg-[#FDFCF9] px-4 sm:px-6 py-3.5 shadow-sm shrink-0 z-10">
         {/* Brand & Project Title */}
@@ -3542,28 +3553,30 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
         {/* STEP 2: COVER, MATERIAL & FOIL STAMPING */}
         {currentStep === 'cover' && (
-          <div className="w-full flex-1 overflow-y-auto min-h-0 flex flex-col justify-between p-2 sm:p-3">
+          <div className="photobook-builder-cover-section w-full flex-1 overflow-y-auto min-h-0 flex flex-col justify-between p-2 sm:p-3">
             <div className="max-w-4xl w-full mx-auto my-auto grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
-              {/* Left Column: Live 3D Cover Mockup (Compact) */}
+              {/* Left Column: Live 3D Cover Mockup (Compact & Dynamic) */}
               <div className="lg:col-span-5 flex flex-col items-center justify-center">
-                <div className="w-full max-w-[170px] sm:max-w-[195px]">
-                  <span className="text-[8.5px] font-bold tracking-widest text-[#8C6D37] uppercase mb-0.5 block text-center">
-                    VISTA PREVIA DE PORTADA
+                <div className="w-full max-w-[175px] sm:max-w-[205px]">
+                  <span className="text-[8.5px] font-bold tracking-widest text-[#8C6D37] uppercase mb-1 block text-center">
+                    VISTA PREVIA EN TIEMPO REAL
                   </span>
 
-                  {/* The Luxury Book Cover Card */}
+                  {/* The Luxury Book Cover Card with Dynamic Texture & Color */}
                   <div 
-                    className={`aspect-[4/5] rounded-xl p-3 flex flex-col justify-between shadow-lg relative border border-black/10 transition-all duration-500 overflow-hidden ${currentCover.textureClass}`}
+                    className={`aspect-[4/5] rounded-xl p-3 sm:p-4 flex flex-col justify-between shadow-xl relative border border-black/15 transition-all duration-500 overflow-hidden ${currentCover.textureClass}`}
                     style={{ backgroundColor: currentCover.colorHex }}
                   >
-                    <div className="absolute inset-0 linen-texture opacity-30 pointer-events-none" />
+                    {/* Layered Realistic Texture Overlay */}
+                    <div className={`absolute inset-0 ${currentCover.textureClass} opacity-40 pointer-events-none`} />
+                    <div className="absolute inset-0 bg-gradient-to-tr from-black/10 via-transparent to-white/15 pointer-events-none" />
 
                     {/* Left Spine Crease Shadow */}
-                    <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-black/25 via-black/10 to-transparent pointer-events-none" />
+                    <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-black/35 via-black/15 to-transparent pointer-events-none" />
 
                     {/* Optional Cover Photo Window */}
                     {hasCoverWindow ? (
-                      <div className="w-12 h-12 mx-auto my-auto rounded border border-[#C5A059]/40 overflow-hidden shadow-md relative bg-white">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto my-auto rounded-lg border-2 border-[#C5A059]/50 overflow-hidden shadow-md relative bg-white ring-1 ring-black/10">
                         <img
                           src={uploadedPhotos[0]?.url || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=600&q=80'}
                           alt="Foto de Portada"
@@ -3597,53 +3610,83 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
                     {/* Bottom Spine & Brand Stamp */}
                     <div className="text-center text-[6.5px] tracking-[0.25em] uppercase opacity-60 font-brand">
-                      FINE ART LAB
+                      {currentCover.name} · FINE ART LAB
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Right Column: Customization Controls (Ultra-Compact) */}
-              <div className="lg:col-span-7 space-y-1.5">
+              {/* Right Column: Customization Controls */}
+              <div className="lg:col-span-7 space-y-2">
                 <div>
                   <span className="text-[9px] font-bold tracking-widest text-[#8C6D37] uppercase">Paso 2 de 5</span>
-                  <h2 className="font-serif-luxury text-base sm:text-lg font-bold text-[#1F1C18] leading-tight">Tapas, Telas & Grabado</h2>
+                  <h2 className="font-serif-luxury text-base sm:text-lg font-bold text-[#1F1C18] leading-tight">
+                    Tapas, Materiales & Grabado en Oro
+                  </h2>
                 </div>
 
-                {/* Cover Material Selection (Compact 6-Column Grid) */}
-                <div>
-                  <label className="text-[8.5px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
-                    Material y Color de Tapa:
-                  </label>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
-                    {COVER_MATERIALS.map((cov) => {
-                      const isSelected = cov.id === coverMaterialId;
-                      return (
+                {/* Material Family Category Tabs */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[8.5px] font-bold uppercase tracking-wider text-[#1F1C18] block">
+                      Material y Textura:
+                    </label>
+                    <div className="flex items-center gap-1 text-[8.5px]">
+                      {[
+                        { id: 'all', label: 'Todos' },
+                        { id: 'lino', label: 'Lino' },
+                        { id: 'cuero', label: 'Cuero' },
+                        { id: 'seda', label: 'Seda' },
+                        { id: 'terciopelo', label: 'Terciopelo' },
+                      ].map((cat) => (
                         <button
-                          key={cov.id}
+                          key={cat.id}
                           type="button"
-                          onClick={() => setCoverMaterialId(cov.id)}
-                          className={`flex flex-col items-center text-center p-1 rounded-md border transition-all ${
-                            isSelected
-                              ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-xs ring-1.5 ring-[#8C6D37]/40'
-                              : 'border-[#D6CEBE] bg-[#F4EFE6]/50 hover:bg-[#FDFCF9]'
+                          onClick={() => setCoverMaterialCategoryFilter(cat.id as any)}
+                          className={`px-1.5 py-0.5 rounded-full font-bold transition-colors ${
+                            coverMaterialCategoryFilter === cat.id
+                              ? 'bg-[#8C6D37] text-white'
+                              : 'bg-[#EFE9DE] text-[#736B60] hover:text-[#1F1C18]'
                           }`}
                         >
-                          <div
-                            className="w-3.5 h-3.5 rounded-full border border-black/15 shadow-xs mb-0.5"
-                            style={{ backgroundColor: cov.colorHex }}
-                          />
-                          <span className="text-[8.5px] font-semibold text-[#1F1C18] truncate w-full">{cov.name}</span>
-                          <span className="text-[7.5px] text-[#736B60]">
-                            {cov.priceDelta > 0 ? `+${formatPriceARS(cov.priceDelta)}` : 'Incl.'}
-                          </span>
+                          {cat.label}
                         </button>
-                      );
-                    })}
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Cover Materials Swatches Grid */}
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1 max-h-32 overflow-y-auto pr-0.5">
+                    {COVER_MATERIALS
+                      .filter((cov) => coverMaterialCategoryFilter === 'all' || cov.category === coverMaterialCategoryFilter)
+                      .map((cov) => {
+                        const isSelected = cov.id === coverMaterialId;
+                        return (
+                          <button
+                            key={cov.id}
+                            type="button"
+                            onClick={() => setCoverMaterialId(cov.id)}
+                            className={`flex flex-col items-center text-center p-1 rounded-lg border transition-all ${
+                              isSelected
+                                ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-xs ring-2 ring-[#8C6D37]/50 scale-[1.02]'
+                                : 'border-[#D6CEBE] bg-[#F4EFE6]/50 hover:bg-[#FDFCF9]'
+                            }`}
+                          >
+                            <div
+                              className="w-4 h-4 rounded-full border border-black/15 shadow-xs mb-0.5"
+                              style={{ backgroundColor: cov.colorHex }}
+                            />
+                            <span className="text-[8px] font-semibold text-[#1F1C18] truncate w-full leading-tight">{cov.name}</span>
+                            <span className="text-[7px] text-[#736B60]">
+                              {cov.priceDelta > 0 ? `+${formatPriceARS(cov.priceDelta)}` : 'Incl.'}
+                            </span>
+                          </button>
+                        );
+                      })}
                   </div>
                 </div>
 
-                {/* Foil Stamping Color (Compact 5-Column Grid) */}
+                {/* Foil Stamping Color */}
                 <div>
                   <label className="text-[8.5px] font-bold uppercase tracking-wider text-[#1F1C18] block mb-0.5">
                     Color de Grabado en Hot Stamping:
@@ -3656,14 +3699,14 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           key={f.id}
                           type="button"
                           onClick={() => setFoilColor(f.id)}
-                          className={`flex items-center gap-1 p-0.5 sm:p-1 rounded-md border text-left transition-all ${
+                          className={`flex items-center gap-1 p-1 rounded-md border text-left transition-all ${
                             isSelected
-                              ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-xs ring-1 ring-[#8C6D37]'
+                              ? 'border-[#8C6D37] bg-[#FDFCF9] shadow-xs ring-1.5 ring-[#8C6D37]'
                               : 'border-[#D6CEBE] bg-[#F4EFE6]/50 hover:bg-[#FDFCF9]'
                           }`}
                         >
                           <div
-                            className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0"
+                            className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0 shadow-2xs"
                             style={{ backgroundColor: f.colorHex }}
                           />
                           <span className="text-[8.5px] font-medium text-[#1F1C18] truncate">{f.name}</span>
@@ -3737,7 +3780,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     className="px-4 py-2 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-wider font-semibold hover:bg-[#3D352E] shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                   >
                     <span>Continuar a Papel</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -3846,199 +3889,110 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
         {/* STEP 4: INTERACTIVE SPREAD & PHOTO EDITOR (Zno Designer / CXEditor Engine) */}
         {currentStep === 'editor' && (
           <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-            {/* Left Sidebar: Photo Media Library & Smart Tools */}
-            <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-[#E0D8C8] bg-[#FDFCF9] p-3.5 flex flex-col overflow-hidden shrink-0">
-              {/* Sidebar Tabs: Fotos / Plantillas / Texto */}
-              <div className="flex items-center gap-1 p-1 bg-[#EFE9DE] rounded-xl mb-3">
+            {/* Left Sidebar: Photo Media Library (Dedicated, Maximum Visual Prominence) */}
+            <div className="w-full lg:w-80 xl:w-96 border-b lg:border-b-0 lg:border-r border-[#E0D8C8] bg-[#FDFCF9] p-3 sm:p-3.5 flex flex-col overflow-hidden shrink-0">
+              {/* Header: Photo Gallery Title & Upload Action */}
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="font-serif-luxury text-sm font-bold text-[#1F1C18] flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-[#8C6D37]" />
+                    <span>Galería de Fotos</span>
+                    <span className="text-[10px] font-sans font-normal text-[#736B60]">
+                      ({uploadedPhotos.length})
+                    </span>
+                  </h3>
+                  <span className="text-[9px] text-[#736B60] block">Arrastra fotos al pliego o toca para colocar</span>
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => setActiveEditorTab('photos')}
-                  className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 ${
-                    activeEditorTab === 'photos'
-                      ? 'bg-[#1F1C18] text-[#FDFCF9] shadow-xs'
-                      : 'text-[#736B60] hover:text-[#1F1C18]'
-                  }`}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-2.5 py-1.5 rounded-lg bg-[#8C6D37] text-white text-[11px] font-bold hover:bg-[#73582A] transition-colors flex items-center gap-1 shadow-xs"
+                  title="Subir fotos en alta resolución"
                 >
-                  <ImageIcon className="w-3.5 h-3.5" />
-                  <span>Fotos ({uploadedPhotos.length})</span>
+                  <Upload className="w-3 h-3" />
+                  <span>+ Subir Fotos</span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Sample demo packs selector */}
+              <div className="mb-2 flex items-center gap-1 overflow-x-auto pb-1 text-[10px]">
+                <span className="text-[#736B60] shrink-0 font-medium text-[9px]">Demos:</span>
+                <button
+                  type="button"
+                  onClick={() => handleLoadSamplePack('boda')}
+                  className="px-2 py-0.5 rounded-md bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#1F1C18] font-medium shrink-0"
+                >
+                  Boda
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveEditorTab('layouts')}
-                  className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 ${
-                    activeEditorTab === 'layouts'
-                      ? 'bg-[#1F1C18] text-[#FDFCF9] shadow-xs'
-                      : 'text-[#736B60] hover:text-[#1F1C18]'
-                  }`}
+                  onClick={() => handleLoadSamplePack('familia')}
+                  className="px-2 py-0.5 rounded-md bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#1F1C18] font-medium shrink-0"
                 >
-                  <Layout className="w-3.5 h-3.5" />
-                  <span>Layouts</span>
+                  Familia
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveEditorTab('text')}
-                  className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 ${
-                    activeEditorTab === 'text'
-                      ? 'bg-[#1F1C18] text-[#FDFCF9] shadow-xs'
-                      : 'text-[#736B60] hover:text-[#1F1C18]'
-                  }`}
+                  onClick={() => handleLoadSamplePack('viaje')}
+                  className="px-2 py-0.5 rounded-md bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#1F1C18] font-medium shrink-0"
                 >
-                  <Type className="w-3.5 h-3.5" />
-                  <span>Texto</span>
+                  Viaje
                 </button>
               </div>
 
-              {/* TAB 1: PHOTOS */}
-              {activeEditorTab === 'photos' && (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#595248]">
-                      Arrastra o haz clic
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="px-2.5 py-1 rounded-lg bg-[#8C6D37]/10 text-xs font-semibold text-[#8C6D37] hover:bg-[#8C6D37] hover:text-white transition-colors flex items-center gap-1"
-                    >
-                      <Upload className="w-3 h-3" />
-                      <span>Subir Fotos</span>
-                    </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                  </div>
-
-                  {/* Sample Packs */}
-                  <div className="mb-2.5 flex items-center gap-1 overflow-x-auto pb-1 text-[10px]">
-                    <span className="text-[#736B60] shrink-0 font-medium">Demos:</span>
-                    <button
-                      type="button"
-                      onClick={() => handleLoadSamplePack('boda')}
-                      className="px-2 py-0.5 rounded-md bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#1F1C18] font-medium shrink-0"
-                    >
-                      Boda
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleLoadSamplePack('familia')}
-                      className="px-2 py-0.5 rounded-md bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#1F1C18] font-medium shrink-0"
-                    >
-                      Familia
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleLoadSamplePack('viaje')}
-                      className="px-2 py-0.5 rounded-md bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#1F1C18] font-medium shrink-0"
-                    >
-                      Viaje
-                    </button>
-                  </div>
-
-                  {/* Smart Auto Layout & Dump to Spread Action Card */}
-                  <div className="mb-2.5 rounded-xl border border-[#C5A059]/40 bg-[#F4EFE6] p-2.5 space-y-2">
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Multi-Selection Context Bar & Filter Pills */}
+                {selectedPhotoIds.length > 0 && (
+                  <div className="mb-2.5 rounded-xl border border-[#8C6D37]/40 bg-[#FAF7F2] p-2 space-y-1.5 shadow-xs animate-in fade-in">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[11px] font-bold text-[#1F1C18] block">
-                          {selectedPhotoIds.length > 0 ? `${selectedPhotoIds.length} fotos seleccionadas` : 'Autocompletar / Auto-Fill'}
-                        </span>
-                        <span className="text-[9px] text-[#736B60]">
-                          {selectedPhotoIds.length > 0
-                            ? 'Vuelca directamente en el pliego o crea nuevas páginas'
-                            : 'Distribuye todas las fotos inteligentemente'}
-                        </span>
-                      </div>
-                      {selectedPhotoIds.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={handleDeselectAllPhotos}
-                          className="px-2 py-1 text-[9px] font-bold text-[#736B60] hover:text-[#1F1C18] bg-white rounded-md border border-[#D6CEBE]"
-                        >
-                          Limpiar
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Prominent Dump Action Buttons when photos are selected */}
-                    {selectedPhotoIds.length > 0 ? (
-                      <div className="space-y-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleDumpSelectedPhotosToCurrentSpread('spread')}
-                          className="w-full py-1.5 px-2.5 rounded-lg bg-[#8C6D37] text-white text-[11px] font-bold hover:bg-[#73582A] flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-98"
-                          title="Acomodar las fotos seleccionadas en el pliego activo"
-                        >
-                          <Sparkles className="w-3.5 h-3.5" />
-                          <span>Volcar en Pliego Actual ({selectedPhotoIds.length})</span>
-                        </button>
-
-                        <div className="grid grid-cols-2 gap-1 text-[9px] font-bold">
-                          <button
-                            type="button"
-                            onClick={() => handleDumpSelectedPhotosToCurrentSpread('left')}
-                            className="py-1 px-1.5 rounded-md bg-white border border-[#D6CEBE] hover:bg-[#EAE4D8] text-[#1F1C18] text-center"
-                            title="Volcar fotos seleccionadas solo en la página izquierda"
-                          >
-                            Volcar en Pág. Izq
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDumpSelectedPhotosToCurrentSpread('right')}
-                            className="py-1 px-1.5 rounded-md bg-white border border-[#D6CEBE] hover:bg-[#EAE4D8] text-[#1F1C18] text-center"
-                            title="Volcar fotos seleccionadas solo en la página derecha"
-                          >
-                            Volcar en Pág. Der
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
+                      <span className="text-[11px] font-bold text-[#8C6D37]">
+                        {selectedPhotoIds.length} {selectedPhotoIds.length === 1 ? 'foto seleccionada' : 'fotos seleccionadas'}
+                      </span>
                       <button
                         type="button"
-                        onClick={handleAutoLayout}
-                        className="w-full py-1.5 rounded-lg bg-[#8C6D37] text-white text-[10px] font-bold uppercase tracking-wider hover:bg-[#73582A] flex items-center justify-center gap-1.5 shadow-xs"
-                        title="Autocompletar álbum completo con todas las fotos"
+                        onClick={handleDeselectAllPhotos}
+                        className="px-2 py-0.5 text-[9px] font-bold text-[#736B60] hover:text-[#1F1C18] bg-white rounded border border-[#D6CEBE]"
                       >
-                        <Sparkles className="w-3 h-3" />
-                        <span>Auto-Llenar Todo el Álbum</span>
+                        Deseleccionar
                       </button>
-                    )}
-
-                    {/* Multi-selection toggle bar & Shift+Click hint */}
-                    <div className="flex items-center justify-between pt-1 border-t border-[#D6CEBE]/50 text-[10px]">
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={handleSelectAllPhotos}
-                          className="text-[#8C6D37] font-bold hover:underline"
-                        >
-                          Seleccionar Todas
-                        </button>
-                        <span className="text-[#D6CEBE]">·</span>
-                        <span className="text-[#736B60]">
-                          {selectedPhotoIds.length} de {uploadedPhotos.length}
-                        </span>
-                      </div>
-                      {selectedPhotoIds.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => handleAutoPopulateWithSelected(false)}
-                          className="text-[9px] font-bold text-[#1F1C18] hover:text-[#8C6D37] flex items-center gap-0.5"
-                          title="Crear páginas nuevas con las fotos seleccionadas"
-                        >
-                          <Wand2 className="w-2.5 h-2.5" />
-                          <span>+ Nuevos Pliegos</span>
-                        </button>
-                      )}
                     </div>
-                    <div className="text-[8px] text-[#8C6D37] font-medium italic">
-                      💡 Tip: Mantén presionado Shift + clic para seleccionar un rango de fotos.
+
+                    <button
+                      type="button"
+                      onClick={() => handleDumpSelectedPhotosToCurrentSpread('spread')}
+                      className="w-full py-1.5 px-2.5 rounded-lg bg-[#8C6D37] text-white text-[11px] font-bold hover:bg-[#73582A] flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-98"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Volcar en Pliego Activo</span>
+                    </button>
+
+                    <div className="grid grid-cols-2 gap-1 text-[9px] font-bold">
+                      <button
+                        type="button"
+                        onClick={() => handleDumpSelectedPhotosToCurrentSpread('left')}
+                        className="py-1 px-1 rounded-md bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-center"
+                      >
+                        En Pág. Izq
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDumpSelectedPhotosToCurrentSpread('right')}
+                        className="py-1 px-1 rounded-md bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-center"
+                      >
+                        En Pág. Der
+                      </button>
                     </div>
                   </div>
+                )}
 
                   {/* In-Browser Thumbnail Optimization Progress Banner */}
                   {isOptimizingPhotos && optimizingProgress && (
@@ -4281,183 +4235,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       })}
                   </div>
                 </div>
-              )}
-
-              {/* TAB 2: LAYOUT TEMPLATES GALLERY */}
-              {activeEditorTab === 'layouts' && (
-                <div className="flex-1 flex flex-col overflow-y-auto space-y-4 pr-1 min-h-0">
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#1F1C18] block mb-2">
-                      Pliego Completo (Layflat 180°)
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleChangePageLayout('left', 'full-bleed-spread')}
-                      className="w-full p-3 rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] hover:bg-[#F4EFE6] text-left flex items-center gap-3 transition-colors"
-                    >
-                      <div className="w-14 h-9 rounded bg-[#E8E2D5] border border-dashed border-[#8C6D37] flex items-center justify-center">
-                        <Maximize2 className="w-4 h-4 text-[#8C6D37]" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-[#1F1C18] block">Panorámica Doble Página</span>
-                        <span className="text-[10px] text-[#736B60]">1 sola foto que cruza el pliego continuo</span>
-                      </div>
-                    </button>
-                  </div>
-
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#1F1C18] block mb-2">
-                      Plantillas para Página Izquierda / Derecha
-                    </span>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { id: 'single-full', label: '1 Foto Sangrada', desc: '100% de la página', icon: '1' },
-                        { id: 'single-bordered', label: '1 Foto c/ Passepartout', desc: 'Margen artístico blanco', icon: '◻' },
-                        { id: 'two-vertical', label: '2 Fotos Verticales', desc: 'Columnas paralelas', icon: '▮▮' },
-                        { id: 'two-horizontal', label: '2 Fotos Horizontales', desc: 'Filas apiladas', icon: '〓' },
-                        { id: 'three-collage', label: '3 Fotos Mosaico', desc: 'Principal + 2 detalle', icon: '◫' },
-                        { id: 'four-grid', label: '4 Fotos Grilla', desc: 'Cuadrícula 2x2 simétrica', icon: '▦' },
-                        { id: 'editorial-text-photo', label: 'Editorial / Texto', desc: 'Título, fecha y dedicatoria', icon: 'T' },
-                        { id: 'blank', label: 'Página en Blanco', desc: 'Espacio de descanso visual', icon: '○' },
-                      ].map((item) => (
-                        <div key={item.id} className="p-2.5 rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] flex flex-col justify-between">
-                          <div>
-                            <span className="text-xs font-bold text-[#1F1C18] block leading-tight">{item.label}</span>
-                            <span className="text-[9px] text-[#736B60] block mb-2">{item.desc}</span>
-                          </div>
-                          <div className="flex gap-1">
-                            <button
-                              type="button"
-                              onClick={() => handleChangePageLayout('left', item.id as PageLayoutId)}
-                              className="flex-1 py-1 rounded bg-[#EFE9DE] hover:bg-[#1F1C18] hover:text-white text-[9px] font-bold transition-colors"
-                            >
-                              Aplicar Izq
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleChangePageLayout('right', item.id as PageLayoutId)}
-                              className="flex-1 py-1 rounded bg-[#EFE9DE] hover:bg-[#1F1C18] hover:text-white text-[9px] font-bold transition-colors"
-                            >
-                              Aplicar Der
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 3: TEXT & STORYTELLING */}
-              {activeEditorTab === 'text' && (
-                <div className="flex-1 flex flex-col overflow-y-auto space-y-3 min-h-0 pr-1">
-                  {/* Floating Text Blocks Adder */}
-                  <div className="rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-3 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase text-[#1F1C18] block">Texto Libre en Pliego</span>
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#8C6D37]/10 text-[#8C6D37]">Libre</span>
-                    </div>
-                    <p className="text-[10px] text-[#736B60]">
-                      Agrega cuadros de texto arrastrables que puedes posicionar libremente sobre cualquier parte del pliego.
-                    </p>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleAddFloatingText('title')}
-                        className="py-2 px-2.5 rounded-lg bg-[#8C6D37] text-white text-[11px] font-bold hover:bg-[#73582A] flex items-center justify-center gap-1.5 shadow-xs"
-                      >
-                        <Type className="w-3.5 h-3.5" />
-                        <span>+ Título</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleAddFloatingText('subtitle')}
-                        className="py-2 px-2.5 rounded-lg border border-[#D6CEBE] bg-[#FAF7F2] text-[#1F1C18] text-[11px] font-bold hover:bg-[#EFE9DE] flex items-center justify-center gap-1.5"
-                      >
-                        <Heading2 className="w-3.5 h-3.5 text-[#8C6D37]" />
-                        <span>+ Subtítulo</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleAddFloatingText('quote')}
-                        className="py-2 px-2.5 rounded-lg border border-[#D6CEBE] bg-[#FAF7F2] text-[#1F1C18] text-[11px] font-bold hover:bg-[#EFE9DE] flex items-center justify-center gap-1.5"
-                      >
-                        <Quote className="w-3.5 h-3.5 text-[#8C6D37]" />
-                        <span>+ Cita</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleAddFloatingText('label')}
-                        className="py-2 px-2.5 rounded-lg border border-[#D6CEBE] bg-[#FAF7F2] text-[#1F1C18] text-[11px] font-bold hover:bg-[#EFE9DE] flex items-center justify-center gap-1.5"
-                      >
-                        <Tag className="w-3.5 h-3.5 text-[#8C6D37]" />
-                        <span>+ Dedicatoria</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Active Floating Text Layers on this spread */}
-                  {activeSpread.textElements && activeSpread.textElements.length > 0 && (
-                    <div className="rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-3 space-y-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#1F1C18] block">
-                        Capas de Texto en este Pliego ({activeSpread.textElements.length})
-                      </span>
-                      <div className="space-y-1.5 max-h-36 overflow-y-auto">
-                        {activeSpread.textElements.map((txt) => (
-                          <div
-                            key={txt.id}
-                            onClick={() => setSelectedTextId(txt.id)}
-                            className={`p-2 rounded-lg border flex items-center justify-between cursor-pointer transition-colors text-xs ${
-                              selectedTextId === txt.id
-                                ? 'border-[#8C6D37] bg-[#8C6D37]/10 text-[#8C6D37] font-bold'
-                                : 'border-[#E8E2D5] bg-[#FAF7F2] hover:bg-[#EFE9DE] text-[#1F1C18]'
-                            }`}
-                          >
-                            <div className="truncate pr-2 flex items-center gap-1.5">
-                              <Type className="w-3 h-3 shrink-0" />
-                              <span className="truncate">{txt.text}</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteFloatingText(txt.id);
-                              }}
-                              className="text-rose-500 hover:text-rose-700 p-0.5 rounded hover:bg-rose-50"
-                              title="Eliminar capa de texto"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Editorial Layout Option */}
-                  <div className="rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] p-3 space-y-2">
-                    <span className="text-xs font-bold uppercase text-[#1F1C18] block">Página Editorial Clásica</span>
-                    <p className="text-[10px] text-[#736B60]">
-                      Convierte la página izquierda completa en una composición editorial de texto y marco fotográfico.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => handleChangePageLayout('left', 'editorial-text-photo')}
-                      className="w-full py-2 rounded-lg border border-[#8C6D37] bg-[#FAF7F2] text-[#8C6D37] text-xs font-bold hover:bg-[#8C6D37] hover:text-white transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <Type className="w-3.5 h-3.5" />
-                      <span>Convertir Página Izq a Editorial</span>
-                    </button>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-[#F4EFE6] border border-[#D6CEBE] space-y-1.5 text-xs text-[#595248]">
-                    <span className="font-bold text-[#1F1C18] block">Sugerencias de Redacción:</span>
-                    <p className="text-[10px] italic">“Hay momentos que merecen durar para siempre.”</p>
-                    <p className="text-[10px] italic">“Nuestro primer viaje juntos · Mendoza 2026”</p>
-                    <p className="text-[10px] italic">“Capítulo I: El comienzo de la mayor aventura.”</p>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Center Area: Double Page Spread Canvas (Zno CXEditor Style) */}
@@ -4538,14 +4315,14 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     {showTemplateGridModal && (
                       <div 
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute top-full mt-2 left-0 sm:left-1/2 sm:-translate-x-1/2 w-[340px] sm:w-[480px] max-h-[460px] bg-[#1F1C18] border border-white/20 rounded-2xl shadow-2xl z-50 p-3.5 flex flex-col text-white backdrop-blur-md overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+                        className="absolute top-full mt-2 left-0 sm:left-1/2 sm:-translate-x-1/2 w-[340px] sm:w-[500px] max-h-[500px] bg-[#1F1C18] border border-white/20 rounded-2xl shadow-2xl z-50 p-3.5 flex flex-col text-white backdrop-blur-md overflow-hidden animate-in fade-in zoom-in-95 duration-150"
                       >
                         <div className="flex items-center justify-between pb-2 border-b border-white/15 mb-2.5">
                           <div className="flex items-center gap-2">
                             <LayoutGrid className="w-4 h-4 text-[#ECC880]" />
                             <div>
-                              <span className="text-xs font-bold text-white block">Estilos de Plantillas de Pliego</span>
-                              <span className="text-[10px] text-[#D6CEBE]">Pasa el ratón para previsualizar · Clic para fijar</span>
+                              <span className="text-xs font-bold text-white block">Plantillas de Pliego y Páginas</span>
+                              <span className="text-[10px] text-[#D6CEBE]">Pasa el ratón para previsualizar · Clic para aplicar</span>
                             </div>
                           </div>
                           <button
@@ -4560,52 +4337,239 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           </button>
                         </div>
 
-                        {/* Preset Cards Grid */}
-                        <div className="flex-1 overflow-y-auto pr-1 space-y-2 max-h-[380px]">
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {SPREAD_TEMPLATE_PRESETS.map((tmpl) => {
-                              const isHovered = hoveredLayoutTemplateId === tmpl.id;
-                              return (
-                                <button
-                                  key={tmpl.id}
-                                  type="button"
-                                  onMouseEnter={() => setHoveredLayoutTemplateId(tmpl.id)}
-                                  onMouseLeave={() => setHoveredLayoutTemplateId(null)}
+                        {/* Layout Mode Tabs: Pliegos Layflat vs Páginas */}
+                        <div className="flex items-center gap-1 p-1 bg-white/10 rounded-xl mb-2.5 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => setLayoutTabMode('spread')}
+                            className={`flex-1 py-1 rounded-lg font-bold transition-all ${
+                              layoutTabMode === 'spread' ? 'bg-[#8C6D37] text-white shadow-xs' : 'text-white/70 hover:text-white'
+                            }`}
+                          >
+                            Pliegos Completos (Layflat)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setLayoutTabMode('page')}
+                            className={`flex-1 py-1 rounded-lg font-bold transition-all ${
+                              layoutTabMode === 'page' ? 'bg-[#8C6D37] text-white shadow-xs' : 'text-white/70 hover:text-white'
+                            }`}
+                          >
+                            Plantillas por Página
+                          </button>
+                        </div>
+
+                        {/* Tab 1: Full Spreads Layflat */}
+                        {layoutTabMode === 'spread' ? (
+                          <div className="flex-1 overflow-y-auto pr-1 space-y-2 max-h-[360px]">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                              {SPREAD_TEMPLATE_PRESETS.map((tmpl) => {
+                                const isHovered = hoveredLayoutTemplateId === tmpl.id;
+                                return (
+                                  <button
+                                    key={tmpl.id}
+                                    type="button"
+                                    onMouseEnter={() => setHoveredLayoutTemplateId(tmpl.id)}
+                                    onMouseLeave={() => setHoveredLayoutTemplateId(null)}
+                                    onClick={() => {
+                                      handleApplySpreadTemplate(tmpl.id);
+                                      setShowTemplateGridModal(false);
+                                      setHoveredLayoutTemplateId(null);
+                                    }}
+                                    className={`group p-2 rounded-xl border text-left transition-all flex flex-col gap-1.5 relative ${
+                                      isHovered
+                                        ? 'border-[#ECC880] bg-white/20 ring-2 ring-[#ECC880] shadow-lg'
+                                        : 'border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/30'
+                                    }`}
+                                  >
+                                    <div className="w-full aspect-[16/9] rounded-lg overflow-hidden bg-[#2A2621] p-1 flex items-center justify-center pointer-events-none">
+                                      {tmpl.renderDiagram()}
+                                    </div>
+
+                                    <div>
+                                      <div className="flex items-center justify-between gap-1">
+                                        <span className="text-[11px] font-bold text-white group-hover:text-[#ECC880] truncate">
+                                          {tmpl.title}
+                                        </span>
+                                        {tmpl.badge && (
+                                          <span className="px-1 py-0.2 rounded text-[8px] font-bold bg-[#8C6D37] text-white whitespace-nowrap">
+                                            {tmpl.badge}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-[9px] text-[#A89F91] line-clamp-1 block">
+                                        {tmpl.subtitle}
+                                      </span>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          /* Tab 2: Page Layouts */
+                          <div className="flex-1 overflow-y-auto pr-1 space-y-2 max-h-[360px]">
+                            <div className="grid grid-cols-2 gap-2">
+                              {[
+                                { id: 'single-full', label: '1 Foto Sangrada', desc: '100% de la página' },
+                                { id: 'single-bordered', label: '1 Foto c/ Passepartout', desc: 'Margen artístico blanco' },
+                                { id: 'two-vertical', label: '2 Fotos Verticales', desc: 'Columnas paralelas' },
+                                { id: 'two-horizontal', label: '2 Fotos Horizontales', desc: 'Filas apiladas' },
+                                { id: 'three-collage', label: '3 Fotos Mosaico', desc: 'Principal + 2 detalle' },
+                                { id: 'four-grid', label: '4 Fotos Grilla', desc: 'Cuadrícula 2x2 simétrica' },
+                                { id: 'editorial-text-photo', label: 'Editorial / Texto', desc: 'Título, fecha y dedicatoria' },
+                                { id: 'blank', label: 'Página en Blanco', desc: 'Espacio de descanso visual' },
+                              ].map((item) => (
+                                <div key={item.id} className="p-2.5 rounded-xl border border-white/15 bg-white/5 flex flex-col justify-between">
+                                  <div className="mb-2">
+                                    <span className="text-xs font-bold text-white block">{item.label}</span>
+                                    <span className="text-[10px] text-[#D6CEBE] block">{item.desc}</span>
+                                  </div>
+                                  <div className="flex gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        handleChangePageLayout('left', item.id as PageLayoutId);
+                                        setShowTemplateGridModal(false);
+                                      }}
+                                      className="flex-1 py-1 rounded bg-[#8C6D37] hover:bg-[#A38043] text-white text-[10px] font-bold text-center transition-colors"
+                                    >
+                                      Pág. Izq
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        handleChangePageLayout('right', item.id as PageLayoutId);
+                                        setShowTemplateGridModal(false);
+                                      }}
+                                      className="flex-1 py-1 rounded bg-[#8C6D37] hover:bg-[#A38043] text-white text-[10px] font-bold text-center transition-colors"
+                                    >
+                                      Pág. Der
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* GROUP 3: TEXTO (Storytelling y Capas de Texto) */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowTextMenu(!showTextMenu)}
+                      title="Agregar textos, frases y dedicatorias al pliego"
+                      className={`px-2.5 py-1.5 rounded-xl border font-bold text-[11px] flex items-center gap-1.5 transition-all ${
+                        showTextMenu
+                          ? 'bg-[#1F1C18] text-[#ECC880] border-[#1F1C18] shadow-xs'
+                          : 'border-[#D6CEBE] bg-[#FAF7F2] hover:bg-[#EFE9DE] text-[#1F1C18]'
+                      }`}
+                    >
+                      <Type className="w-3.5 h-3.5 text-[#8C6D37]" />
+                      <span>Texto</span>
+                      <ChevronDown className="w-3 h-3 opacity-60" />
+                    </button>
+
+                    {showTextMenu && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute top-full mt-2 left-0 sm:left-1/2 sm:-translate-x-1/2 w-72 bg-[#1F1C18] text-white p-3 rounded-2xl shadow-2xl border border-white/20 z-50 space-y-2.5 text-xs backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
+                      >
+                        <div className="flex items-center justify-between pb-1.5 border-b border-white/15">
+                          <span className="text-xs font-bold text-[#ECC880]">Herramientas de Texto</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowTextMenu(false)}
+                            className="p-0.5 rounded text-white/60 hover:text-white"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleAddFloatingText('title');
+                              setShowTextMenu(false);
+                            }}
+                            className="p-2 rounded-lg bg-white/10 hover:bg-[#8C6D37] text-left text-xs transition-colors flex items-center gap-1.5"
+                          >
+                            <Type className="w-3.5 h-3.5 text-[#ECC880]" />
+                            <span>+ Título</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleAddFloatingText('subtitle');
+                              setShowTextMenu(false);
+                            }}
+                            className="p-2 rounded-lg bg-white/10 hover:bg-[#8C6D37] text-left text-xs transition-colors flex items-center gap-1.5"
+                          >
+                            <Heading2 className="w-3.5 h-3.5 text-[#ECC880]" />
+                            <span>+ Subtítulo</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleAddFloatingText('quote');
+                              setShowTextMenu(false);
+                            }}
+                            className="p-2 rounded-lg bg-white/10 hover:bg-[#8C6D37] text-left text-xs transition-colors flex items-center gap-1.5"
+                          >
+                            <Quote className="w-3.5 h-3.5 text-[#ECC880]" />
+                            <span>+ Cita</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleAddFloatingText('label');
+                              setShowTextMenu(false);
+                            }}
+                            className="p-2 rounded-lg bg-white/10 hover:bg-[#8C6D37] text-left text-xs transition-colors flex items-center gap-1.5"
+                          >
+                            <Tag className="w-3.5 h-3.5 text-[#ECC880]" />
+                            <span>+ Dedicatoria</span>
+                          </button>
+                        </div>
+
+                        {/* Active text layers on this spread */}
+                        {activeSpread.textElements && activeSpread.textElements.length > 0 && (
+                          <div className="pt-2 border-t border-white/15 space-y-1">
+                            <span className="text-[10px] font-bold text-white/70 block">
+                              Textos en este pliego ({activeSpread.textElements.length})
+                            </span>
+                            <div className="space-y-1 max-h-28 overflow-y-auto">
+                              {activeSpread.textElements.map((txt) => (
+                                <div
+                                  key={txt.id}
                                   onClick={() => {
-                                    handleApplySpreadTemplate(tmpl.id);
-                                    setShowTemplateGridModal(false);
-                                    setHoveredLayoutTemplateId(null);
+                                    setSelectedTextId(txt.id);
+                                    setShowTextMenu(false);
                                   }}
-                                  className={`group p-2 rounded-xl border text-left transition-all flex flex-col gap-1.5 relative ${
-                                    isHovered
-                                      ? 'border-[#ECC880] bg-white/20 ring-2 ring-[#ECC880] shadow-lg'
-                                      : 'border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/30'
+                                  className={`p-1.5 rounded flex items-center justify-between text-[11px] cursor-pointer ${
+                                    selectedTextId === txt.id ? 'bg-[#8C6D37] text-white' : 'bg-white/5 hover:bg-white/15'
                                   }`}
                                 >
-                                  <div className="w-full aspect-[16/9] rounded-lg overflow-hidden bg-[#2A2621] p-1 flex items-center justify-center pointer-events-none">
-                                    {tmpl.renderDiagram()}
-                                  </div>
-
-                                  <div>
-                                    <div className="flex items-center justify-between gap-1">
-                                      <span className="text-[11px] font-bold text-white group-hover:text-[#ECC880] truncate">
-                                        {tmpl.title}
-                                      </span>
-                                      {tmpl.badge && (
-                                        <span className="px-1 py-0.2 rounded text-[8px] font-bold bg-[#8C6D37] text-white whitespace-nowrap">
-                                          {tmpl.badge}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <span className="text-[9px] text-[#A89F91] line-clamp-1 block">
-                                      {tmpl.subtitle}
-                                    </span>
-                                  </div>
-                                </button>
-                              );
-                            })}
+                                  <span className="truncate pr-1">{txt.text}</span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteFloatingText(txt.id);
+                                    }}
+                                    className="text-rose-400 hover:text-rose-300 p-0.5"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -4643,87 +4607,10 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     className="p-1.5 sm:px-2 sm:py-1.5 rounded-xl border border-[#D6CEBE] bg-[#FAF7F2] hover:bg-[#EFE9DE] font-semibold text-[11px] flex items-center gap-1 text-[#595248] transition-colors"
                   >
                     <FlipHorizontal className="w-3.5 h-3.5 text-[#736B60]" />
-                    <span className="hidden md:inline">Invertir Lados</span>
+                    <span className="hidden md:inline">Invertir</span>
                   </button>
 
                   <div className="h-4 w-[1px] bg-[#D6CEBE] hidden sm:block" />
-
-                  {/* GROUP 3: INSERTAR ELEMENTOS (+ AGREGAR DROPDOWN) */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowAddElementMenu(!showAddElementMenu)}
-                      title="Agregar marcos de fotos o textos al pliego"
-                      className={`px-2.5 py-1.5 rounded-xl border font-bold text-[11px] flex items-center gap-1.5 transition-colors ${
-                        showAddElementMenu
-                          ? 'bg-[#1F1C18] text-white border-[#1F1C18]'
-                          : 'border-[#D6CEBE] bg-[#FAF7F2] hover:bg-[#EFE9DE] text-[#1F1C18]'
-                      }`}
-                    >
-                      <Plus className="w-3.5 h-3.5 text-[#8C6D37]" />
-                      <span>+ Agregar</span>
-                      <ChevronDown className="w-3 h-3 opacity-60" />
-                    </button>
-
-                    {showAddElementMenu && (
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        className="absolute top-full mt-1.5 left-0 w-52 bg-[#1F1C18] text-white p-2 rounded-2xl shadow-2xl border border-white/20 z-50 space-y-1 text-xs"
-                      >
-                        <span className="text-[10px] font-bold text-[#ECC880] uppercase tracking-wider block px-2 py-1">Insertar al Pliego</span>
-                        
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleAddPhotoSlotToPage('left');
-                            setShowAddElementMenu(false);
-                          }}
-                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/15 text-left text-xs transition-colors"
-                        >
-                          <ImageIcon className="w-3.5 h-3.5 text-[#ECC880]" />
-                          <span>Marco en Pág. Izquierda</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleAddPhotoSlotToPage('right');
-                            setShowAddElementMenu(false);
-                          }}
-                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/15 text-left text-xs transition-colors"
-                        >
-                          <ImageIcon className="w-3.5 h-3.5 text-[#ECC880]" />
-                          <span>Marco en Pág. Derecha</span>
-                        </button>
-
-                        <div className="h-[1px] bg-white/10 my-1" />
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleAddFloatingText('title');
-                            setShowAddElementMenu(false);
-                          }}
-                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/15 text-left text-xs transition-colors"
-                        >
-                          <Type className="w-3.5 h-3.5 text-[#ECC880]" />
-                          <span>Cuadro de Texto Libre</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleAddFloatingText('quote');
-                            setShowAddElementMenu(false);
-                          }}
-                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/15 text-left text-xs transition-colors"
-                        >
-                          <Type className="w-3.5 h-3.5 text-[#A89F91]" />
-                          <span>Cita o Frase Editorial</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
 
                   {/* Color de Fondo */}
                   <div className="relative">
@@ -6858,6 +6745,6 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
           />
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
