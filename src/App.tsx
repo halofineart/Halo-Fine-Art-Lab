@@ -78,8 +78,24 @@ function MainAppContent() {
   const [selectedTrackerOrderId, setSelectedTrackerOrderId] = useState<string>('');
   const [activeSection, setActiveSection] = useState('hero');
 
-  // Tracked Orders State
-  const [trackedOrders, setTrackedOrders] = useState<TrackedOrder[]>(SAMPLE_ORDERS);
+  // Tracked Orders State (User's placed orders persisted locally)
+  const [trackedOrders, setTrackedOrders] = useState<TrackedOrder[]>(() => {
+    try {
+      const saved = localStorage.getItem('halo_user_orders');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+
+  // Save placed orders to localStorage
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('halo_user_orders', JSON.stringify(trackedOrders));
+    } catch {}
+  }, [trackedOrders]);
 
   // Email Notification Modal & Toast States
   const [activeToastNotification, setActiveToastNotification] = useState<EmailNotification | null>(null);
@@ -88,16 +104,22 @@ function MainAppContent() {
     order?: TrackedOrder;
   } | null>(null);
 
-  // Cart State
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      id: 'demo-item-1',
-      type: 'custom-album',
-      title: 'Fotolibro Gran Cuadrado Fine Art (30x30 cm)',
-      details: 'Tapa Lino Natural · Grabado Hot Stamping Oro · 20 páginas Layflat 180°',
-      price: 145000,
+  // Cart State (Starts clean at 0 items for real customers)
+  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('halo_cart_items');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-  ]);
+  });
+
+  // Save cart items to localStorage
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('halo_cart_items', JSON.stringify(cartItems));
+    } catch {}
+  }, [cartItems]);
 
   const handleNavigateSection = (sectionId: string) => {
     setActiveSection(sectionId);

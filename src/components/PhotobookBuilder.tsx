@@ -139,7 +139,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   const [uploadedPhotos, setUploadedPhotos] = useState<PhotoAsset[]>(() => {
     return initialProject?.photos && initialProject.photos.length > 0 
       ? initialProject.photos 
-      : [...SAMPLE_PHOTO_PACKS.boda.photos];
+      : [];
   });
   const [selectedPhotoForSlot, setSelectedPhotoForSlot] = useState<string | null>(null);
   const [isOptimizingPhotos, setIsOptimizingPhotos] = useState(false);
@@ -156,10 +156,31 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     };
   }, []);
 
-  // Spreads State (each spread has left and right page)
+  // Spreads State (each spread has left and right page - minimum 10 spreads = 20 pages)
   const [spreads, setSpreads] = useState<PhotobookSpread[]>(() => {
-    if (initialProject?.spreads && initialProject.spreads.length > 0) {
+    if (initialProject?.spreads && initialProject.spreads.length >= 10) {
       return initialProject.spreads;
+    }
+    if (initialProject?.spreads && initialProject.spreads.length > 0) {
+      const existing = [...initialProject.spreads];
+      while (existing.length < 10) {
+        const spreadNum = existing.length + 1;
+        existing.push({
+          id: `spread-pad-${spreadNum}-${Date.now()}`,
+          spreadNumber: spreadNum,
+          leftPage: {
+            id: `p-pad-${spreadNum}-L`,
+            layout: 'single-bordered',
+            slots: [{ id: `s-pad-${spreadNum}-1` }],
+          },
+          rightPage: {
+            id: `p-pad-${spreadNum}-R`,
+            layout: 'two-vertical',
+            slots: [{ id: `s-pad-${spreadNum}-2` }, { id: `s-pad-${spreadNum}-3` }],
+          }
+        });
+      }
+      return existing;
     }
     return [
       {
@@ -168,14 +189,14 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
         leftPage: {
           id: 'p-1',
           layout: 'editorial-text-photo',
-          slots: [{ id: 's-1', photoId: 'w-1', caption: 'Donde todo comenzó' }],
-          customTextHeading: 'Capítulo I',
-          customTextBody: 'Las mejores historias de amor no terminan nunca; simplemente se transforman en recuerdos que perduran para siempre.',
+          slots: [{ id: 's-1' }],
+          customTextHeading: 'Nuestra Historia',
+          customTextBody: 'Cada fotografía es un instante detenido en el tiempo que revive las emociones más profundas.',
         },
         rightPage: {
           id: 'p-2',
           layout: 'single-bordered',
-          slots: [{ id: 's-2', photoId: 'w-2', caption: 'La primera mirada' }],
+          slots: [{ id: 's-2' }],
         }
       },
       {
@@ -184,31 +205,126 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
         leftPage: {
           id: 'p-3',
           layout: 'two-vertical',
-          slots: [
-            { id: 's-3', photoId: 'w-3', caption: 'Detalles' },
-            { id: 's-4', photoId: 'w-4', caption: 'El camino' }
-          ],
+          slots: [{ id: 's-3' }, { id: 's-4' }],
         },
         rightPage: {
           id: 'p-4',
           layout: 'single-full',
-          slots: [{ id: 's-5', photoId: 'w-5' }],
+          slots: [{ id: 's-5' }],
         }
       },
       {
         id: 'spread-3',
         spreadNumber: 3,
-        isFullSpreadBleed: true,
-        fullSpreadPhotoId: 'w-6',
         leftPage: {
           id: 'p-5',
-          layout: 'full-bleed-spread',
-          slots: [{ id: 's-6', photoId: 'w-6' }],
+          layout: 'single-bordered',
+          slots: [{ id: 's-6' }],
         },
         rightPage: {
           id: 'p-6',
-          layout: 'full-bleed-spread',
-          slots: [{ id: 's-7', photoId: 'w-6' }],
+          layout: 'two-horizontal',
+          slots: [{ id: 's-7' }, { id: 's-8-b' }],
+        }
+      },
+      {
+        id: 'spread-4',
+        spreadNumber: 4,
+        leftPage: {
+          id: 'p-7',
+          layout: 'three-collage',
+          slots: [{ id: 's-8' }, { id: 's-9' }, { id: 's-10' }],
+        },
+        rightPage: {
+          id: 'p-8',
+          layout: 'two-horizontal',
+          slots: [{ id: 's-11' }, { id: 's-12' }],
+        }
+      },
+      {
+        id: 'spread-5',
+        spreadNumber: 5,
+        leftPage: {
+          id: 'p-9',
+          layout: 'editorial-magazine-polaroid',
+          slots: [{ id: 's-13' }, { id: 's-14' }, { id: 's-15' }, { id: 's-16' }],
+        },
+        rightPage: {
+          id: 'p-10',
+          layout: 'single-bordered',
+          slots: [{ id: 's-17' }],
+        }
+      },
+      {
+        id: 'spread-6',
+        spreadNumber: 6,
+        leftPage: {
+          id: 'p-11',
+          layout: 'four-grid',
+          slots: [{ id: 's-18' }, { id: 's-19' }, { id: 's-20' }, { id: 's-21' }],
+        },
+        rightPage: {
+          id: 'p-12',
+          layout: 'two-vertical',
+          slots: [{ id: 's-22' }, { id: 's-23' }],
+        }
+      },
+      {
+        id: 'spread-7',
+        spreadNumber: 7,
+        leftPage: {
+          id: 'p-13',
+          layout: 'botanical-floral-scrapbook',
+          slots: [{ id: 's-24' }, { id: 's-25' }, { id: 's-26' }, { id: 's-27' }, { id: 's-28' }],
+        },
+        rightPage: {
+          id: 'p-14',
+          layout: 'single-full',
+          slots: [{ id: 's-29' }],
+        }
+      },
+      {
+        id: 'spread-8',
+        spreadNumber: 8,
+        leftPage: {
+          id: 'p-15',
+          layout: 'asymmetric-split',
+          slots: [{ id: 's-30' }, { id: 's-31' }, { id: 's-32' }],
+        },
+        rightPage: {
+          id: 'p-16',
+          layout: 'three-vertical-triptych',
+          slots: [{ id: 's-33' }, { id: 's-34' }, { id: 's-35' }],
+        }
+      },
+      {
+        id: 'spread-9',
+        spreadNumber: 9,
+        leftPage: {
+          id: 'p-17',
+          layout: 'five-photo-editorial',
+          slots: [{ id: 's-36' }, { id: 's-37' }, { id: 's-38' }, { id: 's-39' }, { id: 's-40' }],
+        },
+        rightPage: {
+          id: 'p-18',
+          layout: 'single-bordered',
+          slots: [{ id: 's-41' }],
+        }
+      },
+      {
+        id: 'spread-10',
+        spreadNumber: 10,
+        leftPage: {
+          id: 'p-19',
+          layout: 'two-vertical',
+          slots: [{ id: 's-42' }, { id: 's-43' }],
+        },
+        rightPage: {
+          id: 'p-20',
+          layout: 'editorial-text-photo',
+          slots: [{ id: 's-44' }],
+          customTextHeading: 'Memorias Eternas',
+          customTextBody: 'Guardado para siempre en papel químico Fine Art.',
         }
       }
     ];
@@ -220,6 +336,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   const [activeLayoutMenuSide, setActiveLayoutMenuSide] = useState<'left' | 'right' | 'spread' | null>(null);
   const [showSafeMarginGuides, setShowSafeMarginGuides] = useState(true);
   const [activeEditorTab, setActiveEditorTab] = useState<'photos' | 'layouts' | 'text'>('photos');
+  const [spreadNotification, setSpreadNotification] = useState<string | null>(null);
 
   // Zno Designer Toolbar & Customization State
   const [bottomBarMode, setBottomBarMode] = useState<'photos' | 'pages'>('photos');
@@ -1236,7 +1353,11 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
   const handleDeleteSpread = (index: number) => {
     const current = spreadsRef.current.length > 0 ? spreadsRef.current : spreads;
-    if (current.length <= 1) return;
+    if (current.length <= 10) {
+      setSpreadNotification("El fotolibro requiere un mínimo de 10 pliegos (20 páginas) para su encuadernación artesanal.");
+      setTimeout(() => setSpreadNotification(null), 4500);
+      return;
+    }
     const filtered = current.filter((_, i) => i !== index);
     // re-number
     const renumbered = filtered.map((s, idx) => ({ ...s, spreadNumber: idx + 1 }));
@@ -1339,7 +1460,8 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
     let photoIdx = 0;
     const newSpreads: PhotobookSpread[] = [];
-    const spreadCount = Math.max(3, Math.ceil(uploadedPhotos.length / 3));
+    // Always create at least 10 spreads (20 pages) for the artisan photobook minimum binding
+    const spreadCount = Math.max(10, Math.ceil(uploadedPhotos.length / 3));
 
     for (let i = 0; i < spreadCount; i++) {
       const p1 = uploadedPhotos[photoIdx % uploadedPhotos.length];
@@ -1372,6 +1494,8 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
     setSpreads(newSpreads);
     setActiveSpreadIndex(0);
+    setSpreadNotification(`✨ Auto Fill completado: ${uploadedPhotos.length} fotos distribuidas en ${spreadCount} pliegos (${spreadCount * 2} páginas).`);
+    setTimeout(() => setSpreadNotification(null), 4000);
   };
 
   const handleAutoPopulateSpreads = handleAutoLayout;

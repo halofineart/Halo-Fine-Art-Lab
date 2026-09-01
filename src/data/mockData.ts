@@ -3,8 +3,8 @@ import { BookFormat, CoverMaterial, FoilOption, PaperFinish, PhotoAsset, Custome
 export const STORE_CONFIG = {
   currency: 'ARS',
   currencySymbol: '$',
-  whatsappNumber: '+54 11 2862-5916',
-  whatsappRaw: '5491128625916',
+  whatsappNumber: '+54 9 11 6763-8958',
+  whatsappRaw: '5491167638958',
   whatsappMessage: '¡Hola HALO Fine Art Lab! Quisiera consultar sobre los fotolibros artesanales y las opciones de diseño.',
   email: 'contacto@halofineartlab.com',
   location: {
@@ -29,6 +29,22 @@ export const STORE_CONFIG = {
   productionTime: '4 a 6 días hábiles',
   shippingCostRestOfCountry: 8500, // ARS
   bankDiscountPercent: 10,
+  bankDetails: {
+    bankName: 'Banco Santander / Galicia',
+    accountHolder: 'HALO Fine Art Lab',
+    cuit: '20-28306117-6',
+    cbu: '0070123430004567890123',
+    alias: 'HALO.FINEART.PILAR',
+    accountType: 'Cuenta Corriente Especial en Pesos',
+    discountPercent: 10,
+  },
+  mercadoPagoDetails: {
+    alias: 'HALO.FOTOLIBROS.MP',
+    cvu: '0000003100098765432100',
+    recipient: 'HALO Fine Art Lab',
+    cardsAccepted: 'Visa, Mastercard, Cabal, American Express',
+    installmentsText: 'Hasta 3 y 6 cuotas con tarjetas bancarias',
+  },
   paymentMethods: [
     {
       id: 'mercadopago',
@@ -41,6 +57,12 @@ export const STORE_CONFIG = {
       name: 'Transferencia Bancaria Directa',
       description: '10% de descuento abonando por transferencia o depósito inmediato',
       badge: '10% OFF'
+    },
+    {
+      id: 'card',
+      name: 'Tarjetas de Crédito / Débito',
+      description: 'Visa, Mastercard, Amex en 1, 3 o 6 cuotas',
+      badge: 'CUOTAS'
     }
   ]
 };

@@ -47,8 +47,18 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
   const [createdOrderId, setCreatedOrderId] = useState<string>('');
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.price, 0);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const isBankTransfer = paymentMethod === 'transfer';
+  const discountAmount = isBankTransfer ? Math.round(subtotal * (STORE_CONFIG.bankDiscountPercent / 100)) : 0;
   const shippingCost = shippingMethod === 'pilar-free' ? 0 : (subtotal > 200000 ? 0 : 9500);
-  const total = subtotal + shippingCost;
+  const total = subtotal - discountAmount + shippingCost;
+
+  const handleCopy = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2500);
+  };
 
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
@@ -394,28 +404,178 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
 
             {/* 3. Payment Method */}
             <div className="space-y-3">
-              <h3 className="font-serif-luxury text-base font-bold text-[#1F1C18] border-b border-[#E8E2D5] pb-1">
-                3. Forma de Pago (Pesos Argentinos)
+              <h3 className="font-serif-luxury text-base font-bold text-[#1F1C18] border-b border-[#E8E2D5] pb-1 flex items-center justify-between">
+                <span>3. Forma de Pago (Pesos Argentinos)</span>
+                {isBankTransfer && (
+                  <span className="text-[11px] text-emerald-800 bg-emerald-100 font-bold px-2 py-0.5 rounded-full">
+                    10% OFF Aplicado (-{formatPriceARS(discountAmount)} ARS)
+                  </span>
+                )}
               </h3>
-              <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                 {[
-                  { id: 'mercadopago', label: '💙 Mercado Pago / Débito' },
-                  { id: 'transfer', label: '🏦 Transferencia Bancaria (CBU)' },
-                  { id: 'card', label: '💳 Tarjetas en Cuotas' },
+                  { id: 'transfer', label: '🏦 Transferencia Bancaria', badge: '10% OFF' },
+                  { id: 'mercadopago', label: '💙 Mercado Pago', badge: 'CVU / QR' },
+                  { id: 'card', label: '💳 Tarjetas Bancarias', badge: '1, 3 o 6 Cuotas' },
                 ].map((m) => (
                   <button
                     key={m.id}
                     type="button"
                     onClick={() => setPaymentMethod(m.id as any)}
-                    className={`py-2.5 px-2 rounded-xl border font-medium text-center transition-all ${
+                    className={`py-3 px-3 rounded-xl border font-medium text-left sm:text-center transition-all cursor-pointer ${
                       paymentMethod === m.id
-                        ? 'border-[#8C6D37] bg-[#8C6D37] text-white shadow-sm'
-                        : 'border-[#D6CEBE] bg-[#F4EFE6]/50 text-[#1F1C18]'
+                        ? 'border-[#8C6D37] bg-[#8C6D37] text-white shadow-md ring-1 ring-[#8C6D37]'
+                        : 'border-[#D6CEBE] bg-[#F4EFE6]/50 text-[#1F1C18] hover:bg-[#F4EFE6]'
                     }`}
                   >
-                    {m.label}
+                    <div className="font-bold">{m.label}</div>
+                    <div className={`text-[10px] mt-0.5 ${paymentMethod === m.id ? 'text-white/90 font-semibold' : 'text-[#8C6D37]'}`}>
+                      {m.badge}
+                    </div>
                   </button>
                 ))}
+              </div>
+
+              {/* Payment Details Drawer */}
+              {paymentMethod === 'transfer' && (
+                <div className="p-4 rounded-2xl border border-emerald-300 bg-emerald-50/70 text-xs text-[#284E3A] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <strong className="text-emerald-950 flex items-center gap-1.5 font-bold">
+                      <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                      Datos para Transferencia Bancaria (10% de Ahorro)
+                    </strong>
+                    <span className="text-xs font-mono font-bold text-emerald-900 bg-emerald-200/80 px-2 py-0.5 rounded">
+                      Total: {formatPriceARS(total)} ARS
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-[11px] bg-white/80 p-3 rounded-xl border border-emerald-200">
+                    <div>
+                      <span className="text-gray-500 block text-[10px]">BANCO:</span>
+                      <strong>{STORE_CONFIG.bankDetails.bankName}</strong>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block text-[10px]">TITULAR:</span>
+                      <strong>{STORE_CONFIG.bankDetails.accountHolder}</strong>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block text-[10px]">CUIT:</span>
+                      <strong>{STORE_CONFIG.bankDetails.cuit}</strong>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-gray-500 block text-[10px]">ALIAS:</span>
+                        <strong className="text-emerald-900">{STORE_CONFIG.bankDetails.alias}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(STORE_CONFIG.bankDetails.alias, 'alias')}
+                        className="px-2 py-1 bg-emerald-700 text-white rounded text-[10px] uppercase tracking-wider font-sans font-bold hover:bg-emerald-800"
+                      >
+                        {copiedKey === 'alias' ? '¡Copiado!' : 'Copiar'}
+                      </button>
+                    </div>
+                    <div className="sm:col-span-2 flex items-center justify-between pt-1 border-t border-emerald-100">
+                      <div>
+                        <span className="text-gray-500 block text-[10px]">CBU:</span>
+                        <strong className="text-xs tracking-wider">{STORE_CONFIG.bankDetails.cbu}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(STORE_CONFIG.bankDetails.cbu, 'cbu')}
+                        className="px-2.5 py-1 bg-emerald-700 text-white rounded text-[10px] uppercase tracking-wider font-sans font-bold hover:bg-emerald-800"
+                      >
+                        {copiedKey === 'cbu' ? '¡Copiado!' : 'Copiar CBU'}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-emerald-800">
+                    Al confirmar, recibirás el remito y podrás adjuntar el comprobante por WhatsApp o email para iniciar de inmediato el revelado.
+                  </p>
+                </div>
+              )}
+
+              {paymentMethod === 'mercadopago' && (
+                <div className="p-4 rounded-2xl border border-sky-300 bg-sky-50/70 text-xs text-[#1E3A5F] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <strong className="text-sky-950 flex items-center gap-1.5 font-bold">
+                      <Sparkles className="w-4 h-4 text-sky-700" />
+                      Mercado Pago (Dinero en Cuenta / Débito / QR)
+                    </strong>
+                    <span className="text-xs font-mono font-bold text-sky-900 bg-sky-200/80 px-2 py-0.5 rounded">
+                      Total: {formatPriceARS(total)} ARS
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-[11px] bg-white/80 p-3 rounded-xl border border-sky-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-gray-500 block text-[10px]">ALIAS MP:</span>
+                        <strong className="text-sky-900">{STORE_CONFIG.mercadoPagoDetails.alias}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(STORE_CONFIG.mercadoPagoDetails.alias, 'mp_alias')}
+                        className="px-2 py-1 bg-sky-700 text-white rounded text-[10px] uppercase tracking-wider font-sans font-bold hover:bg-sky-800"
+                      >
+                        {copiedKey === 'mp_alias' ? '¡Copiado!' : 'Copiar'}
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-gray-500 block text-[10px]">CVU MP:</span>
+                        <strong className="text-xs tracking-wider">{STORE_CONFIG.mercadoPagoDetails.cvu}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(STORE_CONFIG.mercadoPagoDetails.cvu, 'mp_cvu')}
+                        className="px-2.5 py-1 bg-sky-700 text-white rounded text-[10px] uppercase tracking-wider font-sans font-bold hover:bg-sky-800"
+                      >
+                        {copiedKey === 'mp_cvu' ? '¡Copiado!' : 'Copiar'}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-sky-800">
+                    {STORE_CONFIG.mercadoPagoDetails.installmentsText}. Confirmaremos tu acreditación automática.
+                  </p>
+                </div>
+              )}
+
+              {paymentMethod === 'card' && (
+                <div className="p-4 rounded-2xl border border-[#D6CEBE] bg-[#F4EFE6]/70 text-xs text-[#595248] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <strong className="text-[#1F1C18] flex items-center gap-1.5 font-bold">
+                      <ShieldCheck className="w-4 h-4 text-[#8C6D37]" />
+                      Pago Seguro con Tarjetas Bancarias
+                    </strong>
+                    <span className="text-xs font-mono font-bold text-[#1F1C18]">
+                      Total: {formatPriceARS(total)} ARS
+                    </span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed">
+                    Aceptamos Visa, Mastercard, American Express y Cabal en 1, 3 o 6 cuotas. Te enviaremos el link de pago oficial encriptado con tu confirmación.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Price Summary Before Submit */}
+            <div className="rounded-xl border border-[#E8E2D5] bg-[#FAF8F5] p-3 text-xs space-y-1.5">
+              <div className="flex justify-between text-[#595248]">
+                <span>Subtotal ({cartItems.length} {cartItems.length === 1 ? 'producto' : 'productos'}):</span>
+                <span className="font-mono">{formatPriceARS(subtotal)} ARS</span>
+              </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-emerald-800 font-medium">
+                  <span>Descuento Transferencia Bancaria (10% OFF):</span>
+                  <span className="font-mono">- {formatPriceARS(discountAmount)} ARS</span>
+                </div>
+              )}
+              <div className="flex justify-between text-[#595248]">
+                <span>Envío:</span>
+                <span className="font-mono">{shippingCost === 0 ? 'GRATIS' : `${formatPriceARS(shippingCost)} ARS`}</span>
+              </div>
+              <div className="flex justify-between text-sm font-bold text-[#1F1C18] pt-1.5 border-t border-[#E8E2D5]">
+                <span>Total a Abonar:</span>
+                <span className="font-serif-luxury text-lg text-[#8C6D37]">{formatPriceARS(total)} ARS</span>
               </div>
             </div>
 
@@ -430,7 +590,7 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
 
               <button
                 type="submit"
-                className="px-8 py-3.5 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-widest font-bold hover:bg-[#3D352E] shadow-xl"
+                className="px-8 py-3.5 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-widest font-bold hover:bg-[#3D352E] shadow-xl cursor-pointer"
               >
                 Confirmar Orden ({formatPriceARS(total)} ARS)
               </button>

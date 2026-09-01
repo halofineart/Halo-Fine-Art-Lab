@@ -129,7 +129,17 @@ export const Footer: React.FC<FooterProps> = ({
               </p>
               <p className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-[#ECC880]" />
-                <span>Pilar, Buenos Aires · Envíos a todo el país</span>
+                <a 
+                  href="https://wa.me/5491167638958" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-[#FDFCF9] transition-colors underline-offset-2 hover:underline"
+                >
+                  +54 9 11 6763-8958 (WhatsApp)
+                </a>
+              </p>
+              <p className="text-[11px] text-[#8C8275]">
+                Pilar, Buenos Aires · Envíos asegurados a todo el país
               </p>
             </div>
           </div>

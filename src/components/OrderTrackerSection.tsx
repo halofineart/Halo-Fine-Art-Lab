@@ -5,7 +5,10 @@ import {
   CheckCircle2, 
   ArrowRight,
   Mail,
-  Send,
+  Truck,
+  Sparkles,
+  ShieldCheck,
+  AlertCircle
 } from 'lucide-react';
 import { TrackedOrder, OrderStatusStage, EmailNotification } from '../types';
 import { formatPriceARS } from '../data/mockData';
@@ -21,18 +24,30 @@ export const OrderTrackerSection: React.FC<OrderTrackerSectionProps> = ({
   orders,
   onOpenTrackerModal,
   onViewEmailNotification,
-  onUpdateOrderStatus,
 }) => {
-  const [quickSearch, setQuickSearch] = useState('');
-  const [activeTab, setActiveTab] = useState<string>(orders[0]?.id || '');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchedOrder, setSearchedOrder] = useState<TrackedOrder | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  const matchedOrder = orders.find(
-    (o) =>
-      o.id === activeTab ||
-      (quickSearch &&
-        (o.orderNumber.toLowerCase().includes(quickSearch.toLowerCase()) ||
-          o.customerName.toLowerCase().includes(quickSearch.toLowerCase())))
-  ) || orders[0];
+  // If the user already has placed orders in this session, show their most recent order by default
+  const myRecentOrder = orders.length > 0 ? orders[0] : null;
+  const activeOrder = searchedOrder || (hasSearched ? null : myRecentOrder);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    setHasSearched(true);
+    const query = searchQuery.trim().toLowerCase();
+    const found = orders.find(
+      (o) =>
+        o.orderNumber.toLowerCase() === query ||
+        o.orderNumber.toLowerCase().includes(query) ||
+        o.customerEmail.toLowerCase() === query ||
+        (o.trackingCode && o.trackingCode.toLowerCase() === query)
+    );
+    setSearchedOrder(found || null);
+  };
 
   const getStageInfo = (stage: OrderStatusStage) => {
     switch (stage) {
@@ -63,9 +78,9 @@ export const OrderTrackerSection: React.FC<OrderTrackerSectionProps> = ({
     }
   };
 
-  const currentStageInfo = matchedOrder ? getStageInfo(matchedOrder.status) : null;
-  const latestEmail = matchedOrder?.emailHistory && matchedOrder.emailHistory.length > 0
-    ? matchedOrder.emailHistory[matchedOrder.emailHistory.length - 1]
+  const currentStageInfo = activeOrder ? getStageInfo(activeOrder.status) : null;
+  const latestEmail = activeOrder?.emailHistory && activeOrder.emailHistory.length > 0
+    ? activeOrder.emailHistory[activeOrder.emailHistory.length - 1]
     : null;
 
   return (
@@ -73,7 +88,7 @@ export const OrderTrackerSection: React.FC<OrderTrackerSectionProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-14">
           <span className="text-xs sm:text-sm font-semibold tracking-[0.22em] text-[#8C6D37] uppercase block mb-3">
             PRODUCCIÓN ARTESANAL (4 A 6 DÍAS)
           </span>
@@ -81,70 +96,69 @@ export const OrderTrackerSection: React.FC<OrderTrackerSectionProps> = ({
             Seguimiento de tu Fotolibro
           </h2>
           <p className="text-sm sm:text-base text-[#595248] font-light mt-4 max-w-xl mx-auto leading-relaxed">
-            Notificaciones automáticas por correo electrónico en cada etapa: diseño, revelado en taller y despacho.
+            Consultá el avance exclusivo de tu pedido en taller y recibí notificaciones automáticas en cada etapa de confección.
           </p>
         </div>
 
-        {/* Tracker Box */}
-        <div className="bg-[#FDFCF9] border border-[#E8E2D5] shadow-sm max-w-4xl mx-auto">
+        {/* Private Tracker Box */}
+        <div className="bg-[#FDFCF9] border border-[#E8E2D5] shadow-xs max-w-4xl mx-auto">
           
-          {/* Top Search & Order Selector Bar */}
-          <div className="p-5 sm:p-6 bg-[#FAF8F5] border-b border-[#E8E2D5] flex flex-col md:flex-row items-center justify-between gap-4">
-            {/* Quick Order Tabs */}
-            <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-              <span className="text-xs sm:text-sm font-mono text-[#595248] uppercase tracking-wider shrink-0 mr-1 font-semibold">
-                Órdenes:
+          {/* Top Private Search Bar */}
+          <div className="p-6 sm:p-7 bg-[#FAF8F5] border-b border-[#E8E2D5]">
+            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-center gap-3">
+              <div className="relative w-full">
+                <Search className="w-4 h-4 text-[#8C8275] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Ingresá tu N° de pedido (ej: HALO-849201) o tu email..."
+                  className="w-full pl-10 pr-4 py-3 text-xs sm:text-sm bg-[#FDFCF9] border border-[#D6CEBE] focus:outline-none focus:border-[#1F1C18] placeholder:text-[#8C8275]"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full sm:w-auto px-6 py-3 bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-[0.14em] font-semibold hover:bg-[#3D352E] transition-colors cursor-pointer shrink-0"
+              >
+                Buscar Pedido
+              </button>
+            </form>
+            <div className="flex items-center justify-between mt-3 text-xs text-[#8C8275]">
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#8C6D37]" />
+                Búsqueda privada protegida para clientes
               </span>
-              {orders.slice(0, 3).map((ord) => {
-                const isSelected = matchedOrder && matchedOrder.id === ord.id;
-                return (
-                  <button
-                    key={ord.id}
-                    type="button"
-                    onClick={() => {
-                      setActiveTab(ord.id);
-                      setQuickSearch('');
-                    }}
-                    className={`px-3.5 py-2 text-xs sm:text-sm font-mono transition-all border cursor-pointer font-medium ${
-                      isSelected
-                        ? 'border-[#1F1C18] bg-[#1F1C18] text-[#FDFCF9]'
-                        : 'border-[#D6CEBE] bg-[#FDFCF9] text-[#595248] hover:bg-[#FAF8F5]'
-                    }`}
-                  >
-                    #{ord.orderNumber}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Search Input */}
-            <div className="relative w-full md:w-72">
-              <Search className="w-4 h-4 text-[#8C8275] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={quickSearch}
-                onChange={(e) => setQuickSearch(e.target.value)}
-                placeholder="Buscar por Nº o Nombre..."
-                className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-[#FDFCF9] border border-[#D6CEBE] focus:outline-none focus:border-[#1F1C18] placeholder:text-[#8C8275]"
-              />
+              {myRecentOrder && !searchedOrder && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchedOrder(null);
+                    setHasSearched(false);
+                    setSearchQuery('');
+                  }}
+                  className="text-[#8C6D37] hover:underline cursor-pointer font-medium"
+                >
+                  Ver mi pedido más reciente ({myRecentOrder.orderNumber})
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Active Order Details */}
-          {matchedOrder ? (
+          {/* Order Content */}
+          {activeOrder ? (
             <div className="p-6 sm:p-9 space-y-8">
               
               {/* Order Meta Bar */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E8E2D5]">
                 <div>
                   <span className="text-xs uppercase font-mono tracking-widest text-[#8C6D37] font-semibold">
-                    Pedido #{matchedOrder.orderNumber}
+                    Pedido #{activeOrder.orderNumber}
                   </span>
                   <h3 className="font-serif-luxury text-2xl sm:text-3xl text-[#1F1C18] font-normal mt-1">
-                    {matchedOrder.itemTitle}
+                    {activeOrder.itemTitle}
                   </h3>
                   <p className="text-sm sm:text-base text-[#595248] font-normal mt-1.5">
-                    Cliente: <strong className="text-[#1F1C18] font-medium">{matchedOrder.customerName}</strong> · {matchedOrder.format} · Total: <strong className="text-[#1F1C18] font-semibold">{formatPriceARS(matchedOrder.totalPrice)} ARS</strong>
+                    Cliente: <strong className="text-[#1F1C18] font-medium">{activeOrder.customerName}</strong> · {activeOrder.format}
                   </p>
                 </div>
 
@@ -158,7 +172,7 @@ export const OrderTrackerSection: React.FC<OrderTrackerSectionProps> = ({
 
               {/* 4 Steps Minimalist Timeline */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                {matchedOrder.timeline.map((step, idx) => {
+                {activeOrder.timeline.map((step, idx) => {
                   return (
                     <div
                       key={step.stage}
@@ -197,17 +211,17 @@ export const OrderTrackerSection: React.FC<OrderTrackerSectionProps> = ({
                   <div className="flex items-center gap-3.5">
                     <Mail className="w-5 h-5 text-[#8C6D37] shrink-0" />
                     <div>
-                      <span className="text-xs uppercase font-mono text-[#8C8275] block font-medium">Último aviso enviado al cliente</span>
+                      <span className="text-xs uppercase font-mono text-[#8C8275] block font-medium">Último aviso enviado a tu casilla</span>
                       <p className="text-sm sm:text-base text-[#1F1C18] font-semibold mt-0.5">{latestEmail.subject}</p>
                     </div>
                   </div>
                   {onViewEmailNotification && (
                     <button
                       type="button"
-                      onClick={() => onViewEmailNotification(latestEmail, matchedOrder)}
+                      onClick={() => onViewEmailNotification(latestEmail, activeOrder)}
                       className="px-3.5 py-1.5 border border-[#D6CEBE] text-xs uppercase tracking-wider font-mono font-medium hover:bg-[#FDFCF9] transition-colors cursor-pointer shrink-0"
                     >
-                      Ver Email
+                      Ver Notificación
                     </button>
                   )}
                 </div>
@@ -217,36 +231,31 @@ export const OrderTrackerSection: React.FC<OrderTrackerSectionProps> = ({
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3">
                 <button
                   type="button"
-                  onClick={() => onOpenTrackerModal(matchedOrder.id)}
+                  onClick={() => onOpenTrackerModal(activeOrder.id)}
                   className="text-sm sm:text-base text-[#1F1C18] font-medium hover:underline flex items-center gap-2 cursor-pointer"
                 >
-                  <span>Abrir vista detallada de seguimiento</span>
+                  <span>Abrir panel completo de seguimiento y remito</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
-
-                {onUpdateOrderStatus && (
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-xs font-mono text-[#736B60] font-medium">Simular avance:</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const stages: OrderStatusStage[] = ['en_diseno', 'en_impresion', 'enviado', 'entregado'];
-                        const curIdx = stages.indexOf(matchedOrder.status);
-                        const nextStage = stages[(curIdx + 1) % stages.length];
-                        onUpdateOrderStatus(matchedOrder.id, nextStage);
-                      }}
-                      className="px-3.5 py-1.5 bg-[#1F1C18] text-[#FDFCF9] text-xs font-mono uppercase tracking-wider font-semibold hover:bg-[#3D352E] cursor-pointer shadow-2xs"
-                    >
-                      Siguiente Etapa
-                    </button>
-                  </div>
-                )}
+                <span className="text-xs text-[#8C8275]">
+                  Entrega estimada: <strong className="text-[#1F1C18] font-medium">{activeOrder.estimatedDelivery}</strong>
+                </span>
               </div>
 
             </div>
           ) : (
-            <div className="p-12 text-center text-sm text-[#736B60] font-light">
-              No se encontraron pedidos con ese criterio.
+            <div className="p-12 text-center">
+              <div className="w-12 h-12 rounded-full bg-[#FAF8F5] border border-[#E8E2D5] flex items-center justify-center mx-auto mb-4 text-[#8C6D37]">
+                <Package className="w-6 h-6" />
+              </div>
+              <h4 className="font-serif-luxury text-xl text-[#1F1C18] font-normal">
+                {hasSearched ? "No encontramos ningún pedido con esos datos" : "Ingresá tus datos para consultar tu pedido"}
+              </h4>
+              <p className="text-sm text-[#736B60] font-light mt-2 max-w-md mx-auto">
+                {hasSearched
+                  ? "Verificá que el número de pedido (ej: HALO-849201) o el correo electrónico coincidan con los de tu compra."
+                  : "Tu información es privada. Cada cliente accede únicamente al seguimiento de sus propios fotolibros ingresando su código o email."}
+              </p>
             </div>
           )}
 
