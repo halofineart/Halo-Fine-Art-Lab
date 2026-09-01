@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { X, ShoppingBag, CheckCircle2, ShieldCheck, Truck, CreditCard, Sparkles, BookOpen, Phone, MapPin, Package, Clock, Database } from 'lucide-react';
+import { X, ShoppingBag, CheckCircle2, ShieldCheck, Truck, CreditCard, Sparkles, BookOpen, Phone, MapPin, Package, Clock, Database, AlertTriangle, Loader2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { PhotobookProject, DesignServiceRequest, TrackedOrder } from '../types';
 import { BOOK_FORMATS, COVER_MATERIALS, PAPER_FINISHES, formatPriceARS, STORE_CONFIG } from '../data/mockData';
@@ -45,6 +45,8 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<'mercadopago' | 'transfer' | 'card'>('mercadopago');
   const [createdOrderNumber, setCreatedOrderNumber] = useState<string>('');
   const [createdOrderId, setCreatedOrderId] = useState<string>('');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.price, 0);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -60,8 +62,77 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
     setTimeout(() => setCopiedKey(null), 2500);
   };
 
+  const buildItemsPayload = () =>
+    cartItems.map((ci) => ({
+      title: ci.title,
+      format: ci.project?.formatId || 'Formato Fine Art',
+      cover: ci.project?.coverMaterialId || 'Lino Seleccionado',
+      foil: ci.project?.foilColor || 'Oro Champagne',
+      pages: ci.project ? ci.project.spreads.length * 2 : 20,
+      price: ci.price,
+      previewUrl: ci.project?.photos[0]?.url || 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80',
+      hasGiftBox: true,
+    }));
+
+  // Real Mercado Pago Checkout Pro flow: create a preference server-side
+  // (the order is saved to Supabase there too, with payment_status =
+  // 'pending') and redirect the shopper to Mercado Pago to actually pay.
+  // Nothing here is "confirmed" yet — the webhook is the source of truth.
+  const handleMercadoPagoCheckout = async () => {
+    setIsProcessingPayment(true);
+    setPaymentError(null);
+    try {
+      const orderCode = `HALO-${Math.floor(100000 + Math.random() * 900000)}`;
+      const response = await fetch('/api/create-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderCode,
+          items: buildItemsPayload(),
+          subtotal,
+          discountAmount,
+          shippingCost,
+          total,
+          payer: {
+            name: recipientName,
+            email: recipientEmail,
+            phone: recipientPhone,
+          },
+          shippingAddress: recipientAddress,
+          city: recipientCity,
+          postalCode: recipientPostal,
+          shippingMethod: shippingMethod === 'pilar-free' ? 'pilar_direct' : 'correo_nacional',
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data.initPoint) {
+        throw new Error(data.error || 'No se pudo iniciar el pago con Mercado Pago.');
+      }
+
+      // The redirect to Mercado Pago is a full page navigation away from
+      // this SPA, so stash the order code — the return screen (App.tsx)
+      // reads it back to fetch the real payment result.
+      localStorage.setItem('halo_pending_mp_order', orderCode);
+      window.location.href = data.initPoint;
+    } catch (err: any) {
+      setPaymentError(err?.message || 'No se pudo conectar con Mercado Pago. Probá de nuevo en unos segundos.');
+      setIsProcessingPayment(false);
+    }
+  };
+
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Mercado Pago ('mercadopago' and 'card' both go through the real,
+    // secure Checkout Pro flow — Mercado Pago itself handles cards,
+    // installments, debit and account balance within that one checkout).
+    if (paymentMethod === 'mercadopago' || paymentMethod === 'card') {
+      handleMercadoPagoCheckout();
+      return;
+    }
+
     const generatedOrderNum = `HALO-${Math.floor(100000 + Math.random() * 900000)}`;
     const generatedOrderId = `ord-${Date.now()}`;
     setCreatedOrderNumber(generatedOrderNum);
@@ -505,36 +576,8 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
                       Total: {formatPriceARS(total)} ARS
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-[11px] bg-white/80 p-3 rounded-xl border border-sky-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-gray-500 block text-[10px]">ALIAS MP:</span>
-                        <strong className="text-sky-900">{STORE_CONFIG.mercadoPagoDetails.alias}</strong>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(STORE_CONFIG.mercadoPagoDetails.alias, 'mp_alias')}
-                        className="px-2 py-1 bg-sky-700 text-white rounded text-[10px] uppercase tracking-wider font-sans font-bold hover:bg-sky-800"
-                      >
-                        {copiedKey === 'mp_alias' ? '¡Copiado!' : 'Copiar'}
-                      </button>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-gray-500 block text-[10px]">CVU MP:</span>
-                        <strong className="text-xs tracking-wider">{STORE_CONFIG.mercadoPagoDetails.cvu}</strong>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(STORE_CONFIG.mercadoPagoDetails.cvu, 'mp_cvu')}
-                        className="px-2.5 py-1 bg-sky-700 text-white rounded text-[10px] uppercase tracking-wider font-sans font-bold hover:bg-sky-800"
-                      >
-                        {copiedKey === 'mp_cvu' ? '¡Copiado!' : 'Copiar'}
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-sky-800">
-                    {STORE_CONFIG.mercadoPagoDetails.installmentsText}. Confirmaremos tu acreditación automática.
+                  <p className="text-[11px] text-sky-800 leading-relaxed">
+                    Al confirmar te vamos a redirigir al Checkout seguro de Mercado Pago para completar el pago. Acreditación automática e instantánea — no hace falta que nos envíes comprobante.
                   </p>
                 </div>
               )}
@@ -551,8 +594,15 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
                     </span>
                   </div>
                   <p className="text-[11px] leading-relaxed">
-                    Aceptamos Visa, Mastercard, American Express y Cabal en 1, 3 o 6 cuotas. Te enviaremos el link de pago oficial encriptado con tu confirmación.
+                    Aceptamos {STORE_CONFIG.mercadoPagoDetails.cardsAccepted} en {STORE_CONFIG.mercadoPagoDetails.installmentsText.toLowerCase()}. Se procesa a través del Checkout seguro de Mercado Pago — te redirigimos ahí para completar el pago.
                   </p>
+                </div>
+              )}
+
+              {paymentError && (
+                <div className="p-3 rounded-xl border border-red-300 bg-red-50 text-xs text-red-800 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{paymentError}</span>
                 </div>
               )}
             </div>
@@ -590,9 +640,19 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
 
               <button
                 type="submit"
-                className="px-8 py-3.5 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-widest font-bold hover:bg-[#3D352E] shadow-xl cursor-pointer"
+                disabled={isProcessingPayment}
+                className="px-8 py-3.5 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-widest font-bold hover:bg-[#3D352E] shadow-xl cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Confirmar Orden ({formatPriceARS(total)} ARS)
+                {isProcessingPayment ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Redirigiendo a Mercado Pago…</span>
+                  </>
+                ) : paymentMethod === 'mercadopago' || paymentMethod === 'card' ? (
+                  <span>Pagar con Mercado Pago ({formatPriceARS(total)} ARS)</span>
+                ) : (
+                  <span>Confirmar Orden ({formatPriceARS(total)} ARS)</span>
+                )}
               </button>
             </div>
           </form>

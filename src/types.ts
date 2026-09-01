@@ -298,6 +298,8 @@ export interface OrderCloudFolder {
   notes?: string;
 }
 
+export type PaymentStatus = 'pending' | 'approved' | 'in_process' | 'rejected' | 'refunded' | 'cancelled' | 'not_required';
+
 export interface TrackedOrder {
   id: string;
   orderNumber: string; // e.g. "HALO-849201"
@@ -314,6 +316,9 @@ export interface TrackedOrder {
   estimatedDays: string; // "4 a 6 días hábiles"
   totalPrice: number;
   paymentMethod: string;
+  /** Real payment status from Mercado Pago (or 'not_required' for manual bank transfer). */
+  paymentStatus?: PaymentStatus;
+  paymentProvider?: 'mercadopago' | 'transfer';
   emailNotificationsEnabled?: boolean;
   emailHistory?: EmailNotification[];
   items: Array<{

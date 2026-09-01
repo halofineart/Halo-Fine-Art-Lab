@@ -41,6 +41,9 @@ const UserProfileModal = lazy(() =>
 const AdminWorkshopModal = lazy(() =>
   import('./components/AdminWorkshopModal').then((m) => ({ default: m.AdminWorkshopModal }))
 );
+const PaymentResultModal = lazy(() =>
+  import('./components/PaymentResultModal').then((m) => ({ default: m.PaymentResultModal }))
+);
 import {
   BookFormatId,
   PhotobookProject, 
@@ -77,6 +80,26 @@ function MainAppContent() {
 
   const [selectedTrackerOrderId, setSelectedTrackerOrderId] = useState<string>('');
   const [activeSection, setActiveSection] = useState('hero');
+
+  // Mercado Pago return handling (?mp_return=success|pending|failure&order=HALO-XXXXXX).
+  // Read once on mount — the full-page redirect to/from Mercado Pago means
+  // this is effectively a fresh load of the SPA.
+  const [mpReturnState] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const mpReturn = params.get('mp_return');
+      const orderCode = params.get('order');
+      if (
+        (mpReturn === 'success' || mpReturn === 'pending' || mpReturn === 'failure') &&
+        orderCode &&
+        /^HALO-\d{6}$/.test(orderCode)
+      ) {
+        return { mpReturn: mpReturn as 'success' | 'pending' | 'failure', orderCode };
+      }
+    } catch {}
+    return null;
+  });
+  const [isPaymentResultOpen, setIsPaymentResultOpen] = useState(Boolean(mpReturnState));
 
   // Tracked Orders State (User's placed orders persisted locally)
   const [trackedOrders, setTrackedOrders] = useState<TrackedOrder[]>(() => {
@@ -265,6 +288,31 @@ function MainAppContent() {
       notification,
       order: matchedOrder,
     });
+  };
+
+  const handlePaymentConfirmed = (order: TrackedOrder) => {
+    const initialEmail = generateStatusEmail(order, 'en_diseno');
+    const orderWithEmail: TrackedOrder = {
+      ...order,
+      emailNotificationsEnabled: true,
+      emailHistory: [initialEmail],
+    };
+    setTrackedOrders((prev) => {
+      if (prev.some((o) => o.orderNumber === orderWithEmail.orderNumber)) return prev;
+      return [orderWithEmail, ...prev];
+    });
+    setSelectedTrackerOrderId(order.id);
+    setCartItems([]);
+  };
+
+  const handleClosePaymentResult = () => {
+    setIsPaymentResultOpen(false);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('mp_return');
+      url.searchParams.delete('order');
+      window.history.replaceState({}, '', url.toString());
+    } catch {}
   };
 
   const handleRemoveCartItem = (id: string) => {
@@ -494,6 +542,22 @@ function MainAppContent() {
               handleOpenTrackerForOrder(orderCode);
             }}
             onOpenAuth={() => setIsAuthModalOpen(true)}
+          />
+        </Suspense>
+      )}
+
+      {/* Mercado Pago return screen (?mp_return=success|pending|failure&order=HALO-XXXXXX) */}
+      {mpReturnState && isPaymentResultOpen && (
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <PaymentResultModal
+            mpReturn={mpReturnState.mpReturn}
+            orderCode={mpReturnState.orderCode}
+            onClose={handleClosePaymentResult}
+            onOrderConfirmed={handlePaymentConfirmed}
+            onOpenTracker={(orderId) => {
+              handleClosePaymentResult();
+              handleOpenTrackerForOrder(orderId);
+            }}
           />
         </Suspense>
       )}

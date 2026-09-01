@@ -1,6 +1,7 @@
 import { TrackedOrder, OrderStatusStage, DesignServiceRequest, PhotoAsset, PhotobookProject } from '../types';
 import { SAMPLE_ORDERS } from '../data/mockData';
-import { supabase } from './supabase';
+import { supabase, isSupabaseConfigured, fetchAllOrders } from './supabase';
+import { dbOrderToTrackedOrder } from './orderMapper';
 import JSZip from 'jszip';
 
 const ADMIN_ORDERS_KEY = 'halo_admin_orders_db';
@@ -93,6 +94,23 @@ export function getAdminOrders(): TrackedOrder[] {
   return SAMPLE_ORDERS;
 }
 
+// 1b. Get real orders from Supabase (the actual source of truth once the
+// store is live — `getAdminOrders()` above only ever returns localStorage
+// demo data, which is fine for the workshop UI when Supabase isn't
+// configured, but must never be what the admin sees once real customers
+// are placing real, paid orders).
+export async function getAdminOrdersFromSupabase(): Promise<{ orders: TrackedOrder[]; isLive: boolean; error: string | null }> {
+  if (!isSupabaseConfigured()) {
+    return { orders: getAdminOrders(), isLive: false, error: null };
+  }
+  const { data, error } = await fetchAllOrders();
+  if (error) {
+    // Fall back to whatever is cached locally rather than showing nothing.
+    return { orders: getAdminOrders(), isLive: false, error };
+  }
+  return { orders: data.map(dbOrderToTrackedOrder), isLive: true, error: null };
+}
+
 // 2. Save orders
 export function saveAdminOrders(orders: TrackedOrder[]) {
   try {
@@ -103,19 +121,17 @@ export function saveAdminOrders(orders: TrackedOrder[]) {
 }
 
 // 3. Update Order Status in Workshop
+// Takes the full order currently being edited (rather than re-reading it out
+// of the localStorage demo cache) so this works correctly for real orders
+// that only exist in Supabase — the localStorage cache is written too, but
+// purely as an offline fallback, never as the lookup source.
 export async function updateOrderStatusInWorkshop(
-  orderId: string, 
-  newStage: OrderStatusStage, 
-  trackingCode?: string, 
+  currentOrder: TrackedOrder,
+  newStage: OrderStatusStage,
+  trackingCode?: string,
   labNotes?: string
 ): Promise<TrackedOrder | null> {
-  const orders = getAdminOrders();
-  const orderIdx = orders.findIndex(o => o.id === orderId || o.orderNumber === orderId);
-
-  if (orderIdx === -1) return null;
-
-  const order = { ...orders[orderIdx] };
-  order.status = newStage;
+  const order: TrackedOrder = { ...currentOrder, status: newStage };
 
   if (trackingCode !== undefined) {
     order.trackingCode = trackingCode;
@@ -143,21 +159,31 @@ export async function updateOrderStatusInWorkshop(
     };
   });
 
-  orders[orderIdx] = order;
-  saveAdminOrders(orders);
+  // Best-effort offline cache (only meaningful when this order came from the
+  // localStorage demo set to begin with).
+  const orders = getAdminOrders();
+  const orderIdx = orders.findIndex((o) => o.id === order.id || o.orderNumber === order.orderNumber);
+  if (orderIdx !== -1) {
+    orders[orderIdx] = order;
+    saveAdminOrders(orders);
+  }
 
-  // Sync with Supabase if available
+  // Source of truth: Supabase
   if (supabase) {
     try {
-      await supabase
+      const { error } = await supabase
         .from('orders')
-        .update({ 
+        .update({
           status: newStage,
-          tracking_number: order.trackingCode,
+          tracking_number: order.trackingCode || null,
+          lab_notes: order.labNotes || null,
         })
         .eq('order_code', order.orderNumber);
+      if (error) {
+        console.warn('No se pudo sincronizar el estado con Supabase', error.message);
+      }
     } catch (err) {
-      console.warn('Could not sync with Supabase', err);
+      console.warn('No se pudo sincronizar el estado con Supabase', err);
     }
   }
 

@@ -37,11 +37,11 @@ import {
   Share2
 } from 'lucide-react';
 import { TrackedOrder, OrderStatusStage, DesignServiceRequest, PhotoAsset, OrderCloudFolder } from '../types';
-import { 
-  getAdminOrders, 
-  updateOrderStatusInWorkshop, 
-  getAdminConciergeRequests, 
-  generateAndDownloadProductionZip 
+import {
+  getAdminOrdersFromSupabase,
+  updateOrderStatusInWorkshop,
+  getAdminConciergeRequests,
+  generateAndDownloadProductionZip
 } from '../lib/adminService';
 import { 
   downloadOrderInvoicePdf, 
@@ -103,6 +103,9 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState<string | null>(null);
   const [invoicePreviewOrder, setInvoicePreviewOrder] = useState<TrackedOrder | null>(null);
   const [invoicePreviewUrl, setInvoicePreviewUrl] = useState<string | null>(null);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [ordersAreLive, setOrdersAreLive] = useState(false);
+  const [ordersLoadError, setOrdersLoadError] = useState<string | null>(null);
 
   // Load orders once the modal is open AND the session has been confirmed as admin
   useEffect(() => {
@@ -111,11 +114,18 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
     }
   }, [isOpen, isAdmin]);
 
-  const loadData = () => {
-    const loadedOrders = getAdminOrders();
+  const loadData = async () => {
+    setIsLoadingOrders(true);
+    // Real orders live in Supabase (orders_select_owner_or_admin RLS lets an
+    // is_admin profile read every row); localStorage sample data is only a
+    // fallback for when Supabase isn't configured at all.
+    const { orders: loadedOrders, isLive, error } = await getAdminOrdersFromSupabase();
     const loadedRequests = getAdminConciergeRequests();
     setOrders(loadedOrders);
+    setOrdersAreLive(isLive);
+    setOrdersLoadError(error);
     setConciergeRequests(loadedRequests);
+    setIsLoadingOrders(false);
   };
 
   const handleLogout = async () => {
@@ -134,7 +144,7 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
     if (!selectedOrder) return;
     setIsUpdating(true);
     const updated = await updateOrderStatusInWorkshop(
-      selectedOrder.id,
+      selectedOrder,
       editingStatus,
       editingTracking,
       editingLabNotes
@@ -440,7 +450,31 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
               {/* TAB 1: ORDERS MANAGEMENT */}
               {activeTab === 'orders' && (
                 <div className="space-y-4">
-                  
+
+                  {/* Data source banner */}
+                  {ordersAreLive ? (
+                    <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800">
+                      <span className="flex items-center gap-1.5 font-semibold">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Mostrando pedidos reales desde la base de datos ({orders.length})
+                      </span>
+                      <button type="button" onClick={() => loadData()} disabled={isLoadingOrders} className="flex items-center gap-1 text-emerald-700 hover:text-emerald-900 font-semibold disabled:opacity-50">
+                        <RefreshCw className={`w-3 h-3 ${isLoadingOrders ? 'animate-spin' : ''}`} />
+                        Actualizar
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-800">
+                      <span className="flex items-center gap-1.5 font-semibold">
+                        ⚠️ {ordersLoadError ? `No se pudo leer Supabase (${ordersLoadError}) — mostrando datos de ejemplo.` : 'Supabase no está configurado — mostrando datos de ejemplo, no pedidos reales.'}
+                      </span>
+                      <button type="button" onClick={() => loadData()} disabled={isLoadingOrders} className="flex items-center gap-1 text-amber-700 hover:text-amber-900 font-semibold disabled:opacity-50">
+                        <RefreshCw className={`w-3 h-3 ${isLoadingOrders ? 'animate-spin' : ''}`} />
+                        Reintentar
+                      </button>
+                    </div>
+                  )}
+
                   {/* Search and Filters */}
                   <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
                     <div className="relative w-full sm:w-80">
@@ -545,6 +579,29 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
                                     ) : (
                                       <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-semibold border border-blue-200">
                                         📦 Correo Argentino Expreso
+                                      </span>
+                                    )}
+
+                                    {/* Payment status badge */}
+                                    {order.paymentProvider === 'transfer' ? (
+                                      <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold border border-slate-300">
+                                        🏦 Transferencia (verificar manualmente)
+                                      </span>
+                                    ) : order.paymentStatus === 'approved' ? (
+                                      <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold border border-emerald-300">
+                                        ✓ Pago Acreditado (Mercado Pago)
+                                      </span>
+                                    ) : order.paymentStatus === 'rejected' || order.paymentStatus === 'cancelled' ? (
+                                      <span className="text-[10px] bg-red-100 text-red-800 px-2 py-0.5 rounded font-semibold border border-red-300">
+                                        ✕ Pago Rechazado
+                                      </span>
+                                    ) : order.paymentStatus === 'refunded' ? (
+                                      <span className="text-[10px] bg-orange-100 text-orange-800 px-2 py-0.5 rounded font-semibold border border-orange-300">
+                                        ↩ Reembolsado
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-semibold border border-amber-300 animate-pulse">
+                                        ⏳ Pago Pendiente (Mercado Pago)
                                       </span>
                                     )}
                                   </div>

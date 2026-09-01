@@ -13,6 +13,17 @@ export const isSupabaseConfigured = (): boolean => {
   return Boolean(supabaseUrl && supabaseAnonKey && supabase);
 };
 
+export interface DbOrderItem {
+  title: string;
+  format: string;
+  cover: string;
+  foil: string;
+  pages: number;
+  price: number;
+  previewUrl?: string;
+  hasGiftBox?: boolean;
+}
+
 export interface DbOrder {
   id?: string;
   user_id?: string;
@@ -29,6 +40,20 @@ export interface DbOrder {
   status?: string;
   tracking_number?: string;
   created_at?: string;
+  // Mercado Pago / payment tracking
+  payment_status?: string;
+  payment_provider?: string;
+  mp_preference_id?: string;
+  mp_payment_id?: string;
+  mp_payment_method?: string;
+  mp_installments?: number;
+  mp_status_detail?: string;
+  items_json?: DbOrderItem[];
+  subtotal?: number;
+  shipping_cost?: number;
+  discount_amount?: number;
+  shipping_method?: string;
+  lab_notes?: string;
 }
 
 export interface DbConciergeRequest {
@@ -417,6 +442,43 @@ export async function fetchOrderByCode(orderCode: string) {
     return { data, error: null };
   } catch (err) {
     return { data: null, error: 'ERROR_CONEXION' };
+  }
+}
+
+// ==========================================
+// 4b. ADMIN: FULL ORDER & REQUEST LISTS
+// (relies on the `orders_select_owner_or_admin` / `concierge_select_admin_only`
+// RLS policies, which only let a signed-in user with profiles.is_admin = true
+// through — see supabase/migrations. Returns [] for anyone else.)
+// ==========================================
+
+export async function fetchAllOrders(): Promise<{ data: DbOrder[]; error: string | null }> {
+  if (!supabase) return { data: [], error: null };
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) return { data: [], error: error.message };
+    return { data: (data as DbOrder[]) || [], error: null };
+  } catch (err: any) {
+    return { data: [], error: err.message };
+  }
+}
+
+export async function fetchAllConciergeRequests(): Promise<{ data: DbConciergeRequest[]; error: string | null }> {
+  if (!supabase) return { data: [], error: null };
+  try {
+    const { data, error } = await supabase
+      .from('concierge_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) return { data: [], error: error.message };
+    return { data: (data as DbConciergeRequest[]) || [], error: null };
+  } catch (err: any) {
+    return { data: [], error: err.message };
   }
 }
 
