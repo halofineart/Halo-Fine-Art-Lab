@@ -5,7 +5,7 @@
 // order-confirmation link). Returns the full row so the client can build the
 // same TrackedOrder shape used everywhere else (see src/lib/orderMapper.ts).
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from './_supabaseAdmin';
+import { getSupabaseAdmin } from './_supabaseAdmin.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {

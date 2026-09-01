@@ -10,7 +10,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
-import { getSupabaseAdmin } from './_supabaseAdmin';
+import { getSupabaseAdmin } from './_supabaseAdmin.js';
 
 function verifySignature(req: VercelRequest, dataId: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;

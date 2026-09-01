@@ -5,7 +5,7 @@
 // shopper to. The Mercado Pago Access Token never reaches the browser.
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
-import { getSupabaseAdmin } from './_supabaseAdmin';
+import { getSupabaseAdmin } from './_supabaseAdmin.js';
 
 interface CartItemPayload {
   title: string;
