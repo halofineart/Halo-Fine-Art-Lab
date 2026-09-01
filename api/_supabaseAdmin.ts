@@ -13,6 +13,9 @@ export function getSupabaseAdmin() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceKey) {
+    console.error(
+      `[_supabaseAdmin] Diagnostico: VITE_SUPABASE_URL ${url ? 'presente (len ' + url.length + ')' : 'FALTA'}, SUPABASE_SERVICE_ROLE_KEY ${serviceKey ? 'presente (len ' + serviceKey.length + ')' : 'FALTA'}.`
+    );
     return null;
   }
 
