@@ -185,6 +185,11 @@ function MainAppContent() {
     setIsCartOpen(true);
   };
 
+  const handleAddToCartDirectly = (item: CartItem) => {
+    setCartItems((prev) => [item, ...prev]);
+    setIsCartOpen(true);
+  };
+
   const handleAddConciergeRequest = (request: DesignServiceRequest) => {
     const newItem: CartItem = {
       id: `cart-req-${Date.now()}`,
@@ -371,6 +376,7 @@ function MainAppContent() {
           onOpenConcierge={(formatId) => {
             setIsConciergeOpen(true);
           }}
+          onAddToCart={handleAddToCartDirectly}
         />
 
         {/* 4. Quality & Photographic Paper Deep Dive */}

@@ -4,7 +4,82 @@ export type BookFormatId =
   | 'square-15'
   | 'landscape-30-20' 
   | 'landscape-40-30'
-  | 'portrait-20-30';
+  | 'portrait-20-30'
+  | '30x30'
+  | '30x45'
+  | '40x30'
+  | '40x40'
+  | string;
+
+// --- ESTRUCTURA DE CATÁLOGO: FOTOLIBROS DE AUTOR ---
+export type PhotobookFinish = 'envolvente' | 'foto-tapa-cuero';
+
+export interface PhotobookFormat {
+  id: string; // "30x30", "30x45", "40x30", "40x40"
+  label: string; // "30 × 30 cm"
+  openLabel: string; // "abierto 30 × 60 cm"
+  basePriceEnvolvente: number; // 166000
+  basePriceCueroTapa: number; // 166000
+  baseSheets: number; // 10 hojas (20 páginas)
+  extraSheetPrice: number; // Precio por hoja adicional
+  dimensions: string;
+  idealPhotos: string;
+  popular?: boolean;
+  aspectRatioLabel?: string;
+}
+
+export interface PhotobookProduct {
+  id: string;
+  category: 'fotolibro';
+  name: string;
+  collection: string;
+  subtitle: string;
+  description: string;
+  formats: PhotobookFormat[];
+  finishes: {
+    id: PhotobookFinish;
+    name: string;
+    description: string;
+    badge?: string;
+  }[];
+  includesBox: true;
+  productionTime: string;
+  depositPercent: number; // 50%
+}
+
+// --- ESTRUCTURA DE CATÁLOGO: FOTOS SUELTAS FINE ART ---
+export interface PrintSize {
+  id: string; // "10x15", "13x18", "15x21", "20x30", etc.
+  label: string; // "10 × 15 cm"
+  price: number; // 3500
+  aspectRatio: string;
+  dimensionsMm: string;
+  popular?: boolean;
+  recommendedFor?: string;
+}
+
+export interface PrintPaperOption {
+  id: string;
+  name: string;
+  subtitle: string;
+  description: string;
+  grammage: string;
+  priceMultiplier: number;
+  badge?: string;
+}
+
+export interface PrintProduct {
+  id: string;
+  category: 'foto-suelta';
+  name: string;
+  collection: string;
+  subtitle: string;
+  description: string;
+  sizes: PrintSize[];
+  paperOptions: PrintPaperOption[];
+  productionTime: string;
+  minimumOrder: number;
+}
 
 export interface BookFormat {
   id: BookFormatId;

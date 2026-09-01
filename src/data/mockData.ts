@@ -1,4 +1,14 @@
-import { BookFormat, CoverMaterial, FoilOption, PaperFinish, PhotoAsset, CustomerReview, TrackedOrder } from '../types';
+import { 
+  BookFormat, 
+  CoverMaterial, 
+  FoilOption, 
+  PaperFinish, 
+  PhotoAsset, 
+  CustomerReview, 
+  TrackedOrder,
+  PhotobookProduct,
+  PrintProduct
+} from '../types';
 
 export const STORE_CONFIG = {
   currency: 'ARS',
@@ -75,24 +85,255 @@ export const formatPriceARS = (amount: number): string => {
   }).format(amount);
 };
 
+// ========================================================
+// 1. FOTOLIBROS DE AUTOR EN TAPA DURA (Grandes Formatos)
+// ========================================================
+export const PHOTOBOOK_GRANDES_FORMATOS: PhotobookProduct = {
+  id: 'fotolibro-tapa-dura-grandes-formatos',
+  category: 'fotolibro',
+  name: 'Fotolibro de Autor en Tapa Dura',
+  collection: 'Colección Grandes Formatos',
+  subtitle: 'Presupuesto Oficial · Encuadernación Artesanal Cosida en Tapa Dura',
+  description: 'Impresión química en papel fotográfico premium Layflat 180° con alma rígida. Cada ejemplar incluye caja contenedora personalizada a juego sin cargo y maquetado editorial asistido.',
+  includesBox: true,
+  productionTime: '15 a 20 días hábiles desde la aprobación del diseño',
+  depositPercent: 50,
+  formats: [
+    {
+      id: '30x30',
+      label: '30 × 30 cm',
+      openLabel: 'abierto 30 × 60 cm',
+      basePriceEnvolvente: 166000,
+      basePriceCueroTapa: 166000,
+      baseSheets: 10,
+      extraSheetPrice: 12400,
+      dimensions: '30 × 30 cm (12 × 12")',
+      idealPhotos: '40 a 120 fotos',
+      popular: true,
+      aspectRatioLabel: 'Cuadrado Imperial'
+    },
+    {
+      id: '30x45',
+      label: '30 × 45 cm',
+      openLabel: 'abierto 30 × 90 cm',
+      basePriceEnvolvente: 258000,
+      basePriceCueroTapa: 258000,
+      baseSheets: 10,
+      extraSheetPrice: 17200,
+      dimensions: '30 × 45 cm (12 × 18")',
+      idealPhotos: '50 a 140 fotos',
+      popular: false,
+      aspectRatioLabel: 'Apaisado Panorámico'
+    },
+    {
+      id: '40x30',
+      label: '40 × 30 cm',
+      openLabel: 'abierto 40 × 60 cm',
+      basePriceEnvolvente: 290000,
+      basePriceCueroTapa: 290000,
+      baseSheets: 10,
+      extraSheetPrice: 21000,
+      dimensions: '40 × 30 cm (16 × 12")',
+      idealPhotos: '60 a 160 fotos',
+      popular: true,
+      aspectRatioLabel: 'Gran Apaisado Master'
+    },
+    {
+      id: '40x40',
+      label: '40 × 40 cm',
+      openLabel: 'abierto 40 × 80 cm',
+      basePriceEnvolvente: 316000,
+      basePriceCueroTapa: 316000,
+      baseSheets: 10,
+      extraSheetPrice: 30000,
+      dimensions: '40 × 40 cm (16 × 16")',
+      idealPhotos: '80 a 200 fotos',
+      popular: false,
+      aspectRatioLabel: 'Monumento Cuadrado Colosal'
+    }
+  ],
+  finishes: [
+    {
+      id: 'envolvente',
+      name: 'Envolvente (Foto Continua)',
+      description: 'La fotografía se extiende por la tapa, lomo y contratapa de forma panorámica e ininterrumpida con laminado mate aterciopelado soft-touch.',
+      badge: 'Mismo Valor'
+    },
+    {
+      id: 'foto-tapa-cuero',
+      name: 'Foto Tapa + Cuero',
+      description: 'Combina una ventana fotográfica central montada al ras con lomo y guarda trasera en cuero artisan italiano o lino puro.',
+      badge: 'Mismo Valor'
+    }
+  ]
+};
+
+// ========================================================
+// 2. FOTOS FINE ART EN TAMAÑOS ESTÁNDAR (Catálogo Nuevo)
+// ========================================================
+export const FINE_ART_PRINTS_PRODUCT: PrintProduct = {
+  id: 'fotos-fine-art-estandar',
+  category: 'foto-suelta',
+  name: 'Fotos Fine Art de Laboratorio',
+  collection: 'Colección Copias de Autor',
+  subtitle: 'Impresión Química Individual en Papel Fotográfico de Archivo',
+  description: 'Tratamiento editorial individual para cada fotografía. A diferencia de un minilab masivo, cada toma es analizada y revelada con calibración óptica de laboratorio para lograr negros profundos, fidelidad cromática y longevidad de museo.',
+  productionTime: '3 a 5 días hábiles',
+  minimumOrder: 1,
+  sizes: [
+    {
+      id: '10x15',
+      label: '10 × 15 cm',
+      price: 3500,
+      aspectRatio: '2:3',
+      dimensionsMm: '102 × 152 mm',
+      recommendedFor: 'Recuerdos íntimos, portarretratos de escritorio y cajas de recuerdos'
+    },
+    {
+      id: '13x18',
+      label: '13 × 18 cm',
+      price: 4800,
+      aspectRatio: '5:7',
+      dimensionsMm: '127 × 178 mm',
+      recommendedFor: 'Portarretratos de mesa, regalos de agradecimiento'
+    },
+    {
+      id: '15x21',
+      label: '15 × 21 cm',
+      price: 6200,
+      aspectRatio: 'A5 aprox.',
+      dimensionsMm: '152 × 210 mm',
+      popular: true,
+      recommendedFor: 'Retratos individuales, sesiones newborn y familiares'
+    },
+    {
+      id: '20x30',
+      label: '20 × 30 cm',
+      price: 9800,
+      aspectRatio: '2:3 (A4 aprox.)',
+      dimensionsMm: '203 × 305 mm',
+      popular: true,
+      recommendedFor: 'Enmarcado principal, tomas de boda y paisajes de viaje'
+    },
+    {
+      id: '20x40',
+      label: '20 × 40 cm',
+      price: 12500,
+      aspectRatio: '1:2 Panorámica',
+      dimensionsMm: '203 × 406 mm',
+      recommendedFor: 'Horizontes panorámicos y composiciones cinematográficas'
+    },
+    {
+      id: '30x40',
+      label: '30 × 40 cm',
+      price: 18900,
+      aspectRatio: '3:4',
+      dimensionsMm: '305 × 406 mm',
+      recommendedFor: 'Cuadros de pared medianos y galerías de autor'
+    },
+    {
+      id: '30x45',
+      label: '30 × 45 cm',
+      price: 24900,
+      aspectRatio: '2:3',
+      dimensionsMm: '305 × 457 mm',
+      popular: true,
+      recommendedFor: 'Impacto visual imponente para salas de estar y galerías'
+    },
+    {
+      id: '40x60',
+      label: '40 × 60 cm',
+      price: 42000,
+      aspectRatio: '2:3 Master',
+      dimensionsMm: '406 × 610 mm',
+      recommendedFor: 'Obra central de pared de máxima jerarquía expositiva'
+    }
+  ],
+  paperOptions: [
+    {
+      id: 'mate-fineart',
+      name: 'Papel Fotográfico Mate Deep Velvet',
+      subtitle: 'Sin reflejos, textura aterciopelada suave',
+      description: 'Superficie 100% libre de reflejos que destaca sombras densas y colores pastel orgánicos. Ideal para enmarcado directo sin vidrio o bajo iluminación dirigida.',
+      grammage: '310 g/m²',
+      priceMultiplier: 1.0,
+      badge: 'Estándar Incluido'
+    },
+    {
+      id: 'perlado-lustre',
+      name: 'Papel Perlado / Lustre HD Pro',
+      subtitle: 'Microbrillo nacarado y anti-huellas',
+      description: 'Acabado semi-brillante con microporos perlados que resiste la manipulación manual y otorga nitidez extrema en detalles de encajes, miradas y piel.',
+      grammage: '290 g/m²',
+      priceMultiplier: 1.0,
+      badge: 'Más Solicitado'
+    },
+    {
+      id: 'metalico-pearl',
+      name: 'Papel Metálico Metallic Chrome',
+      subtitle: 'Efecto tridimensional con reflejo iridiscente',
+      description: 'Emulsión con partículas nacaradas que crean un brillo perlado metálico único, ideal para tomas de agua, vestidos de noche y atardeceres dorados.',
+      grammage: '300 g/m²',
+      priceMultiplier: 1.2, // +20%
+      badge: 'Especial Autor (+20%)'
+    }
+  ]
+};
+
 export const BOOK_FORMATS: BookFormat[] = [
   {
     id: 'square-30',
-    name: 'Gran Cuadrado Fine Art',
-    dimensions: '30 × 30 cm (12 × 12")',
-    description: 'El formato insignia y más solicitado para bodas, aniversarios y grandes hitos de vida. Presencia imponente y fotos panorámicas espectaculares.',
-    basePages: 20,
-    basePrice: 145000,
-    extraSpreadPrice: 9000,
+    name: '30 × 30 cm — Gran Cuadrado Fine Art',
+    dimensions: '30 × 30 cm (abierto 30 × 60 cm)',
+    description: 'El formato insignia y más solicitado para bodas y grandes eventos. Presencia imponente y apertura 180° Layflat sin corte en pliegos.',
+    basePages: 20, // 10 hojas
+    basePrice: 166000,
+    extraSpreadPrice: 12400,
     idealPhotos: '40 a 120 fotos',
     popular: true,
     category: 'cuadrado'
   },
   {
+    id: '30x45',
+    name: '30 × 45 cm — Apaisado Panorámico',
+    dimensions: '30 × 45 cm (abierto 30 × 90 cm)',
+    description: 'Impacto visual cinematográfico ultra panorámico. Cada pliego abierto alcanza casi 1 metro de ancho.',
+    basePages: 20,
+    basePrice: 258000,
+    extraSpreadPrice: 17200,
+    idealPhotos: '50 a 140 fotos',
+    popular: false,
+    category: 'apaisado'
+  },
+  {
+    id: '40x30',
+    name: '40 × 30 cm — Gran Apaisado Master Museum',
+    dimensions: '40 × 30 cm (abierto 40 × 60 cm)',
+    description: 'El formato colosal de exhibición. Elegancia suprema para fotografía documental y bodas de gala.',
+    basePages: 20,
+    basePrice: 290000,
+    extraSpreadPrice: 21000,
+    idealPhotos: '60 a 160 fotos',
+    popular: true,
+    category: 'apaisado'
+  },
+  {
+    id: '40x40',
+    name: '40 × 40 cm — Monumento Cuadrado Colosal',
+    dimensions: '40 × 40 cm (abierto 40 × 80 cm)',
+    description: 'La máxima expresión del laboratorio. Pieza arquitectónica para los recuerdos más trascendentales.',
+    basePages: 20,
+    basePrice: 316000,
+    extraSpreadPrice: 30000,
+    idealPhotos: '80 a 200 fotos',
+    popular: false,
+    category: 'cuadrado'
+  },
+  {
     id: 'square-20',
-    name: 'Cuadrado Clásico',
-    dimensions: '20 × 20 cm (8 × 8")',
-    description: 'Perfecto para viajes, momentos cotidianos, sesiones de recién nacidos y regalos familiares íntimos. Cómodo y liviano en mano.',
+    name: '20 × 20 cm — Cuadrado Clásico',
+    dimensions: '20 × 20 cm (abierto 20 × 40 cm)',
+    description: 'Formato clásico para sesiones newborn, cumpleaños y aniversarios íntimos.',
     basePages: 20,
     basePrice: 95000,
     extraSpreadPrice: 6000,
@@ -102,9 +343,9 @@ export const BOOK_FORMATS: BookFormat[] = [
   },
   {
     id: 'square-15',
-    name: 'Cuadrado Pocket Artisan',
-    dimensions: '15 × 15 cm (6 × 6")',
-    description: 'Edición de bolsillo ideal como souvenir de lujo, para regalar a padres/abuelos o resumir un fin de semana especial.',
+    name: '15 × 15 cm — Pocket Souvenir',
+    dimensions: '15 × 15 cm (abierto 15 × 30 cm)',
+    description: 'Edición compacta artesanal ideal para padres, abuelos o padrinos.',
     basePages: 20,
     basePrice: 68000,
     extraSpreadPrice: 4500,
@@ -114,39 +355,15 @@ export const BOOK_FORMATS: BookFormat[] = [
   },
   {
     id: 'landscape-30-20',
-    name: 'Apaisado Panorámico',
-    dimensions: '30 × 20 cm (12 × 8")',
-    description: 'Diseño cinematográfico horizontal. Ideal para viajes por el mundo, paisajes naturales y fotografías de arquitectura.',
+    name: '30 × 20 cm — Apaisado Clásico',
+    dimensions: '30 × 20 cm (abierto 30 × 40 cm)',
+    description: 'Diseño cinematográfico horizontal para fotos de viajes y paisajes.',
     basePages: 20,
     basePrice: 125000,
     extraSpreadPrice: 8000,
     idealPhotos: '35 a 90 fotos',
-    popular: true,
-    category: 'apaisado'
-  },
-  {
-    id: 'landscape-40-30',
-    name: 'Gran Apaisado Master Museum',
-    dimensions: '40 × 30 cm (16 × 12")',
-    description: 'El formato colosal de exhibición. Cada pliego abierto alcanza 80 cm de ancho con impacto visual arrollador para bodas de gala.',
-    basePages: 20,
-    basePrice: 195000,
-    extraSpreadPrice: 12000,
-    idealPhotos: '60 a 180 fotos',
     popular: false,
     category: 'apaisado'
-  },
-  {
-    id: 'portrait-20-30',
-    name: 'Editorial Vertical',
-    dimensions: '20 × 30 cm (8 × 12")',
-    description: 'Estilo libro de arte contemporáneo o revista de moda de alta gama. Favorece retratos individuales y sesiones de moda o 15 años.',
-    basePages: 20,
-    basePrice: 120000,
-    extraSpreadPrice: 8000,
-    idealPhotos: '30 a 80 fotos',
-    popular: false,
-    category: 'vertical'
   }
 ];
 

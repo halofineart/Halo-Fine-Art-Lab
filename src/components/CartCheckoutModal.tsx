@@ -7,13 +7,33 @@ import { BOOK_FORMATS, COVER_MATERIALS, PAPER_FINISHES, formatPriceARS, STORE_CO
 import { saveOrderToDatabase, isSupabaseConfigured } from '../lib/supabase';
 
 export interface CartItem {
-  type: 'custom-album' | 'concierge-request';
+  type: 'custom-album' | 'concierge-request' | 'photobook-order' | 'fine-art-print';
   id: string;
   title: string;
   details: string;
   price: number;
+  quantity?: number;
+  badge?: string;
+  thumbnailUrl?: string;
   project?: PhotobookProject;
   request?: DesignServiceRequest;
+  photobookConfig?: {
+    formatId: string;
+    formatLabel: string;
+    finish: string;
+    finishName: string;
+    sheets: number;
+    extraSheets: number;
+    includesBox: boolean;
+  };
+  printConfig?: {
+    sizeId: string;
+    sizeLabel: string;
+    paperId: string;
+    paperName: string;
+    quantity: number;
+    unitPrice: number;
+  };
 }
 
 interface CartCheckoutModalProps {
@@ -307,8 +327,19 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6D37] bg-[#EFE9DE] px-2 py-0.5 rounded">
-                            {item.type === 'custom-album' ? 'Fotolibro a Medida' : 'Servicio Concierge'}
+                            {item.type === 'custom-album' 
+                              ? 'Fotolibro a Medida' 
+                              : item.type === 'photobook-order'
+                              ? 'Fotolibro Grandes Formatos'
+                              : item.type === 'fine-art-print'
+                              ? 'Fotos Fine Art'
+                              : 'Servicio Concierge'}
                           </span>
+                          {item.badge && (
+                            <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
+                              {item.badge}
+                            </span>
+                          )}
                         </div>
                         <h4 className="font-serif-luxury text-lg font-bold text-[#1F1C18]">{item.title}</h4>
                         <p className="text-xs text-[#595248]">{item.details}</p>
