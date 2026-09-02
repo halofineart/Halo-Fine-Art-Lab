@@ -103,6 +103,7 @@ import {
   getThumbnailSrc, 
   calculatePhotoSavingsSummary 
 } from '../lib/imageProcessor';
+import { uploadOriginalPhoto } from '../lib/photoStorageService';
 import { FineArtQualityModal } from './FineArtQualityModal';
 
 interface PhotobookBuilderProps {
@@ -1296,19 +1297,68 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    const fileArray: File[] = Array.from(files);
+
     setIsOptimizingPhotos(true);
-    setOptimizingProgress({ current: 0, total: files.length });
+    setOptimizingProgress({ current: 0, total: fileArray.length });
 
     try {
       const processedAssets = await batchProcessPhotoFiles(
-        files,
+        fileArray,
         { maxDimension: 380, quality: 0.8 },
         (processed, total) => {
           setOptimizingProgress({ current: processed, total });
         }
       );
 
-      setUploadedPhotos((prev) => [...processedAssets, ...prev]);
+      // `processedAssets` is index-aligned with `fileArray` (see
+      // batchProcessPhotoFiles), so we can zip them to know which original
+      // File belongs to which asset for the background Storage upload.
+      const currentUserId = user?.id || profile?.id;
+      const assetsWithUploadState: PhotoAsset[] = processedAssets.map((asset) => ({
+        ...asset,
+        uploadStatus: isLoggedIn && currentUserId ? 'pending' : 'skipped',
+      }));
+
+      setUploadedPhotos((prev) => [...assetsWithUploadState, ...prev]);
+
+      // Back up each original photo (full resolution) to Supabase Storage in
+      // the background so it survives past this browser session and is
+      // available later for the HD print export — doesn't block the editor.
+      if (isLoggedIn && currentUserId) {
+        assetsWithUploadState.forEach((asset, idx) => {
+          const originalFile = fileArray[idx];
+          if (!originalFile) return;
+
+          setUploadedPhotos((prev) =>
+            prev.map((p) => (p.id === asset.id ? { ...p, uploadStatus: 'uploading' } : p))
+          );
+
+          uploadOriginalPhoto(currentUserId, projectId, asset.id, originalFile)
+            .then(({ storagePath, error }) => {
+              setUploadedPhotos((prev) =>
+                prev.map((p) =>
+                  p.id === asset.id
+                    ? {
+                        ...p,
+                        storagePath: storagePath || undefined,
+                        uploadStatus: error ? 'error' : 'uploaded',
+                      }
+                    : p
+                )
+              );
+              if (error) {
+                console.warn(`No se pudo respaldar "${asset.name}" en Supabase Storage:`, error);
+              }
+            })
+            .catch((err) => {
+              console.warn(`No se pudo respaldar "${asset.name}" en Supabase Storage:`, err);
+              setUploadedPhotos((prev) =>
+                prev.map((p) => (p.id === asset.id ? { ...p, uploadStatus: 'error' } : p))
+              );
+            });
+        });
+      }
     } catch (err) {
       console.error('Error processing uploaded photos:', err);
     } finally {

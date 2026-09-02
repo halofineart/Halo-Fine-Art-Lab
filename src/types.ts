@@ -183,6 +183,8 @@ export interface PhotoAsset {
   compressionRatio?: number; // percentage saved, e.g. 92
   isOptimized?: boolean;
   preflight?: FineArtPreflightAnalysis;
+  uploadStatus?: 'pending' | 'uploading' | 'uploaded' | 'error' | 'skipped';
+  storagePath?: string;
 }
 
 export type PageLayoutId = 
