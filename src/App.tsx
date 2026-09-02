@@ -11,6 +11,7 @@ import { OrderTrackerSection } from './components/OrderTrackerSection';
 import { EmailNotificationToast } from './components/EmailNotificationToast';
 import type { CartItem } from './components/CartCheckoutModal';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { loadActiveDraftProject } from './lib/projectStorage';
 
 // Everything below is a modal that only appears after a user action (open
 // the builder, open the cart, open the admin panel, etc). Lazy-loading them
@@ -166,8 +167,21 @@ function MainAppContent() {
     }
   };
 
-  const handleOpenBuilderWithProject = (project?: PhotobookProject) => {
-    setBuilderInitialProject(project || null);
+  const handleOpenBuilderWithProject = async (project?: PhotobookProject) => {
+    if (project) {
+      setBuilderInitialProject(project);
+    } else {
+      try {
+        const draft = await loadActiveDraftProject();
+        if (draft && ((draft.photos && draft.photos.length > 0) || (draft.spreads && draft.spreads.length > 0))) {
+          setBuilderInitialProject(draft);
+        } else {
+          setBuilderInitialProject(null);
+        }
+      } catch {
+        setBuilderInitialProject(null);
+      }
+    }
     setIsBuilderOpen(true);
   };
 

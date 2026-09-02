@@ -97,6 +97,7 @@ import {
 } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 import { saveUserProject } from '../lib/supabase';
+import { getPhotoDisplayUrl, persistProjectLocally, loadActiveDraftProject } from '../lib/projectStorage';
 import { 
   batchProcessPhotoFiles, 
   formatFileSize, 
@@ -622,6 +623,48 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       setHistoryIndex(0);
     }
   }, []);
+
+  // Synchronize state whenever initialProject changes or load active draft on mount
+  useEffect(() => {
+    const applyProjectState = (proj: PhotobookProject) => {
+      if (proj.id) setProjectId(proj.id);
+      if (proj.formatId) setFormatId(proj.formatId);
+      if (proj.coverMaterialId) setCoverMaterialId(proj.coverMaterialId);
+      if (proj.foilColor) setFoilColor(proj.foilColor);
+      if (proj.foilTitleText !== undefined) setFoilTitleText(proj.foilTitleText);
+      if (proj.foilSubtitleText !== undefined) setFoilSubtitleText(proj.foilSubtitleText);
+      if (proj.hasCoverWindow !== undefined) setHasCoverWindow(proj.hasCoverWindow);
+      if (proj.paperFinishId) setPaperFinishId(proj.paperFinishId);
+      if (proj.giftBoxIncluded !== undefined) setGiftBoxIncluded(proj.giftBoxIncluded);
+      if (proj.photos && proj.photos.length > 0) {
+        setUploadedPhotos(proj.photos);
+      }
+      if (proj.spreads && proj.spreads.length > 0) {
+        spreadsRef.current = proj.spreads;
+        setSpreads(proj.spreads);
+        historyRef.current = [proj.spreads];
+        historyIndexRef.current = 0;
+        setHistoryCount(1);
+        setHistoryIndex(0);
+      }
+    };
+
+    if (initialProject) {
+      applyProjectState(initialProject);
+    } else {
+      // Check if an existing active draft is available locally
+      loadActiveDraftProject()
+        .then((draft) => {
+          if (draft && ((draft.spreads && draft.spreads.length > 0) || (draft.photos && draft.photos.length > 0))) {
+            applyProjectState(draft);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [initialProject]);
+
+  const [lastAutoSavedTime, setLastAutoSavedTime] = useState<string | null>(null);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
 
   // Save new state snapshot to history (discards redo forward branch, prevents duplicate states)
   const pushStateToHistory = useCallback((nextSpreads: PhotobookSpread[]) => {
@@ -1430,6 +1473,60 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   const coverUpgradeCost = currentCover.priceDelta;
   const paperUpgradeCost = currentPaper.priceDelta;
   const totalPrice = currentFormat.basePrice + extraPagesCost + giftBoxCost + coverUpgradeCost + paperUpgradeCost;
+
+  // Debounced auto-save: syncs to IndexedDB, LocalStorage and Supabase automatically
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (spreads && spreads.length > 0) {
+        setIsAutoSaving(true);
+        const project: PhotobookProject = {
+          id: projectId,
+          title: foilTitleText || 'Fotolibro Fine Art',
+          subtitle: foilSubtitleText,
+          formatId,
+          coverMaterialId,
+          foilColor,
+          foilTitleText,
+          foilSubtitleText,
+          paperFinishId,
+          hasCoverWindow,
+          photos: uploadedPhotos,
+          spreads,
+          giftBoxIncluded,
+          createdAt: initialProject?.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        const currentUserId = user?.id || profile?.id || 'local-user';
+        saveUserProject(currentUserId, project, totalPrice)
+          .then(() => {
+            const now = new Date();
+            setLastAutoSavedTime(
+              `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+            );
+          })
+          .catch((e) => console.warn('Auto-save notice:', e))
+          .finally(() => setIsAutoSaving(false));
+      }
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [
+    projectId,
+    foilTitleText,
+    foilSubtitleText,
+    formatId,
+    coverMaterialId,
+    foilColor,
+    paperFinishId,
+    hasCoverWindow,
+    uploadedPhotos,
+    spreads,
+    giftBoxIncluded,
+    totalPrice,
+    user?.id,
+    profile?.id,
+    initialProject?.createdAt,
+  ]);
 
   // Handlers for photos
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -3076,9 +3173,17 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               {/* The Photo with transform (Zoom, Rotate, Flip, Fit, Position) */}
               <img
                 id={`slot-img-${slot.id}`}
-                src={photo.url}
+                src={getPhotoDisplayUrl(photo) || photo.thumbnailUrl || photo.url}
                 alt={photo.name}
                 draggable={false}
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (photo.thumbnailUrl && target.src !== photo.thumbnailUrl) {
+                    target.src = photo.thumbnailUrl;
+                  } else if (photo.url && target.src !== photo.url) {
+                    target.src = photo.url;
+                  }
+                }}
                 className={`w-full h-full transition-transform duration-75 ease-out select-none ${
                   fitMode === 'contain' ? 'object-contain' : 'object-cover'
                 } ${getFilterClass(filter)}`}
@@ -3690,6 +3795,29 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
         {/* Price & Action Buttons */}
         <div className="flex items-center gap-3 sm:gap-4">
+          {/* Real-time Auto-save Badge */}
+          <div
+            className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#D6CEBE]/80 bg-[#FAF8F5] text-[11px] font-medium text-[#736B60] select-none"
+            title="Sincronización automática activa en IndexedDB, LocalStorage y Supabase"
+          >
+            {isAutoSaving ? (
+              <>
+                <div className="w-2 h-2 rounded-full bg-[#8C6D37] animate-pulse"></div>
+                <span className="text-[#8C6D37]">Guardando...</span>
+              </>
+            ) : lastAutoSavedTime ? (
+              <>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                <span>Autoguardado {lastAutoSavedTime}</span>
+              </>
+            ) : (
+              <>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/70"></div>
+                <span>Autoguardado activo</span>
+              </>
+            )}
+          </div>
+
           {/* Save to Account / Draft button */}
           <button
             type="button"
@@ -3789,7 +3917,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           {hasCoverWindow ? (
                             <div className="w-14 h-14 mx-auto my-auto rounded-lg border-2 border-[#C5A059]/60 overflow-hidden shadow-md relative bg-white ring-1 ring-black/10">
                               <img
-                                src={uploadedPhotos[0]?.url || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=600&q=80'}
+                                src={getPhotoDisplayUrl(uploadedPhotos[0]) || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=600&q=80'}
                                 alt="Foto de Portada"
                                 className="w-full h-full object-cover"
                               />
@@ -5325,7 +5453,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   >
                     {displaySpread.fullSpreadPhotoId && uploadedPhotos.find((p) => p.id === displaySpread.fullSpreadPhotoId) ? (
                       <img
-                        src={uploadedPhotos.find((p) => p.id === displaySpread.fullSpreadPhotoId)?.url}
+                        src={getPhotoDisplayUrl(uploadedPhotos.find((p) => p.id === displaySpread.fullSpreadPhotoId))}
                         alt="Foto Panorámica"
                         className="w-full h-full object-cover"
                       />
@@ -6728,7 +6856,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   <div className="w-full h-full">
                     {activeSpread.fullSpreadPhotoId && uploadedPhotos.find((p) => p.id === activeSpread.fullSpreadPhotoId) ? (
                       <img
-                        src={uploadedPhotos.find((p) => p.id === activeSpread.fullSpreadPhotoId)?.url}
+                        src={getPhotoDisplayUrl(uploadedPhotos.find((p) => p.id === activeSpread.fullSpreadPhotoId))}
                         alt="Foto Panorámica"
                         className="w-full h-full object-cover"
                       />
@@ -6743,7 +6871,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     <div className="w-1/2 h-full p-4 sm:p-6 border-r border-[#E8E2D5] flex flex-col justify-center items-center">
                       {uploadedPhotos.find((p) => p.id === activeSpread.leftPage.slots[0]?.photoId) ? (
                         <img
-                          src={uploadedPhotos.find((p) => p.id === activeSpread.leftPage.slots[0]?.photoId)?.url}
+                          src={getPhotoDisplayUrl(uploadedPhotos.find((p) => p.id === activeSpread.leftPage.slots[0]?.photoId))}
                           alt="Foto Izq"
                           className="w-full h-full object-cover rounded shadow"
                         />
@@ -6761,7 +6889,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     <div className="w-1/2 h-full p-4 sm:p-6 flex flex-col justify-center items-center">
                       {uploadedPhotos.find((p) => p.id === activeSpread.rightPage.slots[0]?.photoId) ? (
                         <img
-                          src={uploadedPhotos.find((p) => p.id === activeSpread.rightPage.slots[0]?.photoId)?.url}
+                          src={getPhotoDisplayUrl(uploadedPhotos.find((p) => p.id === activeSpread.rightPage.slots[0]?.photoId))}
                           alt="Foto Der"
                           className="w-full h-full object-cover rounded shadow"
                         />

@@ -1,5 +1,11 @@
 import { createClient, User } from '@supabase/supabase-js';
 import { UserProfile, SavedProject, PhotobookProject, TrackedOrder } from '../types';
+import {
+  persistProjectLocally,
+  loadAllLocalProjects,
+  deleteLocalProjectFromStorage,
+  sanitizeProjectForPersistence
+} from './projectStorage';
 
 const supabaseUrl = ((import.meta as unknown as { env: Record<string, string | undefined> }).env?.VITE_SUPABASE_URL) || '';
 const supabaseAnonKey = ((import.meta as unknown as { env: Record<string, string | undefined> }).env?.VITE_SUPABASE_ANON_KEY) || '';
@@ -258,9 +264,11 @@ export async function upsertProfile(profile: Partial<UserProfile> & { id: string
 // ==========================================
 
 export async function fetchUserProjects(userId: string): Promise<{ data: SavedProject[]; error: string | null }> {
+  // Always load from local persistence (IndexedDB + LocalStorage) first to ensure immediate access
+  const localProjects = await loadAllLocalProjects();
+
   if (!supabase) {
-    const local = getLocalProjects();
-    return { data: local, error: null };
+    return { data: localProjects, error: null };
   }
 
   try {
@@ -271,11 +279,11 @@ export async function fetchUserProjects(userId: string): Promise<{ data: SavedPr
       .order('updated_at', { ascending: false });
 
     if (error) {
-      console.warn('Error al consultar proyectos en Supabase, recurriendo a local:', error.message);
-      return { data: getLocalProjects(), error: error.message };
+      console.warn('Aviso: cargando desde almacenamiento local:', error.message);
+      return { data: localProjects, error: error.message };
     }
 
-    const projects: SavedProject[] = (data || []).map((row: any) => ({
+    const remoteProjects: SavedProject[] = (data || []).map((row: any) => ({
       id: row.id,
       userId: row.user_id,
       title: row.title,
@@ -290,9 +298,23 @@ export async function fetchUserProjects(userId: string): Promise<{ data: SavedPr
       updatedAt: row.updated_at,
     }));
 
-    return { data: projects, error: null };
+    // Merge remote and local without duplicate IDs, picking the newest updatedAt
+    const mergedMap = new Map<string, SavedProject>();
+    localProjects.forEach((p) => mergedMap.set(p.id, p));
+    remoteProjects.forEach((p) => {
+      const existing = mergedMap.get(p.id);
+      if (!existing || new Date(p.updatedAt).getTime() >= new Date(existing.updatedAt).getTime()) {
+        mergedMap.set(p.id, p);
+      }
+    });
+
+    const mergedList = Array.from(mergedMap.values()).sort(
+      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    );
+
+    return { data: mergedList, error: null };
   } catch (err: any) {
-    return { data: getLocalProjects(), error: err.message };
+    return { data: localProjects, error: err.message };
   }
 }
 
@@ -301,28 +323,15 @@ export async function saveUserProject(
   project: PhotobookProject,
   estimatedPrice: number
 ): Promise<{ data: SavedProject | null; error: string | null }> {
-  const savedItem: SavedProject = {
-    id: project.id || `proj-${Date.now()}`,
-    userId,
-    title: project.title || 'Mi Fotolibro Fine Art',
-    formatId: project.formatId,
-    coverMaterialId: project.coverMaterialId,
-    foilColor: project.foilColor,
-    totalPages: project.spreads.length * 2,
-    totalPrice: estimatedPrice,
-    projectData: project,
-    createdAt: project.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  // Siempre persistir localmente como backup seguro
-  saveLocalProject(savedItem);
+  // 1. Persist locally to IndexedDB & multi-tier storage immediately (failsafe)
+  const savedItem = await persistProjectLocally(project, estimatedPrice, userId);
 
   if (!supabase) {
     return { data: savedItem, error: null };
   }
 
   try {
+    const sanitizedData = sanitizeProjectForPersistence(project);
     const { data, error } = await supabase
       .from('saved_projects')
       .upsert({
@@ -334,25 +343,26 @@ export async function saveUserProject(
         foil_color: savedItem.foilColor,
         total_pages: savedItem.totalPages,
         total_price: savedItem.totalPrice,
-        project_data: savedItem.projectData,
+        project_data: sanitizedData,
         updated_at: new Date().toISOString(),
       })
       .select()
       .single();
 
     if (error) {
-      console.warn('Aviso: guardado en cache local:', error.message);
+      console.warn('Aviso: Proyecto asegurado localmente (aviso Supabase):', error.message);
       return { data: savedItem, error: null };
     }
 
     return { data: savedItem, error: null };
   } catch (err: any) {
+    console.warn('Aviso: Proyecto asegurado localmente:', err.message);
     return { data: savedItem, error: null };
   }
 }
 
 export async function deleteUserProject(projectId: string, userId?: string) {
-  deleteLocalProject(projectId);
+  await deleteLocalProjectFromStorage(projectId);
 
   if (!supabase || !userId) {
     return { error: null };
