@@ -2938,7 +2938,8 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   fitMode === 'contain' ? 'object-contain' : 'object-cover'
                 } ${getFilterClass(filter)}`}
                 style={{
-                  transform: `scale(${scale}) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1}) translate(${slot.customPosition?.x || 0}px, ${slot.customPosition?.y || 0}px)`,
+                  objectPosition: `calc(50% + ${slot.customPosition?.x || 0}px) calc(50% + ${slot.customPosition?.y || 0}px)`,
+                  transform: `scale(${scale}) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1})`,
                 }}
               />
 
