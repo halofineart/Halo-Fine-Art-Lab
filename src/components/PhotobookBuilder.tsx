@@ -515,7 +515,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     photo?: PhotoAsset,
     slotEl?: HTMLElement | null
   ) => {
-    let slotWidth = 240;
+    let slotWidth = 300;
     let slotHeight = 300;
 
     if (slotEl) {
@@ -559,32 +559,32 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     const imgAspect = (natW > 0 && natH > 0) ? natW / natH : 1;
     const slotAspect = slotWidth / (slotHeight || 1);
 
-    let coverW = slotWidth;
-    let coverH = slotHeight;
+    let baseW = slotWidth;
+    let baseH = slotHeight;
 
     if (slot.fitMode === 'contain') {
-      if (imgAspect > slotAspect) {
-        coverW = slotWidth;
-        coverH = slotWidth / imgAspect;
+      if (imgAspect >= slotAspect) {
+        baseW = slotWidth;
+        baseH = slotWidth / imgAspect;
       } else {
-        coverH = slotHeight;
-        coverW = slotHeight * imgAspect;
+        baseH = slotHeight;
+        baseW = slotHeight * imgAspect;
       }
     } else {
-      // Default 'cover' mode
-      if (imgAspect > slotAspect) {
-        coverH = slotHeight;
-        coverW = slotHeight * imgAspect;
+      // Default 'cover' mode:
+      if (imgAspect >= slotAspect) {
+        baseH = slotHeight;
+        baseW = slotHeight * imgAspect;
       } else {
-        coverW = slotWidth;
-        coverH = slotWidth / imgAspect;
+        baseW = slotWidth;
+        baseH = slotWidth / imgAspect;
       }
     }
 
-    const renderW = coverW * scale;
-    const renderH = coverH * scale;
+    const renderW = baseW * scale;
+    const renderH = baseH * scale;
 
-    // Maximum allowed offset from center before the photo edge reaches the frame edge
+    // The maximum offset allowed so the photo edge never slips inside the slot
     const maxPanX = Math.max(0, Math.floor((renderW - slotWidth) / 2));
     const maxPanY = Math.max(0, Math.floor((renderH - slotHeight) / 2));
 
@@ -597,6 +597,8 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       maxPanY,
       slotWidth,
       slotHeight,
+      baseW,
+      baseH,
       renderW,
       renderH,
     };
@@ -3184,32 +3186,20 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     target.src = photo.url;
                   }
                 }}
-                className={`w-full h-full transition-transform duration-75 ease-out select-none ${
-                  fitMode === 'contain' ? 'object-contain' : 'object-cover'
-                } ${getFilterClass(filter)}`}
+                className={`select-none transition-transform duration-75 ease-out ${getFilterClass(filter)}`}
                 style={{
-                  objectPosition: `calc(50% + ${clampedX}px) calc(50% + ${clampedY}px)`,
-                  transform: `scale(${scale}) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1})`,
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  width: bounds.baseW > 0 ? `${bounds.baseW}px` : '100%',
+                  height: bounds.baseH > 0 ? `${bounds.baseH}px` : '100%',
+                  maxWidth: 'none',
+                  maxHeight: 'none',
+                  objectFit: fitMode === 'contain' ? 'contain' : 'cover',
+                  transform: `translate(-50%, -50%) translate3d(${clampedX}px, ${clampedY}px, 0px) scale(${scale}) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1})`,
+                  transformOrigin: 'center center',
                 }}
               />
-
-              {/* High-visibility Fucsia / Neon Green Photo Boundary & Safe Panning Limit Indicator */}
-              {isSelected && (
-                <div 
-                  className="absolute inset-0 pointer-events-none z-20 border-2 border-dashed border-[#FF007F] shadow-[inset_0_0_0_1px_rgba(0,255,128,0.9)] animate-pulse"
-                  title="Límite del marco (Borde Fucsia y Verde Neón para encuadre exacto)"
-                >
-                  {/* Neon Corner Indicators */}
-                  <span className="absolute top-1 left-1 bg-[#FF007F] text-white text-[8px] font-black px-1 py-0.2 rounded shadow-xs uppercase tracking-tighter">
-                    Límite Marco
-                  </span>
-                  {(clampedX !== 0 || clampedY !== 0) && (
-                    <span className="absolute top-1 right-1 bg-[#00E5FF] text-[#1F1C18] text-[8px] font-bold px-1 py-0.2 rounded shadow-xs font-mono">
-                      X:{clampedX} Y:{clampedY}
-                    </span>
-                  )}
-                </div>
-              )}
 
               {/* Quick DPI & Filter Tags */}
               <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
