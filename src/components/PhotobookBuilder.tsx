@@ -3147,12 +3147,12 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   };
 
   // Interactive Slot Renderer with Zno Cloud Pro Editing Controls
-  const renderSlotInteractive = (slot?: PageSlot, containerClasses = '') => {
+  const renderSlotInteractive = (slot?: PageSlot, containerClasses = '', readOnly = false) => {
     if (!slot) return null;
 
     const photo = uploadedPhotos.find((p) => p.id === slot.photoId);
-    const isSelected = selectedSlotId === slot.id;
-    const isDragOver = dragOverSlotId === slot.id;
+    const isSelected = !readOnly && selectedSlotId === slot.id;
+    const isDragOver = !readOnly && dragOverSlotId === slot.id;
     const scale = slot.customScale || 1;
     const rotation = slot.rotation || 0;
     const flipH = slot.flipH || false;
@@ -3190,20 +3190,24 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
         key={slot.id}
         id={slot.id}
         onClick={(e) => {
+          if (readOnly) return;
           e.stopPropagation();
           setSelectedSlotId(slot.id);
         }}
         onDragOver={(e) => {
+          if (readOnly) return;
           e.preventDefault();
           e.stopPropagation();
           setDragOverSlotId(slot.id);
         }}
         onDragLeave={(e) => {
+          if (readOnly) return;
           e.preventDefault();
           e.stopPropagation();
           if (dragOverSlotId === slot.id) setDragOverSlotId(null);
         }}
         onDrop={(e) => {
+          if (readOnly) return;
           e.preventDefault();
           e.stopPropagation();
           setDragOverSlotId(null);
@@ -3212,6 +3216,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
           }
         }}
         onWheel={(e) => {
+          if (readOnly) return;
           if (photo) {
             e.preventDefault();
             e.stopPropagation();
@@ -3234,22 +3239,24 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
           height: slot.frameHeightDelta ? `calc(100% + ${slot.frameHeightDelta}px)` : undefined,
           zIndex: isSelected ? 35 : (slot.frameOffsetX || slot.frameOffsetY || slot.frameWidthDelta || slot.frameHeightDelta) ? 20 : undefined,
         }}
-        className={`group relative overflow-visible rounded-lg transition-all cursor-pointer select-none ${containerClasses} ${
-          isSelected
-            ? 'ring-2 ring-[#0091FF] shadow-lg'
+        className={`group relative overflow-visible rounded-lg transition-all select-none ${containerClasses} ${
+          readOnly
+            ? 'cursor-default border border-[#D6CEBE]/40'
+            : isSelected
+            ? 'ring-2 ring-[#0091FF] shadow-lg cursor-pointer'
             : isDragOver
-            ? 'border-dashed border-2 border-[#8C6D37] bg-[#8C6D37]/15 scale-[1.01]'
-            : 'border border-[#D6CEBE]/80 hover:border-[#1F1C18]'
+            ? 'border-dashed border-2 border-[#8C6D37] bg-[#8C6D37]/15 scale-[1.01] cursor-pointer'
+            : 'border border-[#D6CEBE]/80 hover:border-[#1F1C18] cursor-pointer'
         } bg-[#EFE9DE]`}
       >
         {/* Content Container */}
         <div 
           id={`slot-content-${slot.id}`}
           className={`w-full h-full relative overflow-hidden rounded-md flex items-center justify-center bg-black/5 ${
-            isSelected && photo ? (panningSlotId === slot.id ? 'cursor-grabbing' : 'cursor-grab') : ''
+            !readOnly && isSelected && photo ? (panningSlotId === slot.id ? 'cursor-grabbing' : 'cursor-grab') : ''
           }`}
           onPointerDown={(e) => {
-            if (isSelected && photo) {
+            if (!readOnly && isSelected && photo) {
               handleStartPan(slot, e);
             }
           }}
@@ -3287,49 +3294,57 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 }}
               />
 
-              {/* Quick DPI & Filter Tags */}
-              <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                {filter !== 'none' && (
-                  <span className="px-1 py-0.5 rounded bg-black/60 backdrop-blur-xs text-white text-[8px] uppercase font-mono">
-                    {filter}
-                  </span>
-                )}
-                {scale > 1 && (
-                  <span className="px-1 py-0.5 rounded bg-black/60 backdrop-blur-xs text-white text-[8px] font-mono">
-                    {Math.round(scale * 100)}%
-                  </span>
-                )}
-                {(clampedX !== 0 || clampedY !== 0) && (
-                  <span className="px-1 py-0.5 rounded bg-[#0091FF]/80 backdrop-blur-xs text-white text-[8px] font-mono">
-                    Encuadre ({clampedX}px, {clampedY}px)
-                  </span>
-                )}
-                {Boolean(slot.frameWidthDelta || slot.frameHeightDelta || slot.frameOffsetX || slot.frameOffsetY) && (
-                  <span className="px-1 py-0.5 rounded bg-[#8C6D37]/90 backdrop-blur-xs text-white text-[8px] font-mono">
-                    Marco Personalizado
-                  </span>
-                )}
-                {flipH && (
-                  <span className="px-1 py-0.5 rounded bg-black/60 backdrop-blur-xs text-white text-[8px] font-mono">
-                    Espejo
-                  </span>
-                )}
-              </div>
+              {/* Quick DPI & Filter Tags (Only in editor mode) */}
+              {!readOnly && (
+                <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                  {filter !== 'none' && (
+                    <span className="px-1 py-0.5 rounded bg-black/60 backdrop-blur-xs text-white text-[8px] uppercase font-mono">
+                      {filter}
+                    </span>
+                  )}
+                  {scale > 1 && (
+                    <span className="px-1 py-0.5 rounded bg-black/60 backdrop-blur-xs text-white text-[8px] font-mono">
+                      {Math.round(scale * 100)}%
+                    </span>
+                  )}
+                  {(clampedX !== 0 || clampedY !== 0) && (
+                    <span className="px-1 py-0.5 rounded bg-[#0091FF]/80 backdrop-blur-xs text-white text-[8px] font-mono">
+                      Encuadre ({clampedX}px, {clampedY}px)
+                    </span>
+                  )}
+                  {Boolean(slot.frameWidthDelta || slot.frameHeightDelta || slot.frameOffsetX || slot.frameOffsetY) && (
+                    <span className="px-1 py-0.5 rounded bg-[#8C6D37]/90 backdrop-blur-xs text-white text-[8px] font-mono">
+                      Marco Personalizado
+                    </span>
+                  )}
+                  {flipH && (
+                    <span className="px-1 py-0.5 rounded bg-black/60 backdrop-blur-xs text-white text-[8px] font-mono">
+                      Espejo
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             /* Empty Slot / Placeholder */
-            <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-[#736B60]">
-              <ImageIcon className="w-6 h-6 mb-1 text-[#8C6D37]/50" />
-              <span className="text-[10px] font-bold text-[#595248] block leading-tight">
-                {isDragOver ? 'Soltar foto aquí' : isSelected ? 'Haz clic en una foto' : 'Ranura Vacía'}
-              </span>
-              <span className="text-[8px] text-[#A89F91]">Arrastra o selecciona</span>
-            </div>
+            readOnly ? (
+              <div className="w-full h-full bg-[#EFE9DE]/40 rounded flex items-center justify-center">
+                <span className="text-[8px] text-[#A89F91] font-mono">Ranura Vacía</span>
+              </div>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-[#736B60]">
+                <ImageIcon className="w-6 h-6 mb-1 text-[#8C6D37]/50" />
+                <span className="text-[10px] font-bold text-[#595248] block leading-tight">
+                  {isDragOver ? 'Soltar foto aquí' : isSelected ? 'Haz clic en una foto' : 'Ranura Vacía'}
+                </span>
+                <span className="text-[8px] text-[#A89F91]">Arrastra o selecciona</span>
+              </div>
+            )
           )}
         </div>
 
-        {/* ZNO CLOUD SELECTION HANDLES & OVERLAYS WHEN SELECTED */}
-        {isSelected && photo && (
+        {/* ZNO CLOUD SELECTION HANDLES & OVERLAYS WHEN SELECTED (EDITOR ONLY) */}
+        {!readOnly && isSelected && photo && (
           <>
             {/* Top Rotation Pivot Handle */}
             <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto z-40">
@@ -3501,11 +3516,30 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   };
 
   // Helper to render layout content for any page (left or right)
-  const renderPageLayoutContent = (page: PhotobookPage, isRight: boolean) => {
+  const renderPageLayoutContent = (page: PhotobookPage, isRight: boolean, readOnly = false) => {
     if (!page) return null;
 
     // 1. EDITORIAL TEXT & HEADING
     if (page.layout === 'editorial-text-photo') {
+      if (readOnly) {
+        return (
+          <div className="w-full h-full flex flex-col justify-center text-center px-4 py-2">
+            {page.customTextHeading && (
+              <h3 className="font-serif-luxury text-lg sm:text-xl text-center text-[#1F1C18] font-bold mb-2">
+                {page.customTextHeading}
+              </h3>
+            )}
+            {page.customTextBody && (
+              <p className="text-[11px] sm:text-xs text-[#595248] text-center italic leading-relaxed whitespace-pre-wrap">
+                {page.customTextBody}
+              </p>
+            )}
+            {!page.customTextHeading && !page.customTextBody && (
+              <span className="text-[10px] text-[#A89F91] italic">Página editorial</span>
+            )}
+          </div>
+        );
+      }
       return (
         <div className="w-full h-full flex flex-col justify-center text-center px-4 py-2">
           <input
@@ -3550,7 +3584,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     if (page.layout === 'single-full') {
       return (
         <div className="w-full h-full">
-          {page.slots[0] && renderSlotInteractive(page.slots[0], 'w-full h-full')}
+          {page.slots[0] && renderSlotInteractive(page.slots[0], 'w-full h-full', readOnly)}
         </div>
       );
     }
@@ -3559,7 +3593,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     if (page.layout === 'single-bordered') {
       return (
         <div className="w-5/6 h-5/6 shadow-lg bg-[#EFE9DE] border border-[#D6CEBE] p-2.5 rounded-lg flex items-center justify-center">
-          {page.slots[0] && renderSlotInteractive(page.slots[0], 'w-full h-full rounded')}
+          {page.slots[0] && renderSlotInteractive(page.slots[0], 'w-full h-full rounded', readOnly)}
         </div>
       );
     }
@@ -3568,7 +3602,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     if (page.layout === 'two-vertical') {
       return (
         <div className="w-full h-full grid grid-cols-2" style={{ gap: `${spreadPhotoGap}px` }}>
-          {page.slots.map((slot) => renderSlotInteractive(slot, 'h-full'))}
+          {page.slots.map((slot) => renderSlotInteractive(slot, 'h-full', readOnly))}
         </div>
       );
     }
@@ -3577,7 +3611,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     if (page.layout === 'two-horizontal') {
       return (
         <div className="w-full h-full grid grid-rows-2" style={{ gap: `${spreadPhotoGap}px` }}>
-          {page.slots.map((slot) => renderSlotInteractive(slot, 'w-full h-full'))}
+          {page.slots.map((slot) => renderSlotInteractive(slot, 'w-full h-full', readOnly))}
         </div>
       );
     }
@@ -3587,11 +3621,11 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       return (
         <div className="w-full h-full grid grid-cols-2" style={{ gap: `${spreadPhotoGap}px` }}>
           <div className="h-full">
-            {page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full')}
+            {page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full', readOnly)}
           </div>
           <div className="h-full grid grid-rows-2" style={{ gap: `${spreadPhotoGap}px` }}>
-            {page.slots[1] && renderSlotInteractive(page.slots[1], 'h-full')}
-            {page.slots[2] && renderSlotInteractive(page.slots[2], 'h-full')}
+            {page.slots[1] && renderSlotInteractive(page.slots[1], 'h-full', readOnly)}
+            {page.slots[2] && renderSlotInteractive(page.slots[2], 'h-full', readOnly)}
           </div>
         </div>
       );
@@ -3601,7 +3635,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     if (page.layout === 'three-vertical-triptych') {
       return (
         <div className="w-full h-full grid grid-cols-3" style={{ gap: `${spreadPhotoGap}px` }}>
-          {page.slots.slice(0, 3).map((slot) => renderSlotInteractive(slot, 'h-full'))}
+          {page.slots.slice(0, 3).map((slot) => renderSlotInteractive(slot, 'h-full', readOnly))}
         </div>
       );
     }
@@ -3611,11 +3645,11 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       return (
         <div className="w-full h-full grid grid-cols-2" style={{ gap: `${spreadPhotoGap}px` }}>
           <div className="h-full grid grid-rows-2" style={{ gap: `${spreadPhotoGap}px` }}>
-            {page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full')}
-            {page.slots[1] && renderSlotInteractive(page.slots[1], 'h-full')}
+            {page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full', readOnly)}
+            {page.slots[1] && renderSlotInteractive(page.slots[1], 'h-full', readOnly)}
           </div>
           <div className="h-full">
-            {page.slots[2] && renderSlotInteractive(page.slots[2], 'h-full')}
+            {page.slots[2] && renderSlotInteractive(page.slots[2], 'h-full', readOnly)}
           </div>
         </div>
       );
@@ -3625,7 +3659,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     if (page.layout === 'four-grid') {
       return (
         <div className="w-full h-full grid grid-cols-2 grid-rows-2" style={{ gap: `${spreadPhotoGap}px` }}>
-          {page.slots.map((slot) => renderSlotInteractive(slot, 'h-full'))}
+          {page.slots.map((slot) => renderSlotInteractive(slot, 'h-full', readOnly))}
         </div>
       );
     }
@@ -3635,13 +3669,13 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       return (
         <div className="w-full h-full flex flex-col" style={{ gap: `${spreadPhotoGap}px` }}>
           <div className="flex-1 grid grid-cols-2" style={{ gap: `${spreadPhotoGap}px` }}>
-            {page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full')}
-            {page.slots[1] && renderSlotInteractive(page.slots[1], 'h-full')}
+            {page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full', readOnly)}
+            {page.slots[1] && renderSlotInteractive(page.slots[1], 'h-full', readOnly)}
           </div>
           <div className="flex-1 grid grid-cols-3" style={{ gap: `${spreadPhotoGap}px` }}>
-            {page.slots[2] && renderSlotInteractive(page.slots[2], 'h-full')}
-            {page.slots[3] && renderSlotInteractive(page.slots[3], 'h-full')}
-            {page.slots[4] && renderSlotInteractive(page.slots[4], 'h-full')}
+            {page.slots[2] && renderSlotInteractive(page.slots[2], 'h-full', readOnly)}
+            {page.slots[3] && renderSlotInteractive(page.slots[3], 'h-full', readOnly)}
+            {page.slots[4] && renderSlotInteractive(page.slots[4], 'h-full', readOnly)}
           </div>
         </div>
       );
@@ -3654,7 +3688,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
           {/* Left Hero Column */}
           <div className="w-5/12 h-full flex flex-col justify-between">
             <div className="flex-1 h-4/5">
-              {page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full rounded-md shadow-xs')}
+              {page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full rounded-md shadow-xs', readOnly)}
             </div>
             <div className="pt-2 text-center">
               <span className="text-[10px] font-serif tracking-widest uppercase text-[#8C6D37] block font-bold">
@@ -3667,18 +3701,18 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
           {/* Right Column: 1 Landscape + 2 Mini Polaroids */}
           <div className="w-7/12 h-full flex flex-col" style={{ gap: `${spreadPhotoGap}px` }}>
             <div className="h-1/2">
-              {page.slots[1] && renderSlotInteractive(page.slots[1], 'h-full rounded-md')}
+              {page.slots[1] && renderSlotInteractive(page.slots[1], 'h-full rounded-md', readOnly)}
             </div>
             <div className="h-1/2 grid grid-cols-2 gap-2">
               <div className="bg-white p-1.5 rounded-lg border border-[#E8E2D5] shadow-xs flex flex-col">
                 <div className="flex-1">
-                  {page.slots[2] && renderSlotInteractive(page.slots[2], 'h-full rounded-xs')}
+                  {page.slots[2] && renderSlotInteractive(page.slots[2], 'h-full rounded-xs', readOnly)}
                 </div>
                 <span className="text-[7px] text-center text-[#736B60] font-mono mt-1">polaroid 01</span>
               </div>
               <div className="bg-white p-1.5 rounded-lg border border-[#E8E2D5] shadow-xs flex flex-col">
                 <div className="flex-1">
-                  {page.slots[3] && renderSlotInteractive(page.slots[3], 'h-full rounded-xs')}
+                  {page.slots[3] && renderSlotInteractive(page.slots[3], 'h-full rounded-xs', readOnly)}
                 </div>
                 <span className="text-[7px] text-center text-[#736B60] font-mono mt-1">polaroid 02</span>
               </div>
@@ -3703,7 +3737,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
           {/* Top Hero Photo with subtle frame */}
           <div className="flex-1 my-1.5 bg-white p-1.5 rounded-lg border border-[#E0D8C8] shadow-xs">
-            {page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full rounded')}
+            {page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full rounded', readOnly)}
           </div>
 
           {/* Bottom 4 Mini Stamp Slots */}
@@ -3711,7 +3745,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
             {page.slots.slice(1, 5).map((slot, idx) => (
               <div key={slot.id} className="bg-white p-1 rounded-md border border-[#E8E2D5] shadow-2xs flex flex-col">
                 <div className="flex-1">
-                  {renderSlotInteractive(slot, 'h-full rounded-xs')}
+                  {renderSlotInteractive(slot, 'h-full rounded-xs', readOnly)}
                 </div>
                 <span className="text-[6px] text-center text-[#8C6D37] font-mono mt-0.5">#{idx + 1}</span>
               </div>
@@ -3726,15 +3760,15 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       const gap = Math.max(2, Math.floor(spreadPhotoGap / 2));
       return (
         <div className="w-full h-full grid grid-cols-3 grid-rows-3" style={{ gap: `${gap}px` }}>
-          <div className="col-span-1">{page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full')}</div>
-          <div className="col-span-2">{page.slots[1] && renderSlotInteractive(page.slots[1], 'h-full')}</div>
-          <div className="row-span-2">{page.slots[2] && renderSlotInteractive(page.slots[2], 'h-full')}</div>
-          <div className="col-span-1">{page.slots[3] && renderSlotInteractive(page.slots[3], 'h-full')}</div>
-          <div className="col-span-1">{page.slots[4] && renderSlotInteractive(page.slots[4], 'h-full')}</div>
-          <div className="col-span-1">{page.slots[5] && renderSlotInteractive(page.slots[5], 'h-full')}</div>
-          <div className="col-span-1">{page.slots[6] && renderSlotInteractive(page.slots[6], 'h-full')}</div>
-          <div className="col-span-2">{page.slots[7] && renderSlotInteractive(page.slots[7], 'h-full')}</div>
-          <div className="col-span-1">{page.slots[8] && renderSlotInteractive(page.slots[8], 'h-full')}</div>
+          <div className="col-span-1">{page.slots[0] && renderSlotInteractive(page.slots[0], 'h-full', readOnly)}</div>
+          <div className="col-span-2">{page.slots[1] && renderSlotInteractive(page.slots[1], 'h-full', readOnly)}</div>
+          <div className="row-span-2">{page.slots[2] && renderSlotInteractive(page.slots[2], 'h-full', readOnly)}</div>
+          <div className="col-span-1">{page.slots[3] && renderSlotInteractive(page.slots[3], 'h-full', readOnly)}</div>
+          <div className="col-span-1">{page.slots[4] && renderSlotInteractive(page.slots[4], 'h-full', readOnly)}</div>
+          <div className="col-span-1">{page.slots[5] && renderSlotInteractive(page.slots[5], 'h-full', readOnly)}</div>
+          <div className="col-span-1">{page.slots[6] && renderSlotInteractive(page.slots[6], 'h-full', readOnly)}</div>
+          <div className="col-span-2">{page.slots[7] && renderSlotInteractive(page.slots[7], 'h-full', readOnly)}</div>
+          <div className="col-span-1">{page.slots[8] && renderSlotInteractive(page.slots[8], 'h-full', readOnly)}</div>
         </div>
       );
     }
@@ -3745,13 +3779,13 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       return (
         <div className="w-full h-full flex flex-col justify-between" style={{ gap: `${gap}px` }}>
           <div className="flex-1 grid grid-cols-3" style={{ gap: `${gap}px` }}>
-            {page.slots.slice(0, 3).map((slot) => renderSlotInteractive(slot, 'h-full'))}
+            {page.slots.slice(0, 3).map((slot) => renderSlotInteractive(slot, 'h-full', readOnly))}
           </div>
           <div className="flex-1 grid grid-cols-4" style={{ gap: `${gap}px` }}>
-            {page.slots.slice(3, 7).map((slot) => renderSlotInteractive(slot, 'h-full'))}
+            {page.slots.slice(3, 7).map((slot) => renderSlotInteractive(slot, 'h-full', readOnly))}
           </div>
           <div className="flex-1 grid grid-cols-3" style={{ gap: `${gap}px` }}>
-            {page.slots.slice(7, 10).map((slot) => renderSlotInteractive(slot, 'h-full'))}
+            {page.slots.slice(7, 10).map((slot) => renderSlotInteractive(slot, 'h-full', readOnly))}
           </div>
         </div>
       );
@@ -3770,7 +3804,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     // Default fallback
     return (
       <div className="w-full h-full flex items-center justify-center">
-        {page.slots[0] && renderSlotInteractive(page.slots[0], 'w-full h-full')}
+        {page.slots[0] && renderSlotInteractive(page.slots[0], 'w-full h-full', readOnly)}
       </div>
     );
   };
@@ -6895,11 +6929,17 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               </div>
 
               {/* Flip Book Showcase */}
-              <div className="w-full aspect-[16/10] max-h-[38vh] bg-[#FDFCFA] rounded-2xl shadow-xl border border-[#D6CEBE] overflow-hidden flex relative mb-3 paper-texture">
+              <div 
+                className="w-full aspect-[16/10] max-h-[50vh] bg-[#FDFCFA] rounded-2xl shadow-2xl border border-[#D6CEBE] overflow-hidden flex relative mb-3 paper-texture"
+                style={{
+                  backgroundColor: activeSpread.backgroundColor || '#FFFFFF',
+                }}
+              >
+                {/* Center Spine Gutter Shadow */}
                 <div className="absolute inset-y-0 left-1/2 -ml-3 w-6 book-gutter-shadow pointer-events-none z-20" />
                 
                 {activeSpread.isFullSpreadBleed ? (
-                  <div className="w-full h-full">
+                  <div className="w-full h-full relative">
                     {activeSpread.fullSpreadPhotoId && uploadedPhotos.find((p) => p.id === activeSpread.fullSpreadPhotoId) ? (
                       <img
                         src={getPhotoDisplayUrl(uploadedPhotos.find((p) => p.id === activeSpread.fullSpreadPhotoId))}
@@ -6907,46 +6947,92 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-[#EFE9DE] flex items-center justify-center text-xs text-[#736B60]">
-                        Pliego Panorámico
+                      <div className="w-full h-full bg-[#EFE9DE] flex flex-col items-center justify-center text-xs text-[#736B60]">
+                        <ImageIcon className="w-8 h-8 mb-1 text-[#8C6D37]/40" />
+                        <span>Pliego Panorámico a Doble Página</span>
                       </div>
                     )}
                   </div>
                 ) : (
                   <>
-                    <div className="w-1/2 h-full p-4 sm:p-6 border-r border-[#E8E2D5] flex flex-col justify-center items-center">
-                      {uploadedPhotos.find((p) => p.id === activeSpread.leftPage.slots[0]?.photoId) ? (
-                        <img
-                          src={getPhotoDisplayUrl(uploadedPhotos.find((p) => p.id === activeSpread.leftPage.slots[0]?.photoId))}
-                          alt="Foto Izq"
-                          className="w-full h-full object-cover rounded shadow"
-                        />
-                      ) : activeSpread.leftPage.layout === 'editorial-text-photo' ? (
-                        <div className="text-center p-3">
-                          <h4 className="font-serif-luxury text-base font-bold text-[#1F1C18]">{activeSpread.leftPage.customTextHeading || 'Capítulo'}</h4>
-                          <p className="text-[10px] italic text-[#595248] mt-1">{activeSpread.leftPage.customTextBody || ''}</p>
-                        </div>
-                      ) : (
-                        <div className="w-full h-full bg-[#EFE9DE] rounded flex items-center justify-center text-xs text-[#736B60]">
-                          Página {activeSpreadIndex * 2 + 1}
-                        </div>
-                      )}
+                    {/* LEFT PAGE */}
+                    <div className={`w-1/2 h-full flex flex-col justify-between relative border-r border-[#EAE4D8] ${
+                      activeSpread.isFlushMargin ? 'p-0' : 'p-3 sm:p-5'
+                    }`}>
+                      <div className="flex-1 flex flex-col justify-center items-center h-full w-full">
+                        {renderPageLayoutContent(activeSpread.leftPage, false, true)}
+                      </div>
+                      <span className={`text-[9px] font-mono text-[#A89F91] text-left ${
+                        activeSpread.isFlushMargin ? 'p-1.5 bg-black/40 text-white rounded-tr' : ''
+                      }`}>
+                        {activeSpreadIndex * 2 + 1}
+                      </span>
                     </div>
-                    <div className="w-1/2 h-full p-4 sm:p-6 flex flex-col justify-center items-center">
-                      {uploadedPhotos.find((p) => p.id === activeSpread.rightPage.slots[0]?.photoId) ? (
-                        <img
-                          src={getPhotoDisplayUrl(uploadedPhotos.find((p) => p.id === activeSpread.rightPage.slots[0]?.photoId))}
-                          alt="Foto Der"
-                          className="w-full h-full object-cover rounded shadow"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-[#EFE9DE] rounded flex items-center justify-center text-xs text-[#736B60]">
-                          Página {activeSpreadIndex * 2 + 2}
-                        </div>
-                      )}
+
+                    {/* RIGHT PAGE */}
+                    <div className={`w-1/2 h-full flex flex-col justify-between relative ${
+                      activeSpread.isFlushMargin ? 'p-0' : 'p-3 sm:p-5'
+                    }`}>
+                      <div className="flex-1 flex flex-col justify-center items-center h-full w-full">
+                        {renderPageLayoutContent(activeSpread.rightPage, true, true)}
+                      </div>
+                      <span className={`text-[9px] font-mono text-[#A89F91] text-right ${
+                        activeSpread.isFlushMargin ? 'p-1.5 bg-black/40 text-white rounded-tl' : ''
+                      }`}>
+                        {activeSpreadIndex * 2 + 2}
+                      </span>
                     </div>
                   </>
                 )}
+
+                {/* Floating Text Overlays in Preview */}
+                {activeSpread.textElements && activeSpread.textElements.map((txt) => (
+                  <div
+                    key={txt.id}
+                    className="absolute z-30 select-none pointer-events-none"
+                    style={{
+                      left: `${txt.position.x}%`,
+                      top: `${txt.position.y}%`,
+                      transform: 'translate(-50%, -50%)',
+                      fontFamily:
+                        txt.fontFamily === 'serif-luxury'
+                          ? '"Playfair Display", Georgia, serif'
+                          : txt.fontFamily === 'mono-clean'
+                          ? 'ui-monospace, monospace'
+                          : txt.fontFamily === 'script-hand'
+                          ? 'cursive'
+                          : 'inherit',
+                      fontSize: `${txt.fontSize}px`,
+                      fontWeight: txt.isBold ? 'bold' : 'normal',
+                      fontStyle: txt.isItalic ? 'italic' : 'normal',
+                      color: txt.color,
+                      textAlign: txt.alignment,
+                      letterSpacing: txt.letterSpacing,
+                      padding: '4px 8px',
+                      maxWidth: '80%',
+                    }}
+                  >
+                    {txt.text}
+                  </div>
+                ))}
+              </div>
+
+              {/* Spread Quick Thumbnails Strip in Preview Mode */}
+              <div className="w-full flex items-center justify-center gap-1.5 overflow-x-auto py-1.5 mb-2.5 max-w-full">
+                {spreads.map((sp, idx) => (
+                  <button
+                    key={sp.id}
+                    type="button"
+                    onClick={() => setActiveSpreadIndex(idx)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold shrink-0 transition-all cursor-pointer ${
+                      activeSpreadIndex === idx
+                        ? 'bg-[#1F1C18] text-[#ECC880] shadow-md ring-2 ring-[#8C6D37]'
+                        : 'bg-[#F0EBE1] text-[#595248] hover:bg-[#E2D8C7]'
+                    }`}
+                  >
+                    Pliego {idx + 1}
+                  </button>
+                ))}
               </div>
 
               {/* Stepper controls */}
@@ -6955,7 +7041,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   type="button"
                   onClick={() => setActiveSpreadIndex((prev) => Math.max(0, prev - 1))}
                   disabled={activeSpreadIndex === 0}
-                  className="px-3.5 py-1.5 rounded-full border border-[#D6CEBE] bg-[#FDFCF9] text-xs font-semibold text-[#1F1C18] disabled:opacity-30"
+                  className="px-3.5 py-1.5 rounded-full border border-[#D6CEBE] bg-[#FDFCF9] text-xs font-semibold text-[#1F1C18] disabled:opacity-30 hover:bg-[#EFE9DE] cursor-pointer"
                 >
                   ← Pliego Anterior
                 </button>
@@ -6966,7 +7052,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   type="button"
                   onClick={() => setActiveSpreadIndex((prev) => Math.min(spreads.length - 1, prev + 1))}
                   disabled={activeSpreadIndex === spreads.length - 1}
-                  className="px-3.5 py-1.5 rounded-full border border-[#D6CEBE] bg-[#FDFCF9] text-xs font-semibold text-[#1F1C18] disabled:opacity-30"
+                  className="px-3.5 py-1.5 rounded-full border border-[#D6CEBE] bg-[#FDFCF9] text-xs font-semibold text-[#1F1C18] disabled:opacity-30 hover:bg-[#EFE9DE] cursor-pointer"
                 >
                   Siguiente Pliego →
                 </button>
