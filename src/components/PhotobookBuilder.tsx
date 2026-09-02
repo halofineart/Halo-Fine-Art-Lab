@@ -6013,25 +6013,25 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                 </div>
               ) : (
                 <>
-                  {/* Panel Header */}
-                  <div className="p-3.5 border-b border-[#E0D8C8] bg-[#F9F6EE] flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <SlidersHorizontal className="w-4 h-4 text-[#8C6D37]" />
-                      <span className="font-bold text-xs uppercase tracking-wider text-[#1F1C18]">
-                        Herramientas & Ajustes
+                  {/* Compact Header */}
+                  <div className="px-3 py-2 border-b border-[#E0D8C8] bg-[#F9F6EE] flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-[#8C6D37] shrink-0" />
+                      <span className="font-bold text-[11px] uppercase tracking-wide text-[#1F1C18] truncate">
+                        Ajustes
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1 shrink-0">
                       {selectedTextId ? (
-                        <span className="px-2 py-0.5 rounded-full bg-[#8C6D37] text-white font-bold text-[10px]">
-                          Capa de Texto
+                        <span className="px-1.5 py-0.5 rounded bg-[#8C6D37] text-white font-bold text-[9px]">
+                          Texto
                         </span>
                       ) : selectedSlotData ? (
-                        <span className="px-2 py-0.5 rounded-full bg-[#0091FF]/10 text-[#0091FF] font-bold text-[10px] border border-[#0091FF]/30">
+                        <span className="px-1.5 py-0.5 rounded bg-[#0091FF]/10 text-[#0091FF] font-bold text-[9px] border border-[#0091FF]/30">
                           Pág. {selectedSlotData.pageNumber}
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full bg-[#8C6D37]/10 text-[#8C6D37] font-bold text-[10px] border border-[#8C6D37]/30">
+                        <span className="px-1.5 py-0.5 rounded bg-[#8C6D37]/10 text-[#8C6D37] font-bold text-[9px] border border-[#8C6D37]/30">
                           Pliego {activeSpreadIndex + 1}
                         </span>
                       )}
@@ -6039,10 +6039,10 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       <button
                         type="button"
                         onClick={() => setIsRightSidebarCollapsed(true)}
-                        className="p-1 rounded-lg text-[#736B60] hover:text-[#1F1C18] hover:bg-[#EFE9DE] transition-colors cursor-pointer ml-1"
-                        title="Colapsar Panel"
+                        className="p-1 rounded-md text-[#736B60] hover:text-[#1F1C18] hover:bg-[#EFE9DE] transition-colors cursor-pointer ml-0.5"
+                        title="Ocultar Panel"
                       >
-                        <PanelRightClose className="w-4 h-4" />
+                        <PanelRightClose className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -6051,18 +6051,18 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               {selectedTextId && activeSpread.textElements?.find((t) => t.id === selectedTextId) ? (() => {
                 const txt = activeSpread.textElements!.find((t) => t.id === selectedTextId)!;
                 return (
-                  <div className="p-4 space-y-5">
+                  <div className="p-3 space-y-3">
                     {/* Header */}
-                    <div className="p-3 rounded-xl border border-[#8C6D37]/40 bg-[#FAF7F2] space-y-2">
+                    <div className="p-2.5 rounded-lg border border-[#8C6D37]/40 bg-[#FAF7F2] space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase text-[#8C6D37] flex items-center gap-1.5">
-                          <Type className="w-3.5 h-3.5" />
-                          <span>Texto Libre</span>
+                        <span className="text-[10px] font-bold uppercase text-[#8C6D37] flex items-center gap-1">
+                          <Type className="w-3 h-3" />
+                          <span>Texto</span>
                         </span>
                         <button
                           type="button"
                           onClick={() => handleDeleteFloatingText(txt.id)}
-                          className="text-rose-600 hover:text-rose-800 text-[10px] font-bold flex items-center gap-1"
+                          className="text-rose-600 hover:text-rose-800 text-[10px] font-bold flex items-center gap-0.5 cursor-pointer"
                         >
                           <Trash2 className="w-3 h-3" />
                           <span>Eliminar</span>
@@ -6072,33 +6072,33 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         value={txt.text}
                         onChange={(e) => handleUpdateFloatingText(txt.id, { text: e.target.value })}
                         rows={2}
-                        className="w-full p-2 text-xs rounded-lg border border-[#D6CEBE] bg-white text-[#1F1C18] focus:outline-hidden focus:ring-1 focus:ring-[#8C6D37]"
+                        className="w-full p-1.5 text-xs rounded-md border border-[#D6CEBE] bg-white text-[#1F1C18] focus:outline-hidden focus:ring-1 focus:ring-[#8C6D37]"
                         placeholder="Escribe tu texto..."
                       />
                     </div>
 
                     {/* Font Family Selection */}
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-[#595248] block">
                         Tipografía
                       </label>
-                      <div className="grid grid-cols-3 gap-1.5 text-[10px]">
+                      <div className="grid grid-cols-3 gap-1 text-[10px]">
                         {[
-                          { id: 'serif-luxury', label: 'Playfair', desc: 'Serif Clásico' },
-                          { id: 'sans-modern', label: 'Moderna', desc: 'Sans-Serif' },
-                          { id: 'mono-clean', label: 'Máquina', desc: 'Monospace' },
+                          { id: 'serif-luxury', label: 'Playfair', desc: 'Serif' },
+                          { id: 'sans-modern', label: 'Moderna', desc: 'Sans' },
+                          { id: 'mono-clean', label: 'Máquina', desc: 'Mono' },
                         ].map((f) => (
                           <button
                             key={f.id}
                             type="button"
                             onClick={() => handleUpdateFloatingText(txt.id, { fontFamily: f.id as any })}
-                            className={`p-2 rounded-lg border text-center transition-all ${
+                            className={`p-1.5 rounded-md border text-center transition-all cursor-pointer ${
                               txt.fontFamily === f.id
                                 ? 'bg-[#8C6D37] text-white border-[#8C6D37] font-bold shadow-xs'
                                 : 'bg-white text-[#1F1C18] border-[#D6CEBE] hover:bg-[#FAF7F2]'
                             }`}
                           >
-                            <span className="block font-bold">{f.label}</span>
+                            <span className="block font-bold text-[10px]">{f.label}</span>
                             <span className="text-[8px] opacity-75">{f.desc}</span>
                           </button>
                         ))}
@@ -6106,13 +6106,13 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     </div>
 
                     {/* Font Size Slider */}
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248]">
-                          Tamaño de Fuente
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-[#595248]">
+                          Tamaño
                         </label>
-                        <span className="font-mono font-bold text-xs text-[#8C6D37] bg-[#8C6D37]/10 px-2 py-0.5 rounded">
-                          {txt.fontSize} px
+                        <span className="font-mono font-bold text-[11px] text-[#8C6D37] bg-[#8C6D37]/10 px-1.5 py-0.2 rounded">
+                          {txt.fontSize}px
                         </span>
                       </div>
                       <input
@@ -6122,16 +6122,16 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         step="1"
                         value={txt.fontSize}
                         onChange={(e) => handleUpdateFloatingText(txt.id, { fontSize: parseInt(e.target.value) })}
-                        className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
+                        className="w-full h-1.5 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
                       />
                     </div>
 
                     {/* Weight, Italic, Alignment */}
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-[#595248] block">
                         Estilo & Alineación
                       </label>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1">
                         <button
                           type="button"
                           onClick={() =>
@@ -6139,7 +6139,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                               isBold: !txt.isBold,
                             })
                           }
-                          className={`flex-1 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                          className={`flex-1 py-1 rounded-md border text-[10px] font-bold transition-all cursor-pointer ${
                             txt.isBold
                               ? 'bg-[#1F1C18] text-white border-[#1F1C18]'
                               : 'bg-white text-[#1F1C18] border-[#D6CEBE]'
@@ -6154,7 +6154,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                               isItalic: !txt.isItalic,
                             })
                           }
-                          className={`flex-1 py-1.5 rounded-lg border text-xs italic font-serif transition-all ${
+                          className={`flex-1 py-1 rounded-md border text-[10px] italic font-serif transition-all cursor-pointer ${
                             txt.isItalic
                               ? 'bg-[#1F1C18] text-white border-[#1F1C18]'
                               : 'bg-white text-[#1F1C18] border-[#D6CEBE]'
@@ -6167,7 +6167,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                             key={align}
                             type="button"
                             onClick={() => handleUpdateFloatingText(txt.id, { alignment: align })}
-                            className={`p-2 rounded-lg border text-xs transition-all ${
+                            className={`p-1.5 rounded-md border text-xs transition-all cursor-pointer ${
                               txt.alignment === align
                                 ? 'bg-[#8C6D37] text-white border-[#8C6D37]'
                                 : 'bg-white text-[#1F1C18] border-[#D6CEBE]'
@@ -6181,24 +6181,24 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     </div>
 
                     {/* Text Color Picker */}
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
-                        Color de Texto
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-[#595248] block">
+                        Color
                       </label>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         {[
                           { color: '#1F1C18', name: 'Negro Carbón' },
                           { color: '#8C6D37', name: 'Oro Fine Art' },
                           { color: '#595248', name: 'Gris Cálido' },
                           { color: '#FFFFFF', name: 'Blanco' },
                           { color: '#802B2B', name: 'Borgoña' },
-                          { color: '#2B4A3D', name: 'Salvia Oscuro' },
+                          { color: '#2B4A3D', name: 'Salvia' },
                         ].map((c) => (
                           <button
                             key={c.color}
                             type="button"
                             onClick={() => handleUpdateFloatingText(txt.id, { color: c.color })}
-                            className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 shadow-xs ${
+                            className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 shadow-xs cursor-pointer ${
                               txt.color === c.color ? 'ring-2 ring-[#8C6D37] scale-110' : 'border-[#D6CEBE]'
                             }`}
                             style={{ backgroundColor: c.color }}
@@ -6209,87 +6209,84 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     </div>
 
                     {/* Deselect text */}
-                    <div className="pt-2">
+                    <div className="pt-1">
                       <button
                         type="button"
                         onClick={() => setSelectedTextId(null)}
-                        className="w-full py-2 rounded-xl bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#595248] text-xs font-bold transition-colors"
+                        className="w-full py-1.5 rounded-lg bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#595248] text-xs font-bold transition-colors cursor-pointer"
                       >
-                        Listo / Deseleccionar Texto
+                        Listo
                       </button>
                     </div>
                   </div>
                 );
               })() : selectedSlotData ? (
-                <div className="p-4 space-y-5">
+                <div className="p-3 space-y-3">
                   {/* Photo Header Card */}
-                  <div className="p-2.5 rounded-xl border border-[#D6CEBE] bg-[#F4EFE6]/70 flex items-center justify-between gap-2.5">
+                  <div className="p-2 rounded-lg border border-[#D6CEBE] bg-[#F4EFE6]/70 flex items-center justify-between gap-2">
                     {selectedSlotData.photo ? (
                       <>
-                        <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
                           <img
                             src={getThumbnailSrc(selectedSlotData.photo)}
                             alt=""
-                            className="w-11 h-11 rounded-lg object-cover border border-[#D6CEBE] shrink-0"
+                            className="w-9 h-9 rounded-md object-cover border border-[#D6CEBE] shrink-0"
                           />
                           <div className="min-w-0">
                             <span className="text-[11px] font-bold text-[#1F1C18] truncate block">
                               {selectedSlotData.photo.name}
                             </span>
-                            <span className="text-[9px] text-emerald-700 font-semibold flex items-center gap-1">
+                            <span className="text-[9px] text-emerald-700 font-semibold flex items-center gap-0.5">
                               <Check className="w-2.5 h-2.5" />
-                              Calidad Óptima (300 DPI)
+                              300 DPI
                             </span>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0">
                           <button
                             type="button"
                             onClick={() => setShowSwapPickerSlotId(selectedSlotData.slot.id)}
-                            className="px-2.5 py-1.5 rounded-lg bg-[#8C6D37]/10 hover:bg-[#8C6D37] border border-[#8C6D37]/30 text-[#8C6D37] hover:text-white text-xs font-bold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer"
+                            className="px-2 py-1 rounded-md bg-[#8C6D37]/10 hover:bg-[#8C6D37] border border-[#8C6D37]/30 text-[#8C6D37] hover:text-white text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
                             title="Cambiar foto de este marco"
                           >
-                            <ArrowLeftRight className="w-3.5 h-3.5" />
+                            <ArrowLeftRight className="w-3 h-3" />
                             <span>Cambiar</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => handleRemovePhotoFromSlot(selectedSlotData.slot.id)}
-                            className="p-1.5 rounded-lg bg-white hover:bg-rose-50 border border-[#D6CEBE] text-rose-600 text-[10px] font-semibold hover:border-rose-300 transition-colors cursor-pointer"
+                            className="p-1 rounded-md bg-white hover:bg-rose-50 border border-[#D6CEBE] text-rose-600 hover:border-rose-300 transition-colors cursor-pointer"
                             title="Quitar foto de este marco"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3 h-3" />
                           </button>
                         </div>
                       </>
                     ) : (
-                      <div className="w-full flex items-center justify-between py-1">
-                        <div>
-                          <span className="text-xs font-semibold text-[#736B60] block">Ranura vacía</span>
-                          <span className="text-[10px] text-[#A89F91]">Sin foto asignada</span>
-                        </div>
+                      <div className="w-full flex items-center justify-between py-0.5">
+                        <span className="text-[11px] font-semibold text-[#736B60]">Ranura vacía</span>
                         <button
                           type="button"
                           onClick={() => setShowSwapPickerSlotId(selectedSlotData.slot.id)}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#8C6D37] hover:bg-[#73582A] text-white text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer transition-colors"
+                          className="px-2 py-1 rounded-md bg-[#8C6D37] hover:bg-[#73582A] text-white text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer transition-colors"
                         >
-                          <Plus className="w-3.5 h-3.5" />
+                          <Plus className="w-3 h-3" />
                           <span>Elegir Foto</span>
                         </button>
                       </div>
                     )}
                   </div>
 
-                  {/* 1. CONTROL DESLIZANTE: ZOOM DEL ENCUADRE */}
-                  <div className="space-y-2">
+                  {/* 1. CONTROL DESLIZANTE: ZOOM */}
+                  <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1.5">
-                        <ZoomIn className="w-3.5 h-3.5 text-[#8C6D37]" />
-                        <span>Zoom del Encuadre</span>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1">
+                        <ZoomIn className="w-3 h-3 text-[#8C6D37]" />
+                        <span>Zoom</span>
                       </label>
-                      <span className="font-mono font-bold text-xs text-[#8C6D37] bg-[#8C6D37]/10 px-2 py-0.5 rounded-md">
-                        {Math.round((selectedSlotData.slot.customScale || 1) * 100)}% ({((selectedSlotData.slot.customScale || 1)).toFixed(1)}x)
+                      <span className="font-mono font-bold text-[11px] text-[#8C6D37] bg-[#8C6D37]/10 px-1.5 py-0.2 rounded">
+                        {Math.round((selectedSlotData.slot.customScale || 1) * 100)}%
                       </span>
                     </div>
 
@@ -6301,15 +6298,15 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       step="0.05"
                       value={selectedSlotData.slot.customScale || 1}
                       onChange={(e) => handleSlotSetScale(selectedSlotData.slot.id, parseFloat(e.target.value))}
-                      className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
+                      className="w-full h-1.5 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
                     />
 
                     {/* Quick Presets & Precision Steppers */}
-                    <div className="flex items-center justify-between gap-1 pt-0.5">
+                    <div className="flex items-center justify-between gap-1">
                       <button
                         type="button"
                         onClick={() => handleSlotZoom(selectedSlotData.slot.id, -0.1)}
-                        className="px-2.5 py-1 rounded bg-[#EFE9DE] hover:bg-[#E2D8C7] text-xs font-bold text-[#1F1C18]"
+                        className="px-2 py-0.5 rounded bg-[#EFE9DE] hover:bg-[#E2D8C7] text-xs font-bold text-[#1F1C18] cursor-pointer"
                         title="Reducir zoom 10%"
                       >
                         -
@@ -6320,7 +6317,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                             key={val}
                             type="button"
                             onClick={() => handleSlotSetScale(selectedSlotData.slot.id, val)}
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all ${
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition-all cursor-pointer ${
                               Math.abs((selectedSlotData.slot.customScale || 1) - val) < 0.05
                                 ? 'bg-[#8C6D37] text-white shadow-xs'
                                 : 'bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#595248]'
@@ -6333,49 +6330,43 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       <button
                         type="button"
                         onClick={() => handleSlotZoom(selectedSlotData.slot.id, 0.1)}
-                        className="px-2.5 py-1 rounded bg-[#EFE9DE] hover:bg-[#E2D8C7] text-xs font-bold text-[#1F1C18]"
+                        className="px-2 py-0.5 rounded bg-[#EFE9DE] hover:bg-[#E2D8C7] text-xs font-bold text-[#1F1C18] cursor-pointer"
                         title="Aumentar zoom 10%"
                       >
                         +
                       </button>
                     </div>
-
-                    <p className="text-[10px] text-[#736B60] italic bg-[#FAF6EF] p-1.5 rounded-lg border border-[#E8E0D2] flex items-center gap-1.5">
-                      <span className="text-xs">🖱️</span>
-                      <span>Puedes hacer zoom con la rueda (scroll) del ratón sobre la foto.</span>
-                    </p>
                   </div>
 
-                  {/* 2. CONTROLES DESLIZANTES: DESPLAZAMIENTO / ENCUADRE (X & Y CON LÍMITE DE SEGURIDAD) */}
+                  {/* 2. CONTROLES DESLIZANTES: DESPLAZAMIENTO X & Y */}
                   {(() => {
                     const selectedSlotPhoto = uploadedPhotos.find((p) => p.id === selectedSlotData.slot.photoId);
                     const selectedBounds = getSlotPanBounds(selectedSlotData.slot, selectedSlotPhoto);
                     const currentPanX = Math.max(selectedBounds.minX, Math.min(selectedBounds.maxX, selectedSlotData.slot.customPosition?.x || 0));
                     const currentPanY = Math.max(selectedBounds.minY, Math.min(selectedBounds.maxY, selectedSlotData.slot.customPosition?.y || 0));
-                    const isFullyLocked = selectedBounds.maxPanX === 0 && selectedBounds.maxPanY === 0;
 
                     return (
-                      <div className="space-y-2 pt-1 border-t border-[#E8E2D5]">
+                      <div className="space-y-1.5 pt-1.5 border-t border-[#E8E2D5]">
                         <div className="flex items-center justify-between">
-                          <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1.5">
-                            <Move className="w-3.5 h-3.5 text-[#8C6D37]" />
-                            <span>Desplazamiento del Encuadre</span>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1">
+                            <Move className="w-3 h-3 text-[#8C6D37]" />
+                            <span>Posición (X / Y)</span>
                           </label>
                           <button
                             type="button"
                             onClick={() => handleResetSlotPosition(selectedSlotData.slot.id)}
-                            className="text-[10px] font-bold text-[#8C6D37] hover:underline"
+                            className="text-[10px] font-bold text-[#8C6D37] hover:underline cursor-pointer"
                           >
                             Centrar
                           </button>
                         </div>
 
                         {/* Horizontal X Slider */}
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-[10px] text-[#736B60]">
-                            <span>Horizontal (Eje X)</span>
+                        <div className="space-y-0.5">
+                          <div className="flex items-center justify-between text-[9px] text-[#736B60]">
+                            <span>Horizontal (X)</span>
                             <span className="font-mono font-bold text-[#1F1C18]">
-                              {currentPanX} px {selectedBounds.maxPanX > 0 && <span className="text-[9px] text-[#8C6D37] font-normal">(máx ±{selectedBounds.maxPanX}px)</span>}
+                              {currentPanX}px
                             </span>
                           </div>
                           <input
@@ -6386,18 +6377,18 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                             disabled={selectedBounds.maxPanX === 0}
                             value={currentPanX}
                             onChange={(e) => handleSlotSetPositionX(selectedSlotData.slot.id, parseInt(e.target.value))}
-                            className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#8C6D37] ${
+                            className={`w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-[#8C6D37] ${
                               selectedBounds.maxPanX === 0 ? 'bg-[#E5DFD3] opacity-50 cursor-not-allowed' : 'bg-[#EFE9DE]'
                             }`}
                           />
                         </div>
 
                         {/* Vertical Y Slider */}
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-[10px] text-[#736B60]">
-                            <span>Vertical (Eje Y)</span>
+                        <div className="space-y-0.5">
+                          <div className="flex items-center justify-between text-[9px] text-[#736B60]">
+                            <span>Vertical (Y)</span>
                             <span className="font-mono font-bold text-[#1F1C18]">
-                              {currentPanY} px {selectedBounds.maxPanY > 0 && <span className="text-[9px] text-[#8C6D37] font-normal">(máx ±{selectedBounds.maxPanY}px)</span>}
+                              {currentPanY}px
                             </span>
                           </div>
                           <input
@@ -6408,36 +6399,24 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                             disabled={selectedBounds.maxPanY === 0}
                             value={currentPanY}
                             onChange={(e) => handleSlotSetPositionY(selectedSlotData.slot.id, parseInt(e.target.value))}
-                            className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#8C6D37] ${
+                            className={`w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-[#8C6D37] ${
                               selectedBounds.maxPanY === 0 ? 'bg-[#E5DFD3] opacity-50 cursor-not-allowed' : 'bg-[#EFE9DE]'
                             }`}
                           />
                         </div>
-
-                        {isFullyLocked ? (
-                          <p className="text-[10px] text-[#8C6D37] bg-[#FDF8EE] p-1.5 rounded-lg border border-[#E8DFC8] flex items-center gap-1.5">
-                            <span className="text-xs">🔒</span>
-                            <span><strong>Límite de seguridad activo:</strong> La foto llena el marco por completo. Aumenta el <strong>Zoom</strong> para poder desplazarla sin dejar visible el fondo de la página.</span>
-                          </p>
-                        ) : (
-                          <p className="text-[10px] text-[#736B60] italic bg-[#FAF6EF] p-1.5 rounded-lg border border-[#E8E0D2] flex items-center gap-1.5">
-                            <span className="text-xs">🛡️</span>
-                            <span><strong>Protección de encuadre:</strong> El desplazamiento está acotado para no descubrir el fondo. También puedes arrastrar directamente sobre la foto.</span>
-                          </p>
-                        )}
                       </div>
                     );
                   })()}
 
                   {/* 3. CONTROL DESLIZANTE: BORDE & PASSEPARTOUT */}
-                  <div className="space-y-2 pt-1 border-t border-[#E8E2D5]">
+                  <div className="space-y-1.5 pt-1.5 border-t border-[#E8E2D5]">
                     <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1.5">
-                        <Crop className="w-3.5 h-3.5 text-[#8C6D37]" />
-                        <span>Borde & Passepartout</span>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1">
+                        <Crop className="w-3 h-3 text-[#8C6D37]" />
+                        <span>Borde</span>
                       </label>
-                      <span className="font-mono font-bold text-xs text-[#1F1C18]">
-                        {selectedSlotData.slot.borderWidth || 0} px
+                      <span className="font-mono font-bold text-[11px] text-[#1F1C18]">
+                        {selectedSlotData.slot.borderWidth || 0}px
                       </span>
                     </div>
 
@@ -6454,13 +6433,13 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           selectedSlotData.slot.borderColor || '#FFFFFF'
                         )
                       }
-                      className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
+                      className="w-full h-1.5 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
                     />
 
                     {/* Border Color Swatches */}
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-[10px] text-[#736B60]">Color del Borde:</span>
-                      <div className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-between pt-0.5">
+                      <span className="text-[9px] text-[#736B60]">Color:</span>
+                      <div className="flex items-center gap-1">
                         {[
                           { color: '#FFFFFF', name: 'Blanco' },
                           { color: '#C5A059', name: 'Oro Fine Art' },
@@ -6478,7 +6457,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                                 c.color
                               )
                             }
-                            className={`w-5 h-5 rounded-full border-2 transition-transform hover:scale-110 shadow-xs ${
+                            className={`w-4 h-4 rounded-full border transition-transform hover:scale-110 shadow-xs cursor-pointer ${
                               selectedSlotData.slot.borderColor === c.color && (selectedSlotData.slot.borderWidth || 0) > 0
                                 ? 'ring-2 ring-[#8C6D37] scale-110'
                                 : 'border-[#D6CEBE]'
@@ -6492,11 +6471,11 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   </div>
 
                   {/* 4. MODO DE RELLENO (FIT / COVER) */}
-                  <div className="space-y-1.5 pt-1 border-t border-[#E8E2D5]">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
-                      Ajuste de Proporción
+                  <div className="space-y-1 pt-1.5 border-t border-[#E8E2D5]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#595248] block">
+                      Ajuste
                     </span>
-                    <div className="grid grid-cols-2 gap-1.5">
+                    <div className="grid grid-cols-2 gap-1">
                       <button
                         type="button"
                         onClick={() => {
@@ -6504,7 +6483,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                             handleSlotFitMode(selectedSlotData.slot.id);
                           }
                         }}
-                        className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all border ${
+                        className={`py-1 px-1.5 rounded-md text-[10px] font-bold transition-all border cursor-pointer ${
                           selectedSlotData.slot.fitMode !== 'contain'
                             ? 'bg-[#1F1C18] text-[#FDFCF9] border-[#1F1C18] shadow-xs'
                             : 'bg-white text-[#736B60] border-[#D6CEBE] hover:text-[#1F1C18]'
@@ -6519,7 +6498,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                             handleSlotFitMode(selectedSlotData.slot.id);
                           }
                         }}
-                        className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all border ${
+                        className={`py-1 px-1.5 rounded-md text-[10px] font-bold transition-all border cursor-pointer ${
                           selectedSlotData.slot.fitMode === 'contain'
                             ? 'bg-[#1F1C18] text-[#FDFCF9] border-[#1F1C18] shadow-xs'
                             : 'bg-white text-[#736B60] border-[#D6CEBE] hover:text-[#1F1C18]'
@@ -6531,28 +6510,15 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   </div>
 
                   {/* 5. ROTACIÓN Y REFLEJO */}
-                  <div className="space-y-2 pt-1 border-t border-[#E8E2D5]">
+                  <div className="space-y-1.5 pt-1.5 border-t border-[#E8E2D5]">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
-                        Rotación & Ángulo
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#595248] block">
+                        Rotación
                       </span>
-                      <span className="font-mono font-bold text-xs text-[#1F1C18]">
+                      <span className="font-mono font-bold text-[11px] text-[#1F1C18]">
                         {selectedSlotData.slot.rotation || 0}°
                       </span>
                     </div>
-
-                    {/* Rotation Slider */}
-                    <input
-                      type="range"
-                      min="0"
-                      max="360"
-                      step="1"
-                      value={selectedSlotData.slot.rotation || 0}
-                      onChange={(e) =>
-                        handleSlotSetRotation(selectedSlotData.slot.id, parseInt(e.target.value))
-                      }
-                      className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
-                    />
 
                     <div className="grid grid-cols-4 gap-1">
                       {[0, 90, 180, 270].map((deg) => (
@@ -6560,7 +6526,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           key={deg}
                           type="button"
                           onClick={() => handleSlotSetRotation(selectedSlotData.slot.id, deg)}
-                          className={`py-1 rounded text-[10px] font-bold transition-all border ${
+                          className={`py-0.5 rounded text-[9px] font-bold transition-all border cursor-pointer ${
                             (selectedSlotData.slot.rotation || 0) === deg
                               ? 'bg-[#8C6D37] text-white border-[#8C6D37]'
                               : 'bg-white text-[#595248] border-[#D6CEBE] hover:bg-[#EFE9DE]'
@@ -6571,36 +6537,36 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       ))}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1.5 pt-1">
+                    <div className="grid grid-cols-2 gap-1 pt-0.5">
                       <button
                         type="button"
                         onClick={() => handleSlotRotate(selectedSlotData.slot.id)}
-                        className="py-1.5 px-2 rounded-lg bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[10px] font-bold flex items-center justify-center gap-1.5 shadow-xs"
+                        className="py-1 px-1.5 rounded-md bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[9px] font-bold flex items-center justify-center gap-1 shadow-xs cursor-pointer"
                       >
-                        <RotateCw className="w-3.5 h-3.5" />
-                        <span>Girar +90°</span>
+                        <RotateCw className="w-3 h-3" />
+                        <span>+90°</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleSlotFlipH(selectedSlotData.slot.id)}
-                        className={`py-1.5 px-2 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1.5 shadow-xs ${
+                        className={`py-1 px-1.5 rounded-md border text-[9px] font-bold flex items-center justify-center gap-1 shadow-xs cursor-pointer ${
                           selectedSlotData.slot.flipH
                             ? 'bg-[#8C6D37] text-white border-[#8C6D37]'
                             : 'bg-white border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18]'
                         }`}
                       >
-                        <FlipHorizontal className="w-3.5 h-3.5" />
-                        <span>Reflejo Espejo</span>
+                        <FlipHorizontal className="w-3 h-3" />
+                        <span>Espejo</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* 6. TAMAÑO Y POSICIÓN DEL MARCO (NODOS & REDIMENSIÓN) */}
-                  <div className="space-y-3 pt-2 border-t border-[#E8E2D5]">
+                  {/* 6. TAMAÑO Y POSICIÓN DEL MARCO */}
+                  <div className="space-y-1.5 pt-1.5 border-t border-[#E8E2D5]">
                     <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1.5">
-                        <Move className="w-3.5 h-3.5 text-[#0091FF]" />
-                        <span>Tamaño y Nodos del Marco</span>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1">
+                        <Move className="w-3 h-3 text-[#0091FF]" />
+                        <span>Tamaño Marco</span>
                       </label>
                       {Boolean(
                         selectedSlotData.slot.frameWidthDelta ||
@@ -6611,19 +6577,19 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         <button
                           type="button"
                           onClick={() => handleResetFrameDimensions(selectedSlotData.slot.id)}
-                          className="text-[10px] font-bold text-[#8C6D37] hover:underline"
+                          className="text-[9px] font-bold text-[#8C6D37] hover:underline cursor-pointer"
                         >
-                          Restablecer
+                          Reset
                         </button>
                       )}
                     </div>
 
                     {/* Width Delta Slider */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-[10px] text-[#736B60]">
-                        <span>Ancho del Marco</span>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center justify-between text-[9px] text-[#736B60]">
+                        <span>Ancho</span>
                         <span className="font-mono font-bold text-[#1F1C18]">
-                          {(selectedSlotData.slot.frameWidthDelta || 0) >= 0 ? `+${selectedSlotData.slot.frameWidthDelta || 0}` : selectedSlotData.slot.frameWidthDelta} px
+                          {(selectedSlotData.slot.frameWidthDelta || 0) >= 0 ? `+${selectedSlotData.slot.frameWidthDelta || 0}` : selectedSlotData.slot.frameWidthDelta}px
                         </span>
                       </div>
                       <input
@@ -6633,16 +6599,16 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         step="5"
                         value={selectedSlotData.slot.frameWidthDelta || 0}
                         onChange={(e) => handleSlotSetFrameWidth(selectedSlotData.slot.id, parseInt(e.target.value))}
-                        className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#0091FF]"
+                        className="w-full h-1.5 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#0091FF]"
                       />
                     </div>
 
                     {/* Height Delta Slider */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-[10px] text-[#736B60]">
-                        <span>Alto del Marco</span>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center justify-between text-[9px] text-[#736B60]">
+                        <span>Alto</span>
                         <span className="font-mono font-bold text-[#1F1C18]">
-                          {(selectedSlotData.slot.frameHeightDelta || 0) >= 0 ? `+${selectedSlotData.slot.frameHeightDelta || 0}` : selectedSlotData.slot.frameHeightDelta} px
+                          {(selectedSlotData.slot.frameHeightDelta || 0) >= 0 ? `+${selectedSlotData.slot.frameHeightDelta || 0}` : selectedSlotData.slot.frameHeightDelta}px
                         </span>
                       </div>
                       <input
@@ -6652,60 +6618,17 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         step="5"
                         value={selectedSlotData.slot.frameHeightDelta || 0}
                         onChange={(e) => handleSlotSetFrameHeight(selectedSlotData.slot.id, parseInt(e.target.value))}
-                        className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#0091FF]"
+                        className="w-full h-1.5 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#0091FF]"
                       />
                     </div>
-
-                    {/* Frame Position on Page (Offsets) */}
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-[10px] text-[#736B60]">
-                          <span>Posición X</span>
-                          <span className="font-mono font-bold text-[#1F1C18]">
-                            {selectedSlotData.slot.frameOffsetX || 0}px
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          min="-150"
-                          max="150"
-                          step="5"
-                          value={selectedSlotData.slot.frameOffsetX || 0}
-                          onChange={(e) => handleSlotSetFrameOffsetX(selectedSlotData.slot.id, parseInt(e.target.value))}
-                          className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#0091FF]"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-[10px] text-[#736B60]">
-                          <span>Posición Y</span>
-                          <span className="font-mono font-bold text-[#1F1C18]">
-                            {selectedSlotData.slot.frameOffsetY || 0}px
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          min="-150"
-                          max="150"
-                          step="5"
-                          value={selectedSlotData.slot.frameOffsetY || 0}
-                          onChange={(e) => handleSlotSetFrameOffsetY(selectedSlotData.slot.id, parseInt(e.target.value))}
-                          className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#0091FF]"
-                        />
-                      </div>
-                    </div>
-
-                    <p className="text-[10px] text-[#736B60] italic bg-[#EBF5FF] p-2 rounded-lg border border-[#BDE0FE] flex items-center gap-1.5">
-                      <span className="text-xs">✨</span>
-                      <span>Arrastra cualquiera de los 8 nodos azules de las esquinas y lados para redimensionar libremente.</span>
-                    </p>
                   </div>
 
                   {/* 7. FILTROS FINE ART */}
-                  <div className="space-y-1.5 pt-1 border-t border-[#E8E2D5]">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
-                      Filtros Fine Art Emulsión
+                  <div className="space-y-1 pt-1.5 border-t border-[#E8E2D5]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#595248] block">
+                      Filtros
                     </span>
-                    <div className="grid grid-cols-2 gap-1.5">
+                    <div className="grid grid-cols-2 gap-1">
                       {[
                         { id: 'none', label: 'Original' },
                         { id: 'fine-art-bw', label: 'B&N Fine Art' },
@@ -6713,7 +6636,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         { id: 'high-contrast', label: 'Alto Contraste' },
                         { id: 'fuji-film', label: 'Fuji Astia' },
                         { id: 'kodak-chrome', label: 'Kodak Portra' },
-                        { id: 'matte-portrait', label: 'Matte Portrait' },
+                        { id: 'matte-portrait', label: 'Matte' },
                       ].map((f) => {
                         const isCurrent = (selectedSlotData.slot.filter || 'none') === f.id;
                         return (
@@ -6721,7 +6644,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                             key={f.id}
                             type="button"
                             onClick={() => handleSlotFilter(selectedSlotData.slot.id, f.id as any)}
-                            className={`py-1.5 px-2 rounded-lg text-[10px] font-bold transition-all text-left truncate border ${
+                            className={`py-1 px-1.5 rounded-md text-[9px] font-bold transition-all text-left truncate border cursor-pointer ${
                               isCurrent
                                 ? 'bg-[#8C6D37] text-white border-[#8C6D37] shadow-xs'
                                 : 'bg-white text-[#595248] border-[#D6CEBE] hover:bg-[#EFE9DE]'
@@ -6735,54 +6658,43 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   </div>
 
                   {/* 8. DESELECCIONAR */}
-                  <div className="pt-2">
+                  <div className="pt-1">
                     <button
                       type="button"
                       onClick={() => setSelectedSlotId(null)}
-                      className="w-full py-2 rounded-xl bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#595248] text-xs font-bold transition-colors"
+                      className="w-full py-1.5 rounded-lg bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#595248] text-[11px] font-bold transition-colors cursor-pointer"
                     >
-                      Cerrar Ajustes de Foto
+                      Listo
                     </button>
                   </div>
                 </div>
               ) : (
                 /* Mode 2 - General Spread Controls */
-                <div className="p-4 space-y-5">
+                <div className="p-3 space-y-3">
                   {/* Active Spread Info Card */}
-                  <div className="p-3 rounded-xl border border-[#D6CEBE] bg-[#F4EFE6]/80 flex items-center justify-between">
+                  <div className="p-2 rounded-lg border border-[#D6CEBE] bg-[#F4EFE6]/80 flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-bold text-[#1F1C18] block">
+                      <span className="text-[11px] font-bold text-[#1F1C18] block">
                         Pliego {activeSpreadIndex + 1} de {spreads.length}
                       </span>
-                      <span className="text-[10px] text-[#736B60]">
-                        Páginas {activeSpreadIndex * 2 + 1} y {activeSpreadIndex * 2 + 2}
+                      <span className="text-[9px] text-[#736B60]">
+                        Págs. {activeSpreadIndex * 2 + 1} y {activeSpreadIndex * 2 + 2}
                       </span>
                     </div>
-                    <span className="text-[10px] font-bold text-[#8C6D37] uppercase bg-[#8C6D37]/10 px-2 py-0.5 rounded-full">
+                    <span className="text-[9px] font-bold text-[#8C6D37] uppercase bg-[#8C6D37]/10 px-1.5 py-0.2 rounded">
                       Activo
                     </span>
                   </div>
 
-                  {/* Interactive Tip Banner */}
-                  <div className="p-3 rounded-xl border border-[#C5A059]/40 bg-[#FAF6EF] space-y-1.5">
-                    <div className="flex items-center gap-1.5 font-bold text-xs text-[#8C6D37]">
-                      <MousePointerClick className="w-4 h-4" />
-                      <span>Controles Deslizantes de Foto</span>
-                    </div>
-                    <p className="text-[11px] text-[#595248] leading-relaxed">
-                      Haz clic en cualquier fotografía o marco del pliego para abrir los deslizadores de <strong>Zoom</strong>, <strong>Encuadre X/Y</strong>, <strong>Filtros</strong> y <strong>Passepartout</strong>.
-                    </p>
-                  </div>
-
-                  {/* CONTROL DESLIZANTE: SEPARACIÓN ENTRE FOTOS (GAP) */}
-                  <div className="space-y-2">
+                  {/* SEPARACIÓN ENTRE FOTOS (GAP) */}
+                  <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1.5">
-                        <Grid className="w-3.5 h-3.5 text-[#8C6D37]" />
-                        <span>Separación entre Fotos (Gap)</span>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1">
+                        <Grid className="w-3 h-3 text-[#8C6D37]" />
+                        <span>Separación (Gap)</span>
                       </label>
-                      <span className="font-mono font-bold text-xs text-[#8C6D37] bg-[#8C6D37]/10 px-2 py-0.5 rounded-md">
-                        {spreadPhotoGap} px
+                      <span className="font-mono font-bold text-[11px] text-[#8C6D37] bg-[#8C6D37]/10 px-1.5 py-0.2 rounded">
+                        {spreadPhotoGap}px
                       </span>
                     </div>
 
@@ -6793,10 +6705,10 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       step="2"
                       value={spreadPhotoGap}
                       onChange={(e) => setSpreadPhotoGap(Number(e.target.value))}
-                      className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
+                      className="w-full h-1.5 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
                     />
 
-                    <div className="grid grid-cols-4 gap-1 pt-0.5">
+                    <div className="grid grid-cols-4 gap-1">
                       {[
                         { val: 0, label: '0px' },
                         { val: 8, label: '8px' },
@@ -6807,7 +6719,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           key={preset.val}
                           type="button"
                           onClick={() => setSpreadPhotoGap(preset.val)}
-                          className={`py-1 rounded text-[10px] font-bold transition-all ${
+                          className={`py-0.5 rounded text-[9px] font-bold transition-all cursor-pointer ${
                             spreadPhotoGap === preset.val
                               ? 'bg-[#8C6D37] text-white shadow-xs'
                               : 'bg-[#EFE9DE] hover:bg-[#E2D8C7] text-[#595248]'
@@ -6819,25 +6731,25 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     </div>
                   </div>
 
-                  {/* FONDOS FINE ART PARA EL PLIEGO */}
-                  <div className="space-y-2 pt-1 border-t border-[#E8E2D5]">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1.5">
-                      <Palette className="w-3.5 h-3.5 text-[#8C6D37]" />
-                      <span>Fondo de Papel del Pliego</span>
+                  {/* FONDOS PARA EL PLIEGO */}
+                  <div className="space-y-1.5 pt-1.5 border-t border-[#E8E2D5]">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1">
+                      <Palette className="w-3 h-3 text-[#8C6D37]" />
+                      <span>Color de Fondo</span>
                     </label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       {[
                         { color: '#FFFFFF', name: 'Blanco Puro' },
                         { color: '#FDFCFA', name: 'Lino Cálido' },
                         { color: '#FAF6EF', name: 'Marfil Algodón' },
-                        { color: '#F2F4F0', name: 'Salvia Editorial' },
-                        { color: '#2B2B2B', name: 'Gris Carbón' },
+                        { color: '#F2F4F0', name: 'Salvia' },
+                        { color: '#2B2B2B', name: 'Carbón' },
                       ].map((bg) => (
                         <button
                           key={bg.color}
                           type="button"
                           onClick={() => handleSetSpreadBgColor(bg.color)}
-                          className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 shadow-xs flex items-center justify-center ${
+                          className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 shadow-xs flex items-center justify-center cursor-pointer ${
                             (activeSpread.backgroundColor || spreadBgColor) === bg.color ? 'ring-2 ring-[#8C6D37] scale-110' : 'border-[#D6CEBE]'
                           }`}
                           style={{ backgroundColor: bg.color }}
@@ -6847,83 +6759,81 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     </div>
                   </div>
 
-                  {/* HERRAMIENTAS DE TEXTO LIBRE */}
-                  <div className="space-y-2 pt-1 border-t border-[#E8E2D5]">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1.5">
-                        <Type className="w-3.5 h-3.5 text-[#8C6D37]" />
-                        <span>Añadir Texto al Pliego</span>
-                      </span>
-                    </div>
+                  {/* HERRAMIENTAS DE TEXTO */}
+                  <div className="space-y-1.5 pt-1.5 border-t border-[#E8E2D5]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1">
+                      <Type className="w-3 h-3 text-[#8C6D37]" />
+                      <span>Añadir Texto</span>
+                    </span>
 
-                    <div className="grid grid-cols-2 gap-1.5">
+                    <div className="grid grid-cols-2 gap-1">
                       <button
                         type="button"
                         onClick={() => handleAddFloatingText('title')}
-                        className="p-2 rounded-xl bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
+                        className="p-1.5 rounded-lg bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[10px] font-bold flex items-center gap-1 shadow-xs cursor-pointer"
                       >
-                        <Heading1 className="w-3.5 h-3.5 text-[#8C6D37]" />
-                        <span>+ Título</span>
+                        <Heading1 className="w-3 h-3 text-[#8C6D37]" />
+                        <span>Título</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleAddFloatingText('subtitle')}
-                        className="p-2 rounded-xl bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
+                        className="p-1.5 rounded-lg bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[10px] font-bold flex items-center gap-1 shadow-xs cursor-pointer"
                       >
-                        <Heading2 className="w-3.5 h-3.5 text-[#8C6D37]" />
-                        <span>+ Subtítulo</span>
+                        <Heading2 className="w-3 h-3 text-[#8C6D37]" />
+                        <span>Subtítulo</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleAddFloatingText('quote')}
-                        className="p-2 rounded-xl bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
+                        className="p-1.5 rounded-lg bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[10px] font-bold flex items-center gap-1 shadow-xs cursor-pointer"
                       >
-                        <Quote className="w-3.5 h-3.5 text-[#8C6D37]" />
-                        <span>+ Cita / Frase</span>
+                        <Quote className="w-3 h-3 text-[#8C6D37]" />
+                        <span>Cita</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleAddFloatingText('label')}
-                        className="p-2 rounded-xl bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
+                        className="p-1.5 rounded-lg bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[10px] font-bold flex items-center gap-1 shadow-xs cursor-pointer"
                       >
-                        <Tag className="w-3.5 h-3.5 text-[#8C6D37]" />
-                        <span>+ Etiqueta</span>
+                        <Tag className="w-3 h-3 text-[#8C6D37]" />
+                        <span>Etiqueta</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* HERRAMIENTAS DE COMPOSICIÓN */}
-                  <div className="space-y-2 pt-1 border-t border-[#E8E2D5]">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#595248] block">
-                      Composición del Pliego
+                  {/* COMPOSICIÓN */}
+                  <div className="space-y-1.5 pt-1.5 border-t border-[#E8E2D5]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#595248] block">
+                      Composición
                     </span>
                     <button
                       type="button"
                       onClick={handleToggleSpreadFlushMargin}
-                      className={`w-full p-2 rounded-xl border text-[11px] font-bold flex items-center justify-center gap-2 shadow-xs transition-colors ${
+                      className={`w-full p-1.5 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer ${
                         activeSpread.isFlushMargin
                           ? 'bg-[#8C6D37] text-white border-[#8C6D37]'
                           : 'bg-white border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18]'
                       }`}
                     >
-                      <Maximize2 className="w-3.5 h-3.5" />
-                      <span>{activeSpread.isFlushMargin ? 'Bordes Desactivados (Sin Margen)' : 'Rellenar Todo el Pliego (Full Bleed)'}</span>
+                      <Maximize2 className="w-3 h-3" />
+                      <span>{activeSpread.isFlushMargin ? 'Sin Margen' : 'Llenar Pliego'}</span>
                     </button>
-                    <div className="grid grid-cols-2 gap-1.5">
+                    <div className="grid grid-cols-2 gap-1">
                       <button
                         type="button"
                         onClick={() => handleAddPhotoSlotToPage('left')}
-                        className="p-2 rounded-xl bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
+                        className="p-1.5 rounded-lg bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[10px] font-bold flex items-center gap-1 shadow-xs cursor-pointer"
                       >
-                        <Plus className="w-3.5 h-3.5 text-[#8C6D37]" />
+                        <Plus className="w-3 h-3 text-[#8C6D37]" />
                         <span>+ Marco Izq</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleAddPhotoSlotToPage('right')}
-                        className="p-2 rounded-xl bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[11px] font-bold flex items-center gap-1.5 shadow-xs"
+                        className="p-1.5 rounded-lg bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[10px] font-bold flex items-center gap-1 shadow-xs cursor-pointer"
                       >
-                        <Plus className="w-3.5 h-3.5 text-[#8C6D37]" />
+                        <Plus className="w-3 h-3 text-[#8C6D37]" />
                         <span>+ Marco Der</span>
                       </button>
                     </div>
@@ -6931,18 +6841,18 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     <button
                       type="button"
                       onClick={handleFlipSpreadSides}
-                      className="w-full p-2 rounded-xl bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-xs"
+                      className="w-full p-1.5 rounded-lg bg-white border border-[#D6CEBE] hover:bg-[#EFE9DE] text-[#1F1C18] text-[10px] font-bold flex items-center justify-center gap-1 shadow-xs cursor-pointer"
                     >
-                      <ArrowLeftRight className="w-3.5 h-3.5 text-[#8C6D37]" />
-                      <span>Invertir Pliego (Swap Izq / Der)</span>
+                      <ArrowLeftRight className="w-3 h-3 text-[#8C6D37]" />
+                      <span>Invertir (Izq ⇄ Der)</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={handleAutoLayout}
-                      className="w-full p-2.5 rounded-xl bg-[#8C6D37] text-white hover:bg-[#73582A] text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-colors"
+                      className="w-full p-2 rounded-lg bg-[#8C6D37] text-white hover:bg-[#73582A] text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
+                      <Sparkles className="w-3 h-3" />
                       <span>Auto-Fill Inteligente</span>
                     </button>
                   </div>
