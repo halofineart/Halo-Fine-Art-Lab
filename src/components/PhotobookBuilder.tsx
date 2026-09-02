@@ -1614,6 +1614,87 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     setUploadedPhotos(pack.photos);
   };
 
+  // Photo removal handlers
+  const handleDeletePhoto = (photoId: string) => {
+    setUploadedPhotos((prev) => prev.filter((p) => p.id !== photoId));
+    setSelectedPhotoIds((prev) => prev.filter((id) => id !== photoId));
+    setSpreads((prevSpreads) => {
+      const updated = prevSpreads.map((s) => ({
+        ...s,
+        fullSpreadPhotoId: s.fullSpreadPhotoId === photoId ? undefined : s.fullSpreadPhotoId,
+        leftPage: {
+          ...s.leftPage,
+          slots: s.leftPage.slots.map((slot) => (slot.photoId === photoId ? { ...slot, photoId: undefined } : slot)),
+        },
+        rightPage: {
+          ...s.rightPage,
+          slots: s.rightPage.slots.map((slot) => (slot.photoId === photoId ? { ...slot, photoId: undefined } : slot)),
+        },
+      }));
+      spreadsRef.current = updated;
+      pushStateToHistory(updated);
+      return updated;
+    });
+    setSpreadNotification("Foto eliminada de la galería.");
+    setTimeout(() => setSpreadNotification(null), 2500);
+  };
+
+  const handleDeleteSelectedPhotos = () => {
+    if (selectedPhotoIds.length === 0) return;
+    const count = selectedPhotoIds.length;
+    const idsToDelete = new Set(selectedPhotoIds);
+
+    setUploadedPhotos((prev) => prev.filter((p) => !idsToDelete.has(p.id)));
+    setSelectedPhotoIds([]);
+
+    setSpreads((prevSpreads) => {
+      const updated = prevSpreads.map((s) => ({
+        ...s,
+        fullSpreadPhotoId: s.fullSpreadPhotoId && idsToDelete.has(s.fullSpreadPhotoId) ? undefined : s.fullSpreadPhotoId,
+        leftPage: {
+          ...s.leftPage,
+          slots: s.leftPage.slots.map((slot) => (slot.photoId && idsToDelete.has(slot.photoId) ? { ...slot, photoId: undefined } : slot)),
+        },
+        rightPage: {
+          ...s.rightPage,
+          slots: s.rightPage.slots.map((slot) => (slot.photoId && idsToDelete.has(slot.photoId) ? { ...slot, photoId: undefined } : slot)),
+        },
+      }));
+      spreadsRef.current = updated;
+      pushStateToHistory(updated);
+      return updated;
+    });
+
+    setSpreadNotification(`${count} fotos eliminadas de la galería.`);
+    setTimeout(() => setSpreadNotification(null), 2500);
+  };
+
+  const handleClearAllPhotos = () => {
+    if (uploadedPhotos.length === 0) return;
+    const count = uploadedPhotos.length;
+    setUploadedPhotos([]);
+    setSelectedPhotoIds([]);
+    setSpreads((prevSpreads) => {
+      const updated = prevSpreads.map((s) => ({
+        ...s,
+        fullSpreadPhotoId: undefined,
+        leftPage: {
+          ...s.leftPage,
+          slots: s.leftPage.slots.map((slot) => ({ ...slot, photoId: undefined })),
+        },
+        rightPage: {
+          ...s.rightPage,
+          slots: s.rightPage.slots.map((slot) => ({ ...slot, photoId: undefined })),
+        },
+      }));
+      spreadsRef.current = updated;
+      pushStateToHistory(updated);
+      return updated;
+    });
+    setSpreadNotification(`Galería vaciada (${count} fotos eliminadas).`);
+    setTimeout(() => setSpreadNotification(null), 2500);
+  };
+
   // Spread manipulations
   const handleAddSpread = () => {
     const current = spreadsRef.current.length > 0 ? spreadsRef.current : spreads;
@@ -1641,9 +1722,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
   const handleDeleteSpread = (index: number) => {
     const current = spreadsRef.current.length > 0 ? spreadsRef.current : spreads;
-    if (current.length <= 10) {
-      setSpreadNotification("El fotolibro requiere un mínimo de 10 pliegos (20 páginas) para su encuadernación artesanal.");
-      setTimeout(() => setSpreadNotification(null), 4500);
+    if (current.length <= 1) {
+      setSpreadNotification("El fotolibro debe contener al menos 1 pliego (2 páginas).");
+      setTimeout(() => setSpreadNotification(null), 3500);
       return;
     }
     const filtered = current.filter((_, i) => i !== index);
@@ -1653,6 +1734,8 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     setSpreads(renumbered);
     pushStateToHistory(renumbered);
     setActiveSpreadIndex(Math.max(0, Math.min(index, renumbered.length - 1)));
+    setSpreadNotification(`Pliego ${index + 1} eliminado correctamente.`);
+    setTimeout(() => setSpreadNotification(null), 3000);
   };
 
   // Change page layout
@@ -4486,7 +4569,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                           <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="flex-1 py-1.5 px-2.5 rounded-xl bg-[#8C6D37] text-white hover:bg-[#73582A] text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                            className="flex-1 py-1.5 px-2.5 rounded-xl bg-[#8C6D37] text-white hover:bg-[#73582A] text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
                           >
                             <Upload className="w-3.5 h-3.5" />
                             <span>+ Subir Fotos</span>
@@ -4499,10 +4582,21 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                                 selectedPhotoIds.length === uploadedPhotos.length ? [] : uploadedPhotos.map((p) => p.id)
                               )
                             }
-                            className="px-2 py-1.5 rounded-xl border border-[#D6CEBE] hover:bg-[#FAF7F2] text-[10px] font-bold text-[#595248]"
+                            className="px-2 py-1.5 rounded-xl border border-[#D6CEBE] hover:bg-[#FAF7F2] text-[10px] font-bold text-[#595248] cursor-pointer"
                           >
                             {selectedPhotoIds.length === uploadedPhotos.length ? 'Deseleccionar' : 'Seleccionar Todo'}
                           </button>
+
+                          {uploadedPhotos.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={handleClearAllPhotos}
+                              className="p-1.5 rounded-xl border border-rose-200 bg-rose-50/60 hover:bg-rose-100 text-rose-600 hover:text-rose-700 text-[10px] font-bold flex items-center justify-center transition-colors cursor-pointer"
+                              title="Vaciar toda la galería de fotos"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
 
                         {/* Filter Chips */}
@@ -4539,25 +4633,36 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
                         {/* Multi-selection Banner */}
                         {selectedPhotoIds.length > 0 && (
-                          <div className="p-2 rounded-xl bg-[#FAF6EF] border border-[#C5A059]/40 flex items-center justify-between gap-1.5">
-                            <span className="text-[10px] font-bold text-[#8C6D37]">
-                              {selectedPhotoIds.length} seleccionada(s)
-                            </span>
-                            <div className="flex items-center gap-1">
+                          <div className="p-2 rounded-xl bg-[#FAF6EF] border border-[#C5A059]/40 flex flex-col gap-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold text-[#8C6D37]">
+                                {selectedPhotoIds.length} foto(s) seleccionada(s)
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedPhotoIds([])}
+                                className="text-[10px] text-[#736B60] hover:text-[#1F1C18] underline cursor-pointer"
+                              >
+                                Limpiar selección
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-1.5">
                               <button
                                 type="button"
                                 onClick={handleAutoPopulateWithSelected}
-                                className="px-2 py-1 rounded-lg bg-[#8C6D37] text-white text-[10px] font-bold hover:bg-[#73582A] flex items-center gap-1 shadow-xs"
+                                className="flex-1 px-2 py-1 rounded-lg bg-[#8C6D37] text-white text-[10px] font-bold hover:bg-[#73582A] flex items-center justify-center gap-1 shadow-xs cursor-pointer"
                               >
                                 <Sparkles className="w-3 h-3 text-[#ECC880]" />
                                 <span>Llenar</span>
                               </button>
                               <button
                                 type="button"
-                                onClick={() => setSelectedPhotoIds([])}
-                                className="text-[10px] text-[#736B60] hover:text-[#1F1C18] underline ml-1"
+                                onClick={handleDeleteSelectedPhotos}
+                                className="px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 hover:border-rose-300 text-[10px] font-bold flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                                title="Eliminar fotos seleccionadas de la galería"
                               >
-                                Limpiar
+                                <Trash2 className="w-3 h-3" />
+                                <span>Eliminar ({selectedPhotoIds.length})</span>
                               </button>
                             </div>
                           </div>
@@ -4673,6 +4778,19 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                                       >
                                         <Check className="w-2.5 h-2.5 stroke-[3]" />
                                       </div>
+
+                                      {/* Individual Delete Photo Button */}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeletePhoto(photo.id);
+                                        }}
+                                        className="absolute bottom-1 right-1 p-1 rounded-md bg-rose-600/90 hover:bg-rose-700 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-xs z-10 cursor-pointer"
+                                        title={`Eliminar "${photo.name || 'foto'}"`}
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
                                     </div>
                                   </div>
                                 );
@@ -5244,6 +5362,18 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       <Plus className="w-3.5 h-3.5 text-[#ECC880]" />
                       <span>+ Pliego</span>
                     </button>
+
+                    {spreads.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSpread(activeSpreadIndex)}
+                        className="px-2 py-1 rounded-lg border border-rose-200 bg-rose-50/80 text-rose-700 hover:bg-rose-100 hover:border-rose-300 text-xs font-bold flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                        title={`Eliminar este pliego actual (${activeSpreadIndex + 1})`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                        <span className="hidden md:inline">Eliminar Pliego</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* Middle: Undo / Redo / Swap Sides */}
@@ -7143,6 +7273,19 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                                   Asignar
                                 </span>
                               </div>
+
+                              {/* Delete photo button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeletePhoto(p.id);
+                                }}
+                                className="absolute bottom-1 right-1 p-1 rounded-md bg-rose-600/90 hover:bg-rose-700 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-xs z-20 cursor-pointer"
+                                title={`Eliminar "${p.name || 'foto'}"`}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
                             </div>
                           </button>
                         );
