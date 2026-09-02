@@ -396,14 +396,13 @@ export const batchProcessPhotoFiles = async (
     const chunk = fileArray.slice(i, i + CHUNK_SIZE);
     const chunkPromises = chunk.map(async (file) => {
       const asset = await processUploadedPhotoFile(file, options);
-      results.push(asset);
-      if (onProgress) {
-        onProgress(results.length, total, asset);
-      }
       return asset;
     });
-
-    await Promise.all(chunkPromises);
+    const chunkResults = await Promise.all(chunkPromises);
+    results.push(...chunkResults);
+    if (onProgress) {
+      chunkResults.forEach((asset) => onProgress(results.length, total, asset));
+    }
     // Yield to event loop to keep UI smooth and responsive
     await new Promise((r) => setTimeout(r, 10));
   }

@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const PHOTOS_BUCKET = 'project-photos';
+const PHOTOS_BUCKET = 'customer-photos';
 
 export interface PhotoUploadResult {
   storagePath: string | null;
@@ -43,14 +43,16 @@ export async function uploadOriginalPhoto(
 }
 
 /**
- * Gets a signed or public download URL for a storage path.
+ * Gets a signed download URL for a private storage path.
  */
 export async function getPhotoDownloadUrl(storagePath: string): Promise<string | null> {
   if (!supabase || !storagePath) return null;
-
   try {
-    const { data } = supabase.storage.from(PHOTOS_BUCKET).getPublicUrl(storagePath);
-    return data?.publicUrl || null;
+    const { data, error } = await supabase.storage
+      .from(PHOTOS_BUCKET)
+      .createSignedUrl(storagePath, 3600);
+    if (error) return null;
+    return data?.signedUrl || null;
   } catch {
     return null;
   }
