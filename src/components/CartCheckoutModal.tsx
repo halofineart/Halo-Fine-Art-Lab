@@ -33,6 +33,12 @@ export interface CartItem {
     paperName: string;
     quantity: number;
     unitPrice: number;
+    // The photo the customer wants printed, backed up to Supabase Storage
+    // when they uploaded it in the catalog (see ProductCatalog.tsx).
+    photoId?: string;
+    storagePath?: string;
+    photoName?: string;
+    thumbnailUrl?: string;
   };
 }
 
@@ -90,8 +96,11 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
       foil: ci.project?.foilColor || 'Oro Champagne',
       pages: ci.project ? ci.project.spreads.length * 2 : 20,
       price: ci.price,
-      previewUrl: ci.project?.photos[0]?.url || 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80',
+      previewUrl: ci.project?.photos[0]?.url || ci.printConfig?.thumbnailUrl || ci.thumbnailUrl || 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80',
       hasGiftBox: true,
+      // Storage path of the customer's original photo (fine-art-print
+      // orders only), so the lab can retrieve the full-resolution file.
+      photoStoragePath: ci.printConfig?.storagePath,
     }));
 
   // Real Mercado Pago Checkout Pro flow: create a preference server-side
@@ -186,8 +195,9 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
         foil: ci.project?.foilColor || 'Oro Champagne',
         pages: ci.project ? ci.project.spreads.length * 2 : 20,
         price: ci.price,
-        previewUrl: ci.project?.photos[0]?.url || 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80',
+        previewUrl: ci.project?.photos[0]?.url || ci.printConfig?.thumbnailUrl || ci.thumbnailUrl || 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80',
         hasGiftBox: true,
+        photoStoragePath: ci.printConfig?.storagePath,
       })),
       timeline: [
         {
@@ -390,10 +400,16 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
                 </div>
 
                 {/* Proceed Button */}
+                {cartItems.some((ci) => ci.type === 'fine-art-print' && !ci.printConfig?.storagePath) && (
+                  <p className="text-[11px] text-red-700 text-center -mt-1">
+                    Hay una copia Fine Art en el carrito sin foto asociada. Quitala y volvé a agregarla desde el catálogo.
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={() => setStep('checkout')}
-                  className="w-full py-4 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-widest font-bold hover:bg-[#3D352E] shadow-xl flex items-center justify-center gap-2"
+                  disabled={cartItems.some((ci) => ci.type === 'fine-art-print' && !ci.printConfig?.storagePath)}
+                  className="w-full py-4 rounded-full bg-[#1F1C18] text-[#FDFCF9] text-xs uppercase tracking-widest font-bold hover:bg-[#3D352E] shadow-xl flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#1F1C18]"
                 >
                   <ShieldCheck className="w-4 h-4 text-[#ECC880]" />
                   <span>Continuar con Datos de Entrega</span>

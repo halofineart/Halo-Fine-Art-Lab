@@ -377,6 +377,7 @@ function MainAppContent() {
             setIsConciergeOpen(true);
           }}
           onAddToCart={handleAddToCartDirectly}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
         />
 
         {/* 4. Quality & Photographic Paper Deep Dive */}

@@ -1,45 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { BookFormatId, PhotobookFinish } from '../types';
-import { 
-  PHOTOBOOK_GRANDES_FORMATOS, 
-  FINE_ART_PRINTS_PRODUCT, 
-  formatPriceARS 
+import {
+  PHOTOBOOK_GRANDES_FORMATOS,
+  FINE_ART_PRINTS_PRODUCT,
+  formatPriceARS
 } from '../data/mockData';
 import { CartItem } from './CartCheckoutModal';
+import { useAuth } from '../context/AuthContext';
+import { processUploadedPhotoFile, getThumbnailSrc } from '../lib/imageProcessor';
+import { uploadOriginalPhoto } from '../lib/photoStorageService';
 import layflatSpreadImg from '../assets/images/layflat_paper_texture_1788109298366.jpg';
 import greenLandscapeImg from '../assets/images/artisan_bookbinding_macro_1788109266332.jpg';
 import pocketMiniImg from '../assets/images/archival_box_luxury_1788109342591.jpg';
 import linenMacroImg from '../assets/images/linen_swatches_box_1788109313568.jpg';
 import pressMacroImg from '../assets/images/gold_foil_stamping_1788109282366.jpg';
-import { 
-  CheckCircle2, 
-  Sparkles, 
-  ShoppingBag, 
-  BookOpen, 
-  Layers, 
-  Package, 
-  ShieldCheck, 
-  Plus, 
-  Minus, 
-  Info, 
-  Palette, 
+import {
+  CheckCircle2,
+  Sparkles,
+  ShoppingBag,
+  BookOpen,
+  Layers,
+  Package,
+  ShieldCheck,
+  Plus,
+  Minus,
+  Info,
+  Palette,
   Image as ImageIcon,
   ArrowRight,
   Clock,
-  Award
+  Award,
+  Upload,
+  Loader2,
+  CheckCircle,
+  AlertTriangle,
+  X as XIcon,
+  Lock,
 } from 'lucide-react';
 
 interface ProductCatalogProps {
   onSelectFormatToBuild: (formatId: BookFormatId) => void;
   onOpenConcierge: (formatId?: BookFormatId) => void;
   onAddToCart?: (item: CartItem) => void;
+  onOpenAuth?: () => void;
 }
 
 export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   onSelectFormatToBuild,
   onOpenConcierge,
   onAddToCart,
+  onOpenAuth,
 }) => {
+  const { user, profile, isLoggedIn } = useAuth();
+  const currentUserId = user?.id || profile?.id;
   const [activeCatalogTab, setActiveCatalogTab] = useState<'photobooks' | 'prints'>('photobooks');
 
   // --- State for Photobook interactive selector ---
@@ -51,6 +64,64 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   const [selectedPrintSizeId, setSelectedPrintSizeId] = useState<string>('20x30');
   const [selectedPaperId, setSelectedPaperId] = useState<string>('perlado-lustre');
   const [printQuantity, setPrintQuantity] = useState<number>(1);
+
+  // --- State for the mandatory photo upload on Fine Art Prints ---
+  // A print order is meaningless without a photo, so we require the
+  // customer to upload one (and be logged in, so it lands in their own
+  // Supabase Storage folder) before "Agregar al carrito" is enabled.
+  const [printPhotoId, setPrintPhotoId] = useState<string | null>(null);
+  const [printPhotoThumbnail, setPrintPhotoThumbnail] = useState<string | null>(null);
+  const [printPhotoStoragePath, setPrintPhotoStoragePath] = useState<string | null>(null);
+  const [printPhotoName, setPrintPhotoName] = useState<string | null>(null);
+  const [printPhotoStatus, setPrintPhotoStatus] = useState<'idle' | 'processing' | 'uploading' | 'uploaded' | 'error'>('idle');
+  const [printPhotoError, setPrintPhotoError] = useState<string | null>(null);
+  const printFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePrintPhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!isLoggedIn || !currentUserId) {
+      onOpenAuth?.();
+      return;
+    }
+
+    setPrintPhotoStatus('processing');
+    setPrintPhotoError(null);
+    try {
+      const asset = await processUploadedPhotoFile(file);
+      setPrintPhotoId(asset.id);
+      setPrintPhotoThumbnail(getThumbnailSrc(asset));
+      setPrintPhotoName(file.name);
+
+      setPrintPhotoStatus('uploading');
+      const { storagePath, error } = await uploadOriginalPhoto(
+        currentUserId,
+        'fine-art-prints',
+        asset.id,
+        file
+      );
+      if (error || !storagePath) {
+        setPrintPhotoStatus('error');
+        setPrintPhotoError('No pudimos guardar tu foto. Probá de nuevo.');
+        return;
+      }
+      setPrintPhotoStoragePath(storagePath);
+      setPrintPhotoStatus('uploaded');
+    } catch (err) {
+      setPrintPhotoStatus('error');
+      setPrintPhotoError('No pudimos procesar esa imagen. Probá con otro archivo.');
+    }
+  };
+
+  const handleRemovePrintPhoto = () => {
+    setPrintPhotoId(null);
+    setPrintPhotoThumbnail(null);
+    setPrintPhotoStoragePath(null);
+    setPrintPhotoName(null);
+    setPrintPhotoStatus('idle');
+    setPrintPhotoError(null);
+  };
 
   // Active Photobook Format Calculation
   const activeFormat = PHOTOBOOK_GRANDES_FORMATOS.formats.find((f) => f.id === selectedFormatId) 
@@ -98,8 +169,16 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   };
 
   // Handle Add Fine Art Prints directly to Cart
+  const canAddPrintToCart = printPhotoStatus === 'uploaded' && !!printPhotoStoragePath;
+
   const handleAddPrintToCart = () => {
     if (!onAddToCart) return;
+    if (!isLoggedIn || !currentUserId) {
+      onOpenAuth?.();
+      return;
+    }
+    if (!canAddPrintToCart || !printPhotoStoragePath || !printPhotoId) return;
+
     const item: CartItem = {
       id: `cart-print-${Date.now()}`,
       type: 'fine-art-print',
@@ -108,6 +187,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
       price: totalPrintPrice,
       quantity: printQuantity,
       badge: 'Copia Fine Art',
+      thumbnailUrl: printPhotoThumbnail || undefined,
       printConfig: {
         sizeId: activePrintSize.id,
         sizeLabel: activePrintSize.label,
@@ -115,9 +195,14 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
         paperName: activePaperOption.name,
         quantity: printQuantity,
         unitPrice: unitPrintPrice,
+        photoId: printPhotoId,
+        storagePath: printPhotoStoragePath,
+        photoName: printPhotoName || undefined,
+        thumbnailUrl: printPhotoThumbnail || undefined,
       }
     };
     onAddToCart(item);
+    handleRemovePrintPhoto();
   };
 
   return (
@@ -673,7 +758,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                           disabled={printQuantity <= 1}
                           className="w-7 h-7 rounded-full flex items-center justify-center text-[#1F1C18] hover:bg-white disabled:opacity-30 cursor-pointer"
                         >
-                          <Minus className="w-3 h-3" />
+                          <Minus className="w-3.5 h-3.5" />
                         </button>
                         <span className="font-mono text-sm font-bold text-[#1F1C18] min-w-8 text-center">
                           {printQuantity}
@@ -683,12 +768,95 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                           onClick={() => setPrintQuantity((prev) => prev + 1)}
                           className="w-7 h-7 rounded-full flex items-center justify-center text-[#1F1C18] hover:bg-white cursor-pointer"
                         >
-                          <Plus className="w-3 h-3" />
+                          <Plus className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Photo upload — required before adding a print to the cart */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#1F1C18]">
+                      Tu Foto
+                    </label>
+
+                    {!isLoggedIn && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenAuth?.()}
+                        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl border-2 border-dashed border-[#D6CEBE] text-xs font-semibold text-[#8C6D37] hover:bg-[#F4EFE6] cursor-pointer"
+                      >
+                        <Lock className="w-4 h-4" />
+                        <span>Iniciá sesión para subir tu foto</span>
+                      </button>
+                    )}
+
+                    {isLoggedIn && printPhotoStatus === 'idle' && (
+                      <button
+                        type="button"
+                        onClick={() => printFileInputRef.current?.click()}
+                        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl border-2 border-dashed border-[#D6CEBE] text-xs font-semibold text-[#8C6D37] hover:bg-[#F4EFE6] cursor-pointer"
+                      >
+                        <Upload className="w-4 h-4" />
+                        <span>Subir la foto a imprimir</span>
+                      </button>
+                    )}
+
+                    {isLoggedIn && (printPhotoStatus === 'processing' || printPhotoStatus === 'uploading') && (
+                      <div className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-[#D6CEBE] bg-[#F4EFE6] text-xs font-semibold text-[#8C6D37]">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>{printPhotoStatus === 'processing' ? 'Procesando imagen…' : 'Guardando tu foto…'}</span>
+                      </div>
+                    )}
+
+                    {isLoggedIn && printPhotoStatus === 'uploaded' && printPhotoThumbnail && (
+                      <div className="flex items-center gap-3 p-2.5 rounded-2xl border border-emerald-300 bg-emerald-50">
+                        <img
+                          src={printPhotoThumbnail}
+                          alt={printPhotoName || 'Foto seleccionada'}
+                          className="w-12 h-12 rounded-lg object-cover shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-semibold text-emerald-900 truncate">{printPhotoName}</p>
+                          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-semibold">
+                            <CheckCircle className="w-3 h-3" />
+                            Guardada de forma segura
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemovePrintPhoto}
+                          className="p-1.5 rounded-full hover:bg-emerald-100 text-emerald-800 shrink-0 cursor-pointer"
+                        >
+                          <XIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    {printPhotoStatus === 'error' && (
+                      <div className="flex items-center gap-2 p-3 rounded-2xl border border-red-300 bg-red-50 text-[11px] text-red-800">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        <span className="flex-1">{printPhotoError}</span>
+                        <button
+                          type="button"
+                          onClick={handleRemovePrintPhoto}
+                          className="underline font-semibold shrink-0 cursor-pointer"
+                        >
+                          Reintentar
+                        </button>
+                      </div>
+                    )}
+
+                    <input
+                      ref={printFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handlePrintPhotoSelected}
+                    />
+
                     <p className="text-[11px] text-[#8C8275]">
-                      Podés subir tus archivos digitales o enviárnoslos en alta resolución por WhatsApp tras la confirmación.
+                      Esta copia se imprime {printQuantity === 1 ? 'de esta foto' : `${printQuantity} veces de esta misma foto`}. Para imprimir varias fotos distintas, agregalas al carrito una por una.
                     </p>
                   </div>
 
@@ -716,10 +884,15 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   <button
                     type="button"
                     onClick={handleAddPrintToCart}
-                    className="w-full py-4 rounded-full bg-[#1F1C18] hover:bg-[#3D352E] text-[#FDFCF9] text-xs uppercase tracking-widest font-bold transition-all shadow-xl flex items-center justify-center gap-2 cursor-pointer"
+                    disabled={isLoggedIn && !canAddPrintToCart}
+                    className="w-full py-4 rounded-full bg-[#1F1C18] hover:bg-[#3D352E] text-[#FDFCF9] text-xs uppercase tracking-widest font-bold transition-all shadow-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#1F1C18]"
                   >
                     <ShoppingBag className="w-4 h-4 text-[#ECC880]" />
-                    <span>Agregar Fotos al Carrito ({formatPriceARS(totalPrintPrice)} ARS)</span>
+                    <span>
+                      {isLoggedIn && !canAddPrintToCart
+                        ? 'Subí tu foto para continuar'
+                        : `Agregar al Carrito (${formatPriceARS(totalPrintPrice)} ARS)`}
+                    </span>
                   </button>
 
                   <div className="flex items-center gap-2 text-[11px] text-[#736B60] justify-center">
