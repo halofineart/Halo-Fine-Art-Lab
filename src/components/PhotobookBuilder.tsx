@@ -503,8 +503,103 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     initialX: number;
     initialY: number;
     slotId: string;
+    bounds: { minX: number; maxX: number; minY: number; maxY: number };
     hasMoved: boolean;
   } | null>(null);
+
+  // Calculate exact panning boundary limits to ensure the photo always covers the entire frame slot
+  // and never exposes any background color of the page.
+  const getSlotPanBounds = (
+    slot: PageSlot,
+    photo?: PhotoAsset,
+    slotEl?: HTMLElement | null
+  ) => {
+    let slotWidth = 240;
+    let slotHeight = 300;
+
+    if (slotEl) {
+      const rect = slotEl.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        slotWidth = rect.width;
+        slotHeight = rect.height;
+      }
+    } else if (typeof document !== 'undefined') {
+      const el = document.getElementById(`slot-content-${slot.id}`);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          slotWidth = rect.width;
+          slotHeight = rect.height;
+        }
+      }
+    }
+
+    const scale = Math.max(1, slot.customScale || 1);
+    const rot = Math.abs((slot.rotation || 0) % 360);
+    const isRotated90 = rot === 90 || rot === 270;
+
+    let natW = photo?.width || slotWidth;
+    let natH = photo?.height || slotHeight;
+
+    if (typeof document !== 'undefined') {
+      const img = document.getElementById(`slot-img-${slot.id}`) as HTMLImageElement | null;
+      if (img && img.naturalWidth > 0 && img.naturalHeight > 0) {
+        natW = img.naturalWidth;
+        natH = img.naturalHeight;
+      }
+    }
+
+    if (isRotated90) {
+      const temp = natW;
+      natW = natH;
+      natH = temp;
+    }
+
+    const imgAspect = (natW > 0 && natH > 0) ? natW / natH : 1;
+    const slotAspect = slotWidth / (slotHeight || 1);
+
+    let coverW = slotWidth;
+    let coverH = slotHeight;
+
+    if (slot.fitMode === 'contain') {
+      if (imgAspect > slotAspect) {
+        coverW = slotWidth;
+        coverH = slotWidth / imgAspect;
+      } else {
+        coverH = slotHeight;
+        coverW = slotHeight * imgAspect;
+      }
+    } else {
+      // Default 'cover' mode
+      if (imgAspect > slotAspect) {
+        coverH = slotHeight;
+        coverW = slotHeight * imgAspect;
+      } else {
+        coverW = slotWidth;
+        coverH = slotWidth / imgAspect;
+      }
+    }
+
+    const renderW = coverW * scale;
+    const renderH = coverH * scale;
+
+    // Maximum allowed offset from center before the photo edge reaches the frame edge
+    const maxPanX = Math.max(0, Math.floor((renderW - slotWidth) / 2));
+    const maxPanY = Math.max(0, Math.floor((renderH - slotHeight) / 2));
+
+    return {
+      minX: -maxPanX,
+      maxX: maxPanX,
+      minY: -maxPanY,
+      maxY: maxPanY,
+      maxPanX,
+      maxPanY,
+      slotWidth,
+      slotHeight,
+      renderW,
+      renderH,
+    };
+  };
 
   // Undo / Redo History Stack (Deshacer / Rehacer con Ctrl+Z y Ctrl+Y)
   const spreadsRef = useRef<PhotobookSpread[]>(spreads);
@@ -647,30 +742,41 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     deg: number;
   } | null>(null);
 
-  // Live Panning Drag Handler for image displacement inside frame
+  // Live Panning Drag Handler for image displacement inside frame with strict boundary clamping
   const handleStartPan = (slot: PageSlot, e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setPanningSlotId(slot.id);
+    const photo = uploadedPhotos.find((p) => p.id === slot.photoId);
+    const slotEl = document.getElementById(`slot-content-${slot.id}`);
+    const bounds = getSlotPanBounds(slot, photo, slotEl);
     const currentPos = slot.customPosition || { x: 0, y: 0 };
+    const initialX = Math.max(bounds.minX, Math.min(bounds.maxX, currentPos.x));
+    const initialY = Math.max(bounds.minY, Math.min(bounds.maxY, currentPos.y));
+
     panDragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      initialX: currentPos.x,
-      initialY: currentPos.y,
+      initialX,
+      initialY,
       slotId: slot.id,
+      bounds,
       hasMoved: false
     };
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
       if (!panDragRef.current) return;
+      const { bounds } = panDragRef.current;
       const dx = moveEvent.clientX - panDragRef.current.startX;
       const dy = moveEvent.clientY - panDragRef.current.startY;
       if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
         panDragRef.current.hasMoved = true;
       }
-      const newX = Math.round(panDragRef.current.initialX + dx);
-      const newY = Math.round(panDragRef.current.initialY + dy);
+      // Strict boundary check: prevent photo from moving beyond the edges of the frame layout
+      const rawX = panDragRef.current.initialX + dx;
+      const rawY = panDragRef.current.initialY + dy;
+      const newX = Math.max(bounds.minX, Math.min(bounds.maxX, Math.round(rawX)));
+      const newY = Math.max(bounds.minY, Math.min(bounds.maxY, Math.round(rawY)));
 
       setSpreads((prevSpreads) => {
         const activeSpread = prevSpreads[activeSpreadIndex];
@@ -951,10 +1057,14 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
   const handleNudgeSlotPosition = (slotId: string, dx: number, dy: number) => {
     updateActiveSlot(slotId, (slot) => {
+      const photo = uploadedPhotos.find((p) => p.id === slot.photoId);
+      const bounds = getSlotPanBounds(slot, photo);
       const cur = slot.customPosition || { x: 0, y: 0 };
+      const clampedX = Math.max(bounds.minX, Math.min(bounds.maxX, cur.x + dx));
+      const clampedY = Math.max(bounds.minY, Math.min(bounds.maxY, cur.y + dy));
       return {
         ...slot,
-        customPosition: { x: cur.x + dx, y: cur.y + dy }
+        customPosition: { x: clampedX, y: clampedY }
       };
     });
   };
@@ -1009,7 +1119,17 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     updateActiveSlot(slotId, (slot) => {
       const currentScale = slot.customScale || 1;
       const nextScale = Math.min(3, Math.max(1, +(currentScale + delta).toFixed(2)));
-      return { ...slot, customScale: nextScale };
+      const photo = uploadedPhotos.find((p) => p.id === slot.photoId);
+      const bounds = getSlotPanBounds({ ...slot, customScale: nextScale }, photo);
+      const curX = slot.customPosition?.x || 0;
+      const curY = slot.customPosition?.y || 0;
+      const clampedX = Math.max(bounds.minX, Math.min(bounds.maxX, curX));
+      const clampedY = Math.max(bounds.minY, Math.min(bounds.maxY, curY));
+      return {
+        ...slot,
+        customScale: nextScale,
+        customPosition: { x: clampedX, y: clampedY }
+      };
     });
   };
 
@@ -1021,7 +1141,20 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
       const updateSlots = (page: any) => ({
         ...page,
-        slots: page.slots.map((s: PageSlot) => (s.id === slotId ? { ...s, customScale: nextScale } : s))
+        slots: page.slots.map((s: PageSlot) => {
+          if (s.id !== slotId) return s;
+          const photo = uploadedPhotos.find((p) => p.id === s.photoId);
+          const bounds = getSlotPanBounds({ ...s, customScale: nextScale }, photo);
+          const curX = s.customPosition?.x || 0;
+          const curY = s.customPosition?.y || 0;
+          const clampedX = Math.max(bounds.minX, Math.min(bounds.maxX, curX));
+          const clampedY = Math.max(bounds.minY, Math.min(bounds.maxY, curY));
+          return {
+            ...s,
+            customScale: nextScale,
+            customPosition: { x: clampedX, y: clampedY }
+          };
+        })
       });
 
       return prevSpreads.map((s, i) =>
@@ -1045,8 +1178,11 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
         ...page,
         slots: page.slots.map((s: PageSlot) => {
           if (s.id !== slotId) return s;
+          const photo = uploadedPhotos.find((p) => p.id === s.photoId);
+          const bounds = getSlotPanBounds(s, photo);
+          const clampedX = Math.max(bounds.minX, Math.min(bounds.maxX, x));
           const cur = s.customPosition || { x: 0, y: 0 };
-          return { ...s, customPosition: { ...cur, x } };
+          return { ...s, customPosition: { ...cur, x: clampedX } };
         })
       });
 
@@ -1071,8 +1207,11 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
         ...page,
         slots: page.slots.map((s: PageSlot) => {
           if (s.id !== slotId) return s;
+          const photo = uploadedPhotos.find((p) => p.id === s.photoId);
+          const bounds = getSlotPanBounds(s, photo);
+          const clampedY = Math.max(bounds.minY, Math.min(bounds.maxY, y));
           const cur = s.customPosition || { x: 0, y: 0 };
-          return { ...s, customPosition: { ...cur, y } };
+          return { ...s, customPosition: { ...cur, y: clampedY } };
         })
       });
 
@@ -2839,6 +2978,10 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
     const borderWidth = slot.borderWidth || 0;
     const borderColor = slot.borderColor || '#FFFFFF';
 
+    const bounds = getSlotPanBounds(slot, photo);
+    const clampedX = Math.max(bounds.minX, Math.min(bounds.maxX, slot.customPosition?.x || 0));
+    const clampedY = Math.max(bounds.minY, Math.min(bounds.maxY, slot.customPosition?.y || 0));
+
     // CSS filter styling mapping
     const getFilterClass = (f: PhotoFilterMode) => {
       switch (f) {
@@ -2918,6 +3061,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       >
         {/* Content Container */}
         <div 
+          id={`slot-content-${slot.id}`}
           className={`w-full h-full relative overflow-hidden rounded-md flex items-center justify-center bg-black/5 ${
             isSelected && photo ? (panningSlotId === slot.id ? 'cursor-grabbing' : 'cursor-grab') : ''
           }`}
@@ -2931,6 +3075,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
             <div className="w-full h-full relative overflow-hidden flex items-center justify-center pointer-events-none">
               {/* The Photo with transform (Zoom, Rotate, Flip, Fit, Position) */}
               <img
+                id={`slot-img-${slot.id}`}
                 src={photo.url}
                 alt={photo.name}
                 draggable={false}
@@ -2938,10 +3083,28 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                   fitMode === 'contain' ? 'object-contain' : 'object-cover'
                 } ${getFilterClass(filter)}`}
                 style={{
-                  objectPosition: `calc(50% + ${slot.customPosition?.x || 0}px) calc(50% + ${slot.customPosition?.y || 0}px)`,
+                  objectPosition: `calc(50% + ${clampedX}px) calc(50% + ${clampedY}px)`,
                   transform: `scale(${scale}) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1})`,
                 }}
               />
+
+              {/* High-visibility Fucsia / Neon Green Photo Boundary & Safe Panning Limit Indicator */}
+              {isSelected && (
+                <div 
+                  className="absolute inset-0 pointer-events-none z-20 border-2 border-dashed border-[#FF007F] shadow-[inset_0_0_0_1px_rgba(0,255,128,0.9)] animate-pulse"
+                  title="Límite del marco (Borde Fucsia y Verde Neón para encuadre exacto)"
+                >
+                  {/* Neon Corner Indicators */}
+                  <span className="absolute top-1 left-1 bg-[#FF007F] text-white text-[8px] font-black px-1 py-0.2 rounded shadow-xs uppercase tracking-tighter">
+                    Límite Marco
+                  </span>
+                  {(clampedX !== 0 || clampedY !== 0) && (
+                    <span className="absolute top-1 right-1 bg-[#00E5FF] text-[#1F1C18] text-[8px] font-bold px-1 py-0.2 rounded shadow-xs font-mono">
+                      X:{clampedX} Y:{clampedY}
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Quick DPI & Filter Tags */}
               <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
@@ -2955,9 +3118,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     {Math.round(scale * 100)}%
                   </span>
                 )}
-                {(slot.customPosition?.x !== 0 || slot.customPosition?.y !== 0) && (
+                {(clampedX !== 0 || clampedY !== 0) && (
                   <span className="px-1 py-0.5 rounded bg-[#0091FF]/80 backdrop-blur-xs text-white text-[8px] font-mono">
-                    Encuadre ({slot.customPosition?.x || 0}px, {slot.customPosition?.y || 0}px)
+                    Encuadre ({clampedX}px, {clampedY}px)
                   </span>
                 )}
                 {Boolean(slot.frameWidthDelta || slot.frameHeightDelta || slot.frameOffsetX || slot.frameOffsetY) && (
@@ -5935,65 +6098,88 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                     </p>
                   </div>
 
-                  {/* 2. CONTROLES DESLIZANTES: DESPLAZAMIENTO / ENCUADRE (X & Y) */}
-                  <div className="space-y-2 pt-1 border-t border-[#E8E2D5]">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1.5">
-                        <Move className="w-3.5 h-3.5 text-[#8C6D37]" />
-                        <span>Desplazamiento del Encuadre</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => handleResetSlotPosition(selectedSlotData.slot.id)}
-                        className="text-[10px] font-bold text-[#8C6D37] hover:underline"
-                      >
-                        Centrar
-                      </button>
-                    </div>
+                  {/* 2. CONTROLES DESLIZANTES: DESPLAZAMIENTO / ENCUADRE (X & Y CON LÍMITE DE SEGURIDAD) */}
+                  {(() => {
+                    const selectedSlotPhoto = uploadedPhotos.find((p) => p.id === selectedSlotData.slot.photoId);
+                    const selectedBounds = getSlotPanBounds(selectedSlotData.slot, selectedSlotPhoto);
+                    const currentPanX = Math.max(selectedBounds.minX, Math.min(selectedBounds.maxX, selectedSlotData.slot.customPosition?.x || 0));
+                    const currentPanY = Math.max(selectedBounds.minY, Math.min(selectedBounds.maxY, selectedSlotData.slot.customPosition?.y || 0));
+                    const isFullyLocked = selectedBounds.maxPanX === 0 && selectedBounds.maxPanY === 0;
 
-                    {/* Horizontal X Slider */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-[10px] text-[#736B60]">
-                        <span>Horizontal (Eje X)</span>
-                        <span className="font-mono font-bold text-[#1F1C18]">
-                          {selectedSlotData.slot.customPosition?.x || 0} px
-                        </span>
+                    return (
+                      <div className="space-y-2 pt-1 border-t border-[#E8E2D5]">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold uppercase tracking-wider text-[#595248] flex items-center gap-1.5">
+                            <Move className="w-3.5 h-3.5 text-[#8C6D37]" />
+                            <span>Desplazamiento del Encuadre</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => handleResetSlotPosition(selectedSlotData.slot.id)}
+                            className="text-[10px] font-bold text-[#8C6D37] hover:underline"
+                          >
+                            Centrar
+                          </button>
+                        </div>
+
+                        {/* Horizontal X Slider */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[10px] text-[#736B60]">
+                            <span>Horizontal (Eje X)</span>
+                            <span className="font-mono font-bold text-[#1F1C18]">
+                              {currentPanX} px {selectedBounds.maxPanX > 0 && <span className="text-[9px] text-[#8C6D37] font-normal">(máx ±{selectedBounds.maxPanX}px)</span>}
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min={selectedBounds.minX}
+                            max={selectedBounds.maxX}
+                            step="1"
+                            disabled={selectedBounds.maxPanX === 0}
+                            value={currentPanX}
+                            onChange={(e) => handleSlotSetPositionX(selectedSlotData.slot.id, parseInt(e.target.value))}
+                            className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#8C6D37] ${
+                              selectedBounds.maxPanX === 0 ? 'bg-[#E5DFD3] opacity-50 cursor-not-allowed' : 'bg-[#EFE9DE]'
+                            }`}
+                          />
+                        </div>
+
+                        {/* Vertical Y Slider */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[10px] text-[#736B60]">
+                            <span>Vertical (Eje Y)</span>
+                            <span className="font-mono font-bold text-[#1F1C18]">
+                              {currentPanY} px {selectedBounds.maxPanY > 0 && <span className="text-[9px] text-[#8C6D37] font-normal">(máx ±{selectedBounds.maxPanY}px)</span>}
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min={selectedBounds.minY}
+                            max={selectedBounds.maxY}
+                            step="1"
+                            disabled={selectedBounds.maxPanY === 0}
+                            value={currentPanY}
+                            onChange={(e) => handleSlotSetPositionY(selectedSlotData.slot.id, parseInt(e.target.value))}
+                            className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#8C6D37] ${
+                              selectedBounds.maxPanY === 0 ? 'bg-[#E5DFD3] opacity-50 cursor-not-allowed' : 'bg-[#EFE9DE]'
+                            }`}
+                          />
+                        </div>
+
+                        {isFullyLocked ? (
+                          <p className="text-[10px] text-[#8C6D37] bg-[#FDF8EE] p-1.5 rounded-lg border border-[#E8DFC8] flex items-center gap-1.5">
+                            <span className="text-xs">🔒</span>
+                            <span><strong>Límite de seguridad activo:</strong> La foto llena el marco por completo. Aumenta el <strong>Zoom</strong> para poder desplazarla sin dejar visible el fondo de la página.</span>
+                          </p>
+                        ) : (
+                          <p className="text-[10px] text-[#736B60] italic bg-[#FAF6EF] p-1.5 rounded-lg border border-[#E8E0D2] flex items-center gap-1.5">
+                            <span className="text-xs">🛡️</span>
+                            <span><strong>Protección de encuadre:</strong> El desplazamiento está acotado para no descubrir el fondo. También puedes arrastrar directamente sobre la foto.</span>
+                          </p>
+                        )}
                       </div>
-                      <input
-                        type="range"
-                        min="-150"
-                        max="150"
-                        step="2"
-                        value={selectedSlotData.slot.customPosition?.x || 0}
-                        onChange={(e) => handleSlotSetPositionX(selectedSlotData.slot.id, parseInt(e.target.value))}
-                        className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
-                      />
-                    </div>
-
-                    {/* Vertical Y Slider */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-[10px] text-[#736B60]">
-                        <span>Vertical (Eje Y)</span>
-                        <span className="font-mono font-bold text-[#1F1C18]">
-                          {selectedSlotData.slot.customPosition?.y || 0} px
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min="-150"
-                        max="150"
-                        step="2"
-                        value={selectedSlotData.slot.customPosition?.y || 0}
-                        onChange={(e) => handleSlotSetPositionY(selectedSlotData.slot.id, parseInt(e.target.value))}
-                        className="w-full h-2 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
-                      />
-                    </div>
-
-                    <p className="text-[10px] text-[#736B60] italic bg-[#FAF6EF] p-1.5 rounded-lg border border-[#E8E0D2] flex items-center gap-1.5">
-                      <span className="text-xs">✋</span>
-                      <span>También puedes arrastrar directamente con el ratón sobre la foto.</span>
-                    </p>
-                  </div>
+                    );
+                  })()}
 
                   {/* 3. CONTROL DESLIZANTE: BORDE & PASSEPARTOUT */}
                   <div className="space-y-2 pt-1 border-t border-[#E8E2D5]">
