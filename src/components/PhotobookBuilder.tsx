@@ -6520,6 +6520,19 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       </span>
                     </div>
 
+                    {/* Rotation Range Slider */}
+                    <input
+                      type="range"
+                      min="0"
+                      max="360"
+                      step="1"
+                      value={selectedSlotData.slot.rotation || 0}
+                      onChange={(e) =>
+                        handleSlotSetRotation(selectedSlotData.slot.id, parseInt(e.target.value) || 0)
+                      }
+                      className="w-full h-1.5 bg-[#EFE9DE] rounded-lg appearance-none cursor-pointer accent-[#8C6D37]"
+                    />
+
                     <div className="grid grid-cols-4 gap-1">
                       {[0, 90, 180, 270].map((deg) => (
                         <button
