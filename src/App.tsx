@@ -11,7 +11,7 @@ import { OrderTrackerSection } from './components/OrderTrackerSection';
 import { EmailNotificationToast } from './components/EmailNotificationToast';
 import type { CartItem } from './components/CartCheckoutModal';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { loadActiveDraftProject } from './lib/projectStorage';
+import { loadActiveDraftProject, hydratePhotosFromStorage } from './lib/projectStorage';
 
 // Everything below is a modal that only appears after a user action (open
 // the builder, open the cart, open the admin panel, etc). Lazy-loading them
@@ -169,7 +169,12 @@ function MainAppContent() {
 
   const handleOpenBuilderWithProject = async (project?: PhotobookProject) => {
     if (project) {
-      setBuilderInitialProject(project);
+      if (project.photos && project.photos.length > 0) {
+        const hydratedPhotos = await hydratePhotosFromStorage(project.photos);
+        setBuilderInitialProject({ ...project, photos: hydratedPhotos });
+      } else {
+        setBuilderInitialProject(project);
+      }
     } else {
       try {
         const draft = await loadActiveDraftProject();

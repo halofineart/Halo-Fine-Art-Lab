@@ -97,7 +97,7 @@ import {
 } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 import { saveUserProject } from '../lib/supabase';
-import { getPhotoDisplayUrl, persistProjectLocally, loadActiveDraftProject } from '../lib/projectStorage';
+import { getPhotoDisplayUrl, persistProjectLocally, loadActiveDraftProject, hydratePhotosFromStorage } from '../lib/projectStorage';
 import { 
   batchProcessPhotoFiles, 
   formatFileSize, 
@@ -628,7 +628,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
 
   // Synchronize state whenever initialProject changes or load active draft on mount
   useEffect(() => {
-    const applyProjectState = (proj: PhotobookProject) => {
+    const applyProjectState = async (proj: PhotobookProject) => {
       if (proj.id) setProjectId(proj.id);
       if (proj.formatId) setFormatId(proj.formatId);
       if (proj.coverMaterialId) setCoverMaterialId(proj.coverMaterialId);
@@ -639,7 +639,8 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
       if (proj.paperFinishId) setPaperFinishId(proj.paperFinishId);
       if (proj.giftBoxIncluded !== undefined) setGiftBoxIncluded(proj.giftBoxIncluded);
       if (proj.photos && proj.photos.length > 0) {
-        setUploadedPhotos(proj.photos);
+        const hydratedPhotos = await hydratePhotosFromStorage(proj.photos);
+        setUploadedPhotos(hydratedPhotos);
       }
       if (proj.spreads && proj.spreads.length > 0) {
         spreadsRef.current = proj.spreads;
@@ -3258,15 +3259,17 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
               {/* The Photo with transform (Zoom, Rotate, Flip, Fit, Position) */}
               <img
                 id={`slot-img-${slot.id}`}
-                src={getPhotoDisplayUrl(photo) || photo.thumbnailUrl || photo.url}
+                src={getPhotoDisplayUrl(photo) || photo.hdDataUrl || photo.url || photo.thumbnailUrl}
                 alt={photo.name}
                 draggable={false}
                 onError={(e) => {
                   const target = e.currentTarget;
-                  if (photo.thumbnailUrl && target.src !== photo.thumbnailUrl) {
-                    target.src = photo.thumbnailUrl;
+                  if (photo.hdDataUrl && target.src !== photo.hdDataUrl) {
+                    target.src = photo.hdDataUrl;
                   } else if (photo.url && target.src !== photo.url) {
                     target.src = photo.url;
+                  } else if (photo.thumbnailUrl && target.src !== photo.thumbnailUrl) {
+                    target.src = photo.thumbnailUrl;
                   }
                 }}
                 className={`select-none transition-transform duration-75 ease-out ${getFilterClass(filter)}`}

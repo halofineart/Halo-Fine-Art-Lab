@@ -1,4 +1,5 @@
 import { PhotoAsset, FineArtPreflightAnalysis, ColorSpaceProfile, PrintQualityRating } from '../types';
+import { savePhotoBlobToStorage } from './projectStorage';
 
 export interface ThumbnailOptions {
   maxDimension?: number; // default: 360px for fast admin / editor rendering
@@ -335,10 +336,28 @@ export const processUploadedPhotoFile = async (
     // 1. Detect Color Profile from binary stream
     const colorSpace = await detectColorProfileFromBlob(file);
 
-    // 2. Generate fast downscaled WebP thumbnail
-    const thumbResult = await generateInBrowserThumbnail(file, options);
+    // 2. Generate fast downscaled WebP thumbnail for sidebar & cards (380px)
+    const thumbOptions = {
+      maxDimension: options.maxDimension || 380,
+      quality: options.quality || 0.78,
+      format: options.format || 'image/webp',
+    };
+    const thumbResult = await generateInBrowserThumbnail(file, thumbOptions);
 
-    // 3. Perform Fine Art DPI and Quality preflight analysis
+    // 3. Generate high-definition WebP preview for razor-sharp canvas rendering and cross-session persistence
+    let hdDataUrl: string | undefined;
+    try {
+      const hdResult = await generateInBrowserThumbnail(file, {
+        maxDimension: 2200,
+        quality: 0.88,
+        format: 'image/webp',
+      });
+      hdDataUrl = hdResult.thumbnailUrl;
+    } catch {
+      hdDataUrl = thumbResult.thumbnailUrl;
+    }
+
+    // 4. Perform Fine Art DPI and Quality preflight analysis
     const preflight = performFineArtPreflight(
       thumbResult.width,
       thumbResult.height,
@@ -346,11 +365,12 @@ export const processUploadedPhotoFile = async (
       file.size
     );
 
-    return {
+    const asset: PhotoAsset = {
       id,
       name: file.name,
-      url: originalUrl, // Full resolution preserved for printing & download
-      thumbnailUrl: thumbResult.thumbnailUrl, // Highly compressed thumbnail for rapid UI rendering
+      url: originalUrl, // Full resolution active blob during session
+      thumbnailUrl: thumbResult.thumbnailUrl, // Highly compressed thumbnail for rapid UI gallery rendering
+      hdDataUrl, // High-definition 2K preview for instant crisp loading and offline restoration
       width: thumbResult.width,
       height: thumbResult.height,
       aspectRatio: thumbResult.aspectRatio,
@@ -361,10 +381,17 @@ export const processUploadedPhotoFile = async (
       preflight,
       dateTaken: new Date(file.lastModified || Date.now()).toISOString().split('T')[0],
     };
+
+    // 5. Asynchronously persist full-resolution original File/Blob to IndexedDB
+    savePhotoBlobToStorage(id, file, asset).catch((err) =>
+      console.warn('[ImageProcessor] Background IndexedDB save error:', err)
+    );
+
+    return asset;
   } catch (err) {
     console.warn(`[ImageProcessor] Fallback for ${file.name}:`, err);
     // Graceful fallback if canvas fails
-    return {
+    const fallbackAsset: PhotoAsset = {
       id,
       name: file.name,
       url: originalUrl,
@@ -375,6 +402,8 @@ export const processUploadedPhotoFile = async (
       isOptimized: false,
       dateTaken: new Date().toISOString().split('T')[0],
     };
+    savePhotoBlobToStorage(id, file, fallbackAsset).catch(() => {});
+    return fallbackAsset;
   }
 };
 

@@ -173,6 +173,7 @@ export interface PhotoAsset {
   url: string;
   name: string;
   thumbnailUrl?: string;
+  hdDataUrl?: string; // High definition WebP preview for pristine clarity across sessions
   originalSizeBytes?: number;
   thumbnailSizeBytes?: number;
   width?: number;
