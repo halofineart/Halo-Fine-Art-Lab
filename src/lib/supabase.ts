@@ -391,18 +391,43 @@ export async function fetchUserOrders(userId?: string, userEmail?: string): Prom
   }
 
   try {
-    let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
-
+    // Previously built as a single `.or(\`user_id.eq.${userId},customer_email.eq.${userEmail}\`)`
+    // filter string. PostgREST's .or() syntax treats commas and
+    // parentheses as structural, so an email containing either of those
+    // (or anything else with special meaning there) could silently corrupt
+    // the filter instead of being matched as a literal value. Running two
+    // separately-parameterized `.eq()` queries and merging the results
+    // avoids building filter syntax out of user input entirely.
+    const queries: Array<Promise<{ data: any[] | null; error: any }>> = [];
     if (userId) {
-      query = query.or(`user_id.eq.${userId},customer_email.eq.${userEmail || ''}`);
-    } else if (userEmail) {
-      query = query.eq('customer_email', userEmail);
+      queries.push(Promise.resolve(supabase.from('orders').select('*').eq('user_id', userId)) as any);
+    }
+    if (userEmail) {
+      queries.push(Promise.resolve(supabase.from('orders').select('*').eq('customer_email', userEmail)) as any);
     }
 
-    const { data, error } = await query;
+    if (queries.length === 0) {
+      return { data: [], error: null };
+    }
 
-    if (error) return { data: [], error: error.message };
-    return { data: data || [], error: null };
+    const results = await Promise.all(queries);
+    const allFailed = results.every((r: any) => r.error);
+    if (allFailed) {
+      return { data: [], error: results[0]?.error?.message || 'Error al cargar pedidos.' };
+    }
+
+    const merged = new Map<string, DbOrder>();
+    results.forEach((r: any) => {
+      (r.data || []).forEach((row: DbOrder) => {
+        if (row.id) merged.set(row.id, row);
+      });
+    });
+
+    const data = Array.from(merged.values()).sort(
+      (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+    );
+
+    return { data, error: null };
   } catch (err: any) {
     return { data: [], error: err.message };
   }
