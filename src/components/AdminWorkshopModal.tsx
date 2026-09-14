@@ -34,14 +34,17 @@ import {
   Cloud,
   Copy,
   FolderPlus,
-  Share2
+  Share2,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { TrackedOrder, OrderStatusStage, DesignServiceRequest, PhotoAsset, OrderCloudFolder } from '../types';
 import {
   getAdminOrdersFromSupabase,
   updateOrderStatusInWorkshop,
   getAdminConciergeRequests,
-  generateAndDownloadProductionZip
+  generateAndDownloadProductionZip,
+  deleteOrderFromWorkshop
 } from '../lib/adminService';
 import { 
   downloadOrderInvoicePdf, 
@@ -106,6 +109,10 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [ordersAreLive, setOrdersAreLive] = useState(false);
   const [ordersLoadError, setOrdersLoadError] = useState<string | null>(null);
+  const [orderPendingDelete, setOrderPendingDelete] = useState<TrackedOrder | null>(null);
+  const [isDeletingOrder, setIsDeletingOrder] = useState(false);
+  const [deleteErrorMsg, setDeleteErrorMsg] = useState<string | null>(null);
+  const [zipFallbackInfo, setZipFallbackInfo] = useState<{ orderId: string; message: string } | null>(null);
 
   // Load orders once the modal is open AND the session has been confirmed as admin
   useEffect(() => {
@@ -160,13 +167,47 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
 
   const handleDownloadZip = async (order: TrackedOrder) => {
     setIsDownloadingZip(order.id);
+    setZipFallbackInfo(null);
     try {
-      await generateAndDownloadProductionZip(order);
+      const result = await generateAndDownloadProductionZip(order);
+      if (!result.ok && result.reason === 'no_photos') {
+        // No real photo has a Supabase Storage path on this order yet (this
+        // is expected today for custom-album orders) — open the client's
+        // real Drive/MEGA upload folder instead of pretending to package
+        // files that don't exist.
+        const cloudFolder = generateAutomatedCloudFolder(order);
+        const link = cloudFolder.googleDriveUrl || cloudFolder.megaUrl;
+        setZipFallbackInfo({
+          orderId: order.id,
+          message: 'Todavía no hay fotos en alta calidad asociadas a este pedido en el sistema. Te abrimos la carpeta de Drive/MEGA del cliente — revisá ahí si ya subió los archivos.',
+        });
+        if (link) window.open(link, '_blank', 'noopener,noreferrer');
+      } else if (!result.ok) {
+        setZipFallbackInfo({ orderId: order.id, message: 'No se pudo generar el ZIP. Intentá de nuevo.' });
+      }
     } catch (err) {
       console.error('Error generating zip', err);
+      setZipFallbackInfo({ orderId: order.id, message: 'No se pudo generar el ZIP. Intentá de nuevo.' });
     } finally {
       setIsDownloadingZip(null);
     }
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!orderPendingDelete) return;
+    setIsDeletingOrder(true);
+    setDeleteErrorMsg(null);
+    const { error } = await deleteOrderFromWorkshop(orderPendingDelete);
+    setIsDeletingOrder(false);
+    if (error) {
+      setDeleteErrorMsg(error);
+      return;
+    }
+    if (selectedOrder?.id === orderPendingDelete.id) {
+      setSelectedOrder(null);
+    }
+    setOrderPendingDelete(null);
+    loadData();
   };
 
   const handleDownloadInvoice = async (order: TrackedOrder) => {
@@ -736,7 +777,24 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
                                   <Layers className="w-3.5 h-3.5 text-[#ECC880]" />
                                   <span>Gestionar Taller</span>
                                 </button>
+
+                                {/* Delete Order Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => { setDeleteErrorMsg(null); setOrderPendingDelete(order); }}
+                                  className="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-xs font-semibold text-rose-700 transition-colors flex items-center gap-1.5"
+                                  title="Eliminar Pedido"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Eliminar</span>
+                                </button>
                               </div>
+
+                              {zipFallbackInfo && zipFallbackInfo.orderId === order.id && (
+                                <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-1">
+                                  {zipFallbackInfo.message}
+                                </p>
+                              )}
                             </div>
 
                             {/* EXPANDED WORKSHOP MANAGEMENT DRAWER */}
@@ -1008,7 +1066,7 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
 
                     <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
                       <a
-                        href={cloudConfig.googleDriveMasterFolderUrl}
+                        href={cloudConfig.googleDriveRootUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
@@ -1050,8 +1108,8 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
                         </label>
                         <input
                           type="url"
-                          value={cloudConfig.googleDriveMasterFolderUrl}
-                          onChange={(e) => setCloudConfig({ ...cloudConfig, googleDriveMasterFolderUrl: e.target.value })}
+                          value={cloudConfig.googleDriveRootUrl}
+                          onChange={(e) => setCloudConfig({ ...cloudConfig, googleDriveRootUrl: e.target.value })}
                           placeholder="https://drive.google.com/drive/folders/..."
                           className="w-full text-xs px-3 py-2 rounded-xl border border-[#D6CEBE] bg-[#FDFCF9] focus:outline-none focus:border-[#8C6D37]"
                           required
@@ -1308,9 +1366,54 @@ export const AdminWorkshopModal: React.FC<AdminWorkshopModalProps> = ({
         )}
       </motion.div>
 
+      {/* DELETE ORDER CONFIRMATION MODAL */}
+      {orderPendingDelete && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#FDFCF9] border border-[#D6CEBE] w-full max-w-md rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-rose-600" />
+              </div>
+              <h3 className="font-serif-luxury text-lg font-bold text-[#1F1C18]">Eliminar Pedido</h3>
+            </div>
+            <p className="text-sm text-[#595248] leading-relaxed">
+              Vas a eliminar definitivamente el pedido <strong>{orderPendingDelete.orderNumber}</strong> ({orderPendingDelete.customerName}). Esta acción no se puede deshacer.
+            </p>
+            {deleteErrorMsg && (
+              <p className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
+                {deleteErrorMsg}
+              </p>
+            )}
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => { setOrderPendingDelete(null); setDeleteErrorMsg(null); }}
+                disabled={isDeletingOrder}
+                className="px-4 py-2 rounded-xl border border-[#D6CEBE] text-xs font-semibold text-[#595248] hover:bg-[#F7F3EB] transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteOrder}
+                disabled={isDeletingOrder}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {isDeletingOrder ? (
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5" />
+                )}
+                <span>Eliminar Definitivamente</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* INVOICE PDF PREVIEW MODAL */}
       {invoicePreviewOrder && invoicePreviewUrl && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in">
           <div className="bg-[#FAF8F5] border border-[#D6CEBE] w-full max-w-4xl h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
             
             {/* Invoice Preview Header */}
