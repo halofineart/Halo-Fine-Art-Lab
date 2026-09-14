@@ -367,7 +367,11 @@ export const BOOK_FORMATS: BookFormat[] = [
   }
 ];
 
-export const COVER_MATERIALS: CoverMaterial[] = [
+// Full catalog of cover materials the site has ever offered. Not exported
+// directly — see ACTIVE_COVER_CATEGORIES below, which is the single place
+// that turns a whole material family (e.g. 'lino') on/off across the site
+// without deleting its data (easy to bring back later).
+const ALL_COVER_MATERIALS: CoverMaterial[] = [
   // --- TELAS DE LINO ---
   {
     id: 'linen-natural',
@@ -568,6 +572,16 @@ export const COVER_MATERIALS: CoverMaterial[] = [
     description: 'Impresión integral envolvente de tu foto favorita con laminado velvet anti-rayones.',
   }
 ];
+
+// Pablo (2026-09-14): no consigue las telas de lino con el proveedor, así
+// que esa familia se saca de la web hasta nuevo aviso. Para reactivarla más
+// adelante alcanza con agregar 'lino' de nuevo a esta lista — los datos de
+// los 8 colores de lino siguen arriba, intactos.
+const ACTIVE_COVER_CATEGORIES: CoverMaterial['category'][] = ['cuero', 'seda', 'terciopelo', 'fotografica'];
+
+export const COVER_MATERIALS: CoverMaterial[] = ALL_COVER_MATERIALS.filter((m) =>
+  ACTIVE_COVER_CATEGORIES.includes(m.category)
+);
 
 export const FOIL_OPTIONS: FoilOption[] = [
   {
