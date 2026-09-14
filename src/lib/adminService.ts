@@ -40,7 +40,7 @@ const INITIAL_CONCIERGE_REQUESTS: DesignServiceRequest[] = [
     customerPhone: '+54 11 3998-1234',
     occasion: 'boda',
     bookFormatId: 'square-30',
-    coverMaterialId: 'linen-natural',
+    coverMaterialId: 'photo-hardcover',
     foilColor: 'gold',
     coverTitle: 'NUESTRO DÍA SOÑADO',
     coverSubtitle: 'CAMI & FACU · 15 DE FEBRERO 2026',
