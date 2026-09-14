@@ -6,16 +6,35 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { getSupabaseAdmin } from './_supabaseAdmin.js';
+import { priceCustomAlbum, pricePhotobookOrder, priceFineArtPrint } from '../src/lib/pricing.js';
 
 interface CartItemPayload {
+  // Which pricing formula applies to this item — see ../src/lib/pricing.ts.
+  // Older clients (before this field existed) won't send it; treated as
+  // 'custom-album' below since that was the only type previously checked.
+  type?: 'custom-album' | 'photobook-order' | 'fine-art-print' | 'concierge-request';
   title: string;
+  price: number;
+  previewUrl?: string;
+  hasGiftBox?: boolean;
+  photoStoragePath?: string;
+
+  // --- 'custom-album' (PhotobookBuilder.tsx) ---
   format?: string;
   cover?: string;
   foil?: string;
   pages?: number;
-  price: number;
-  previewUrl?: string;
-  hasGiftBox?: boolean;
+  paperFinishId?: string;
+  giftBoxIncluded?: boolean;
+
+  // --- 'photobook-order' (ProductCatalog.tsx — "Gran Formato") ---
+  photobookFormatId?: string;
+  extraSheets?: number;
+
+  // --- 'fine-art-print' (ProductCatalog.tsx) ---
+  printSizeId?: string;
+  printPaperId?: string;
+  printQuantity?: number;
 }
 
 interface CreatePreferenceBody {
@@ -40,6 +59,47 @@ function isNonEmptyString(v: unknown): v is string {
   return typeof v === 'string' && v.trim().length > 0;
 }
 
+// Recomputes the EXACT price an item must have from the same catalog
+// tables/formulas the client uses (../src/lib/pricing.ts — the single
+// shared source of truth, also used by PhotobookBuilder.tsx and
+// ProductCatalog.tsx for their live totals), for every product type that
+// has a fixed catalog price.
+//
+// Returns null for 'concierge-request' (custom-quoted design service —
+// nothing to recompute) and for any item missing the ids its type needs,
+// in which case it falls back to the pre-existing subtotal/total
+// consistency check below. That's the best we can do without a full quote
+// engine for custom-quoted work.
+function expectedItemPrice(item: CartItemPayload): number | null {
+  // Fall back to 'custom-album' for older clients that don't send `type`
+  // yet but do send a recognizable `format` id.
+  const type = item.type || (item.format ? 'custom-album' : undefined);
+
+  switch (type) {
+    case 'custom-album':
+      return priceCustomAlbum({
+        formatId: item.format,
+        coverMaterialId: item.cover,
+        paperFinishId: item.paperFinishId,
+        pages: item.pages,
+        giftBoxIncluded: item.giftBoxIncluded,
+      });
+    case 'photobook-order':
+      return pricePhotobookOrder({
+        formatId: item.photobookFormatId,
+        extraSheets: item.extraSheets,
+      });
+    case 'fine-art-print':
+      return priceFineArtPrint({
+        sizeId: item.printSizeId,
+        paperId: item.printPaperId,
+        quantity: item.printQuantity,
+      });
+    default:
+      return null;
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -61,6 +121,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!Array.isArray(body.items) || body.items.length === 0) {
     return res.status(400).json({ error: 'El carrito está vacío.' });
   }
+
+  // Catch client-side price tampering on every catalog-priced item (see
+  // expectedItemPrice above) before we ever create a Mercado Pago
+  // preference or persist the order. This is an EXACT match, not a floor:
+  // any mismatch — too low OR too high — means the client's price doesn't
+  // match what our own catalog says this exact configuration costs.
+  for (const it of body.items) {
+    const expectedPrice = expectedItemPrice(it);
+    const declaredPrice = Number(it.price) || 0;
+    if (expectedPrice !== null && Math.abs(declaredPrice - expectedPrice) > 1) {
+      console.warn(
+        `[create-preference] Precio rechazado para "${it.title}": declarado $${declaredPrice}, catálogo $${expectedPrice}.`
+      );
+      return res.status(400).json({ error: 'El precio de uno de los productos no coincide con nuestro catálogo. Recargá la página e intentá de nuevo.' });
+    }
+  }
   if (!body.payer || !isNonEmptyString(body.payer.email) || !isNonEmptyString(body.payer.name)) {
     return res.status(400).json({ error: 'Faltan datos del comprador.' });
   }
@@ -72,8 +148,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Sanity: the total must be a positive number that roughly matches the
   // components sent, and can't be absurdly low (guards against a stray 0/1
-  // from a tampered client — full catalog-price recomputation server-side
-  // is a good future hardening step, tracked as a known limitation).
+  // from a tampered client). Concierge (custom-quoted) items still rely
+  // only on this check, since they have no fixed catalog price to
+  // recompute exactly.
   const expectedTotal = Math.round(subtotal - discountAmount + shippingCost);
   if (total < 1000 || Math.abs(total - expectedTotal) > 5) {
     return res.status(400).json({ error: 'El total de la orden no es válido.' });
