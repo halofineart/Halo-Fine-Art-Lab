@@ -2,6 +2,7 @@ import { TrackedOrder, OrderStatusStage, DesignServiceRequest, PhotoAsset, Photo
 import { SAMPLE_ORDERS } from '../data/mockData';
 import { supabase, isSupabaseConfigured, fetchAllOrders } from './supabase';
 import { dbOrderToTrackedOrder } from './orderMapper';
+import { getPhotoDownloadUrl } from './photoStorageService';
 import JSZip from 'jszip';
 
 const ADMIN_ORDERS_KEY = 'halo_admin_orders_db';
@@ -190,6 +191,32 @@ export async function updateOrderStatusInWorkshop(
   return order;
 }
 
+// 3b. Delete Order (Panel de Taller — "Eliminar Pedido")
+// Removes the order from Supabase (source of truth) and from the local
+// offline cache. There is no undo once this succeeds — the caller is
+// expected to confirm with the admin before calling this.
+export async function deleteOrderFromWorkshop(order: TrackedOrder): Promise<{ error: string | null }> {
+  // Best-effort local cache cleanup regardless of Supabase result.
+  const orders = getAdminOrders().filter((o) => o.id !== order.id && o.orderNumber !== order.orderNumber);
+  saveAdminOrders(orders);
+
+  if (supabase) {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('order_code', order.orderNumber);
+      if (error) {
+        return { error: error.message };
+      }
+    } catch (err: any) {
+      return { error: err?.message || 'No se pudo eliminar el pedido.' };
+    }
+  }
+
+  return { error: null };
+}
+
 // 4. Get Concierge Requests
 export function getAdminConciergeRequests(): DesignServiceRequest[] {
   try {
@@ -219,7 +246,40 @@ export function addAdminConciergeRequest(req: DesignServiceRequest) {
 }
 
 // 6. Download ZIP of High-Resolution Production Assets
-export async function generateAndDownloadProductionZip(order: TrackedOrder, photoAssets: PhotoAsset[] = []) {
+//
+// Only ever packages REAL files: either photoAssets explicitly passed in, or
+// files whose Supabase Storage path (item.photoStoragePath, set today for
+// 'fine-art-print' cart items) we can resolve to a real signed download URL.
+// It used to silently fall back to three unrelated Unsplash stock photos
+// when no real photo was available — that produced a ZIP that looked
+// legitimate but contained sample images, which is worse than saying
+// plainly that there's nothing to download yet. If no real photo is found,
+// this now returns { ok: false, reason: 'no_photos' } instead of a fake ZIP,
+// so the caller can point the admin at the order's real Google Drive/MEGA
+// folder (where the client's originals actually live) instead.
+export async function generateAndDownloadProductionZip(
+  order: TrackedOrder,
+  photoAssets: PhotoAsset[] = []
+): Promise<{ ok: boolean; reason?: 'no_photos' | 'zip_error' }> {
+  // If the caller didn't pass explicit assets, try to resolve real ones from
+  // any order item that has a Supabase Storage path on file.
+  let resolvedAssets = photoAssets;
+  if (resolvedAssets.length === 0) {
+    const withPaths = order.items.filter((it: any) => it.photoStoragePath);
+    const resolved = await Promise.all(
+      withPaths.map(async (it: any, idx: number) => {
+        const url = await getPhotoDownloadUrl(it.photoStoragePath);
+        if (!url) return null;
+        return { id: `item-${idx}`, name: it.title || `foto_${idx + 1}`, url } as PhotoAsset;
+      })
+    );
+    resolvedAssets = resolved.filter((a): a is PhotoAsset => a !== null);
+  }
+
+  if (resolvedAssets.length === 0) {
+    return { ok: false, reason: 'no_photos' };
+  }
+
   const zip = new JSZip();
 
   // Create Workshop Technical Spec Sheet
@@ -272,50 +332,44 @@ HALO Fine Art Lab · Pilar, Buenos Aires · www.halofineart.com.ar
 
   zip.file(`FICHA_TECNICA_${order.orderNumber}.txt`, specSheetContent);
 
-  // Add sample photos or real photos to ZIP
-  const photosToInclude = photoAssets.length > 0 ? photoAssets : [
-    {
-      id: 'p-1',
-      name: '01_Portada_Ventanita.jpg',
-      url: order.items[0]?.previewUrl || 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1200&q=80',
-    },
-    {
-      id: 'p-2',
-      name: '02_Pliego_01_Apertura.jpg',
-      url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80',
-    },
-    {
-      id: 'p-3',
-      name: '03_Pliego_02_Panoramica.jpg',
-      url: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=1200&q=80',
-    }
-  ];
-
   const photosFolder = zip.folder(`FOTOS_ALTA_CALIDAD_${order.orderNumber}`);
 
-  // Fetch images as blobs and add to zip
-  for (let i = 0; i < photosToInclude.length; i++) {
-    const photo = photosToInclude[i];
+  // Fetch each real photo as a blob and add it to the zip, naming the file
+  // from the photo's actual content type instead of always forcing ".jpg"
+  // (that mismatch used to produce names like "02_Pliego_01_Apertura.jpg.jpg"
+  // when photo.name already ended in .jpg).
+  for (let i = 0; i < resolvedAssets.length; i++) {
+    const photo = resolvedAssets[i];
     try {
       const response = await fetch(photo.url);
       const blob = await response.blob();
-      const filename = `${String(i + 1).padStart(2, '0')}_${(photo.name || `foto_${i + 1}`).replace(/[^a-zA-Z0-9._-]/g, '_')}.jpg`;
+      const extFromType = blob.type?.split('/')[1]?.split(';')[0]?.toLowerCase();
+      const ext = extFromType === 'jpeg' ? 'jpg' : (extFromType && /^[a-z0-9]+$/.test(extFromType) ? extFromType : 'jpg');
+      const baseName = (photo.name || `foto_${i + 1}`)
+        .replace(/\.[a-zA-Z0-9]+$/, '') // strip any extension already present
+        .replace(/[^a-zA-Z0-9._-]/g, '_');
+      const filename = `${String(i + 1).padStart(2, '0')}_${baseName}.${ext}`;
       photosFolder?.file(filename, blob);
     } catch (e) {
       console.warn(`Could not fetch photo ${photo.url}`, e);
-      // Create a dummy placeholder text if fetch is blocked by CORS in preview
       photosFolder?.file(`FOTO_${i + 1}_ENLACE_ALTA_CALIDAD.txt`, `Enlace de descarga directa: ${photo.url}`);
     }
   }
 
   // Generate ZIP and trigger browser download
-  const content = await zip.generateAsync({ type: 'blob' });
-  const downloadUrl = URL.createObjectURL(content);
-  const link = document.createElement('a');
-  link.href = downloadUrl;
-  link.download = `HALO_PRODUCCION_${order.orderNumber}.zip`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  try {
+    const content = await zip.generateAsync({ type: 'blob' });
+    const downloadUrl = URL.createObjectURL(content);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `HALO_PRODUCCION_${order.orderNumber}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    return { ok: true };
+  } catch (e) {
+    console.error('Error generando el ZIP de producción', e);
+    return { ok: false, reason: 'zip_error' };
+  }
   URL.revokeObjectURL(downloadUrl);
 }

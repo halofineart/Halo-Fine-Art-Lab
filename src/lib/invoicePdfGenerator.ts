@@ -60,9 +60,9 @@ export function generateOrderInvoicePdf(order: TrackedOrder): jsPDF {
   doc.setTextColor(darkCharcoal[0], darkCharcoal[1], darkCharcoal[2]);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text('B', letterBoxX + 8, 16, { align: 'center' });
+  doc.text('C', letterBoxX + 8, 16, { align: 'center' });
   doc.setFontSize(6);
-  doc.text('COD. 006', letterBoxX + 8, 21, { align: 'center' });
+  doc.text('COD. 011', letterBoxX + 8, 21, { align: 'center' });
 
   // Right Header: Invoice Title & Meta
   const cleanOrderNum = order.orderNumber.replace(/[^a-zA-Z0-9-]/g, '');
@@ -85,16 +85,16 @@ export function generateOrderInvoicePdf(order: TrackedOrder): jsPDF {
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
   
-  doc.text('Razón Social: HALO FINE ART S.R.L.', margin, currentY);
-  doc.text('CUIT: 30-71829304-8 · Ingresos Brutos: 30-71829304-8', margin, currentY + 4);
-  doc.text('Condición frente al IVA: IVA Responsable Inscripto', margin, currentY + 8);
-  doc.text('Domicilio: Av. Caamaño 1060, Pilar, Pcia. de Buenos Aires (B1629)', margin, currentY + 12);
+  doc.text('Razón Social: ALDERETE PABLO GABRIEL', margin, currentY);
+  doc.text('CUIT: 20-28306117-6 · Ingresos Brutos: 742000', margin, currentY + 4);
+  doc.text('Condición frente al IVA: Responsable Monotributo', margin, currentY + 8);
+  doc.text('Domicilio: Necochea 336 Piso 1, Pilar, Pcia. de Buenos Aires', margin, currentY + 12);
   doc.text('Taller & Contacto: +54 9 11 3988-4256 | info@halofineart.com.ar', margin, currentY + 16);
 
   // Right side of Issuer info: Legal Meta
   const rightColX = pageWidth / 2 + 10;
   doc.text(`Punto de Venta: 0001 · Comp. Nro: ${cleanOrderNum.slice(-6) || '002026'}`, rightColX, currentY);
-  doc.text(`Fecha de Inicio de Actividades: 01/03/2021`, rightColX, currentY + 4);
+  doc.text(`Fecha de Inicio de Actividades: 07/04/2022`, rightColX, currentY + 4);
   doc.text(`Pedido de Referencia: #${order.orderNumber}`, rightColX, currentY + 8);
   doc.text(`Método de Pago: ${order.paymentMethod.toUpperCase()}`, rightColX, currentY + 12);
   doc.text(`Estado del Pedido: ${order.status.toUpperCase().replace('_', ' ')}`, rightColX, currentY + 16);
@@ -247,38 +247,32 @@ export function generateOrderInvoicePdf(order: TrackedOrder): jsPDF {
   doc.setTextColor(253, 252, 249);
   doc.text(`$ ${order.totalPrice.toLocaleString('es-AR')} ARS`, pageWidth - margin - 4, finalY + 28.5, { align: 'right' });
 
-  // 6. AFIP / CAE FOOTER BOX (Argentine electronic invoice style)
+  // 6. NON-FISCAL NOTICE FOOTER BOX
+  // NOTE: this PDF is generated entirely client-side and is NOT submitted to
+  // AFIP's e-invoicing webservice, so it cannot carry a real CAE (Código de
+  // Autorización Electrónico) — that code only exists once AFIP itself
+  // authorizes a transaction. A previous version of this file fabricated a
+  // CAE number here and printed "Comprobante Autorizado por AFIP", which
+  // would have made every PDF a document falsely claiming an official tax
+  // authorization it never received. Until real facturación electrónica is
+  // wired in (via AFIP's own tools or a provider), this box says plainly
+  // that it's an internal receipt, not a valid CAE-backed invoice.
   finalY += 38;
 
   doc.setFillColor(253, 252, 249);
   doc.setDrawColor(borderLine[0], borderLine[1], borderLine[2]);
   doc.roundedRect(margin, finalY, contentWidth, 18, 2, 2, 'S');
 
-  // Pseudo Barcode representation
-  doc.setFillColor(darkCharcoal[0], darkCharcoal[1], darkCharcoal[2]);
-  for (let b = 0; b < 24; b++) {
-    const barW = (b % 3 === 0 || b % 5 === 0) ? 1.2 : 0.6;
-    doc.rect(margin + 4 + b * 2.2, finalY + 3, barW, 9, 'F');
-  }
-  doc.setFontSize(5.5);
-  doc.setTextColor(softGray[0], softGray[1], softGray[2]);
-  doc.text('30718293048060001748291039841298', margin + 4, finalY + 15);
-
-  // CAE Information
-  const caeNumber = `7438${cleanOrderNum.replace(/\D/g, '').slice(-8).padEnd(10, '9')}`;
-  const caeExpiry = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toLocaleDateString('es-AR');
-
-  const caeX = margin + 65;
+  const noticeX = margin + 4;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(darkCharcoal[0], darkCharcoal[1], darkCharcoal[2]);
-  doc.text(`CAE N°: ${caeNumber}`, caeX, finalY + 6);
-  doc.text(`Fecha de Vto. de CAE: ${caeExpiry}`, caeX, finalY + 11);
+  doc.text('Comprobante Interno — No Válido como Factura Electrónica AFIP', noticeX, finalY + 7);
 
-  doc.setFont('helvetica', 'italic');
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
   doc.setTextColor(softGray[0], softGray[1], softGray[2]);
-  doc.text('Comprobante Autorizado por AFIP · Régimen Especial de Facturación Electrónica', caeX, finalY + 15.5);
+  doc.text('Constancia de pedido y pago emitida por el sistema del taller. No reemplaza la factura electrónica oficial de AFIP.', noticeX, finalY + 12.5);
 
   // Bottom Copyright
   doc.setFont('helvetica', 'normal');
