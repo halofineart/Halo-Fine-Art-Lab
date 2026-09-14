@@ -95,7 +95,18 @@ function MainAppContent() {
         orderCode &&
         /^HALO-\d{6}$/.test(orderCode)
       ) {
-        return { mpReturn: mpReturn as 'success' | 'pending' | 'failure', orderCode };
+        // The buyer's email was stashed alongside the order code right
+        // before the Mercado Pago redirect (see CartCheckoutModal.tsx) —
+        // /api/order-status requires it as a second factor so a guessed
+        // order code alone can't pull someone else's order.
+        let orderEmail = '';
+        try {
+          const pending = JSON.parse(localStorage.getItem('halo_pending_mp_order') || 'null');
+          if (pending && pending.code === orderCode && typeof pending.email === 'string') {
+            orderEmail = pending.email;
+          }
+        } catch {}
+        return { mpReturn: mpReturn as 'success' | 'pending' | 'failure', orderCode, orderEmail };
       }
     } catch {}
     return null;
@@ -578,6 +589,7 @@ function MainAppContent() {
           <PaymentResultModal
             mpReturn={mpReturnState.mpReturn}
             orderCode={mpReturnState.orderCode}
+            orderEmail={mpReturnState.orderEmail}
             onClose={handleClosePaymentResult}
             onOrderConfirmed={handlePaymentConfirmed}
             onOpenTracker={(orderId) => {
