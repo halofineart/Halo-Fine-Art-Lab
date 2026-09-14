@@ -15,9 +15,16 @@ import { getSupabaseAdmin } from './_supabaseAdmin.js';
 function verifySignature(req: VercelRequest, dataId: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
   if (!secret) {
-    // Not configured yet — allow the webhook to work out of the box, but
-    // this should be turned on before taking real payments at scale.
-    console.warn('[mp-webhook] MP_WEBHOOK_SECRET no configurado — la firma no se está validando.');
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') {
+      // Refuse to trust unsigned notifications once real money is on the
+      // line — configure MP_WEBHOOK_SECRET (see .env.example) before
+      // taking production payments.
+      console.error('[mp-webhook] MP_WEBHOOK_SECRET no configurado en producción — se rechaza la notificación por seguridad.');
+      return false;
+    }
+    // Local/dev/preview convenience only: allow the webhook to work out of
+    // the box while the secret hasn't been configured yet.
+    console.warn('[mp-webhook] MP_WEBHOOK_SECRET no configurado — la firma no se está validando (solo permitido fuera de producción).');
     return true;
   }
 
