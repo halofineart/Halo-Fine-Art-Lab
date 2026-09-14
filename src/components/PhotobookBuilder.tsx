@@ -129,7 +129,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   // Photobook Configuration State
   const [projectId, setProjectId] = useState<string>(initialProject?.id || `proj-${Date.now()}`);
   const [formatId, setFormatId] = useState<BookFormatId>(initialProject?.formatId || 'square-30');
-  const [coverMaterialId, setCoverMaterialId] = useState<CoverMaterialId>(initialProject?.coverMaterialId || 'linen-natural');
+  const [coverMaterialId, setCoverMaterialId] = useState<CoverMaterialId>(initialProject?.coverMaterialId || 'photo-hardcover');
   const [foilColor, setFoilColor] = useState<FoilColor>(initialProject?.foilColor || 'gold');
   const [foilTitleText, setFoilTitleText] = useState(initialProject?.foilTitleText || 'NUESTRA HISTORIA');
   const [foilSubtitleText, setFoilSubtitleText] = useState(initialProject?.foilSubtitleText || 'MEMORIAS INOLVIDABLES · 2026');
@@ -479,7 +479,7 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   const [hoveredLayoutTemplateId, setHoveredLayoutTemplateId] = useState<string | null>(null);
   const [showLayoutsMenu, setShowLayoutsMenu] = useState<boolean>(false);
   const [showTextMenu, setShowTextMenu] = useState<boolean>(false);
-  const [coverMaterialCategoryFilter, setCoverMaterialCategoryFilter] = useState<'all' | 'lino' | 'cuero' | 'seda' | 'terciopelo'>('all');
+  const [coverMaterialCategoryFilter, setCoverMaterialCategoryFilter] = useState<'all' | 'cuero' | 'seda' | 'terciopelo'>('all');
   const [layoutTabMode, setLayoutTabMode] = useState<'page' | 'spread'>('page');
 
   // Floating text layer state
@@ -4203,7 +4203,8 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                         <div className="flex items-center gap-1.5 text-[10px]">
                           {[
                             { id: 'all', label: 'Todos' },
-                            { id: 'lino', label: 'Lino' },
+                            // 'lino' se sacó del catálogo (no se consigue la tela) — ver
+                            // ACTIVE_COVER_CATEGORIES en src/data/mockData.ts.
                             { id: 'cuero', label: 'Cuero' },
                             { id: 'seda', label: 'Seda' },
                             { id: 'terciopelo', label: 'Terciopelo' },
