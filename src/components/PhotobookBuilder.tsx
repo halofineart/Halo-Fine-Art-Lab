@@ -1467,6 +1467,9 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
   const currentFormat = BOOK_FORMATS.find((f) => f.id === formatId) || BOOK_FORMATS[0];
   const currentCover = COVER_MATERIALS.find((c) => c.id === coverMaterialId) || COVER_MATERIALS[0];
   const currentPaper = PAPER_FINISHES.find((p) => p.id === paperFinishId) || PAPER_FINISHES[0];
+  // "Tapa Dura Fotográfica" prints the client's own photo edge-to-edge as the cover
+  const isPhotoCover = currentCover.category === 'fotografica';
+  const coverPreviewPhotoUrl = isPhotoCover ? getPhotoDisplayUrl(uploadedPhotos[0]) : null;
 
   const totalPages = spreads.length * 2;
   const extraPages = Math.max(0, totalPages - currentFormat.basePages);
@@ -4009,59 +4012,126 @@ export const PhotobookBuilder: React.FC<PhotobookBuilderProps> = ({
                       </span>
                     </div>
 
-                    {/* The Luxury Book Cover Live Mockup */}
-                    <div className="flex justify-center py-2">
-                      <div className="w-full max-w-[210px] sm:max-w-[230px]">
-                        <div 
-                          className={`aspect-[4/5] rounded-xl p-4 flex flex-col justify-between shadow-2xl relative border border-black/15 transition-all duration-500 overflow-hidden ${currentCover.textureClass}`}
-                          style={{ backgroundColor: currentCover.colorHex }}
+                    {/* The Luxury Book Cover Live Mockup — realistic 3D tilted hardcover */}
+                    <div className="flex justify-center py-4">
+                      <div
+                        className="w-full max-w-[180px] sm:max-w-[195px]"
+                        style={{ perspective: '1100px' }}
+                      >
+                        <div
+                          className="relative transition-transform duration-500 ease-out"
+                          style={{ transformStyle: 'preserve-3d', transform: 'rotateY(-24deg) rotateX(3deg)' }}
                         >
-                          {/* Layered Realistic Texture Overlay */}
-                          <div className={`absolute inset-0 ${currentCover.textureClass} opacity-40 pointer-events-none`} />
-                          <div className="absolute inset-0 bg-gradient-to-tr from-black/10 via-transparent to-white/15 pointer-events-none" />
-
-                          {/* Left Spine Crease Shadow */}
-                          <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-black/35 via-black/15 to-transparent pointer-events-none" />
-
-                          {/* Optional Cover Photo Window */}
-                          {hasCoverWindow ? (
-                            <div className="w-14 h-14 mx-auto my-auto rounded-lg border-2 border-[#C5A059]/60 overflow-hidden shadow-md relative bg-white ring-1 ring-black/10">
-                              <img
-                                src={getPhotoDisplayUrl(uploadedPhotos[0]) || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=600&q=80'}
-                                alt="Foto de Portada"
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          ) : (
-                            <div className="h-3" />
-                          )}
-
-                          {/* Embossed & Stamped Hot Foil Title */}
-                          <div className="text-center relative z-10 my-auto px-1">
-                            <span 
-                              className="font-brand text-xs sm:text-sm font-bold tracking-[0.18em] block uppercase foil-stamping-emboss drop-shadow-xs truncate"
-                              style={{
-                                color: FOIL_OPTIONS.find(f => f.id === foilColor)?.colorHex || '#D4AF37',
-                              }}
-                            >
-                              {foilTitleText || 'HALO FINE ART'}
-                            </span>
-
-                            <span 
-                              className="font-serif-luxury text-[9px] sm:text-[10px] tracking-[0.12em] block uppercase mt-0.5 font-medium opacity-90 foil-stamping-emboss truncate"
-                              style={{
-                                color: FOIL_OPTIONS.find(f => f.id === foilColor)?.colorHex || '#D4AF37',
-                              }}
-                            >
-                              {foilSubtitleText}
-                            </span>
+                          {/* Spine / page-block side face, gives the cover real thickness */}
+                          <div
+                            className="absolute top-[3%] bottom-[3%] w-[16px] rounded-l-[2px]"
+                            style={{
+                              left: '-16px',
+                              transform: 'rotateY(-90deg)',
+                              transformOrigin: 'right center',
+                              background: isPhotoCover
+                                ? 'linear-gradient(to bottom, #37332C, #1C1A17)'
+                                : `linear-gradient(to bottom, ${currentCover.colorHex}, rgba(0,0,0,0.55))`,
+                              boxShadow: 'inset -3px 0 6px rgba(0,0,0,0.45)',
+                            }}
+                          >
+                            {/* Fine art paper-block stripes on the spine */}
+                            <div className="absolute inset-y-[6%] left-[3px] right-[3px] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.35)_0px,rgba(255,255,255,0.35)_1px,transparent_1px,transparent_3px)] opacity-40" />
                           </div>
 
-                          {/* Bottom Spine & Brand Stamp */}
-                          <div className="text-center text-[7px] tracking-[0.25em] uppercase opacity-60 font-brand">
-                            {currentCover.name} · FINE ART LAB
+                          {/* Front cover face */}
+                          <div
+                            className={`aspect-[4/5] rounded-r-lg rounded-l-[2px] p-4 flex flex-col justify-between relative border border-black/20 overflow-hidden ${!isPhotoCover ? currentCover.textureClass : ''}`}
+                            style={{
+                              backgroundColor: isPhotoCover ? '#1C1A17' : currentCover.colorHex,
+                              boxShadow: '14px 22px 34px -12px rgba(20,16,10,0.55), 3px 4px 10px rgba(0,0,0,0.25)',
+                            }}
+                          >
+                            {/* Full-bleed client photo for "Tapa Dura Fotográfica" */}
+                            {isPhotoCover && (
+                              coverPreviewPhotoUrl ? (
+                                <img
+                                  src={coverPreviewPhotoUrl}
+                                  alt="Foto de Portada"
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-[#3A362F] to-[#1C1A17] text-[#C7BFA8]">
+                                  <ImageIcon className="w-6 h-6 opacity-60" />
+                                  <span className="text-[8px] uppercase tracking-widest opacity-70 px-4 text-center leading-relaxed">
+                                    Subí tus fotos para verlas en la portada
+                                  </span>
+                                </div>
+                              )
+                            )}
+
+                            {/* Layered Realistic Texture Overlay for material covers */}
+                            {!isPhotoCover && (
+                              <>
+                                <div className={`absolute inset-0 ${currentCover.textureClass} opacity-40 pointer-events-none`} />
+                                <div className="absolute inset-0 bg-gradient-to-tr from-black/10 via-transparent to-white/15 pointer-events-none" />
+                              </>
+                            )}
+
+                            {/* Gradient so the gold foil title stays legible over a photo */}
+                            {isPhotoCover && (
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/5 to-black/45 pointer-events-none" />
+                            )}
+
+                            {/* Left Spine Crease Shadow */}
+                            <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-black/35 via-black/15 to-transparent pointer-events-none" />
+
+                            {/* Sheen highlight to sell the 3D tilt */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-black/20 pointer-events-none" />
+
+                            {/* Optional die-cut Cover Photo Window — only for non-photo materials */}
+                            {!isPhotoCover && (
+                              hasCoverWindow ? (
+                                <div className="w-14 h-14 mx-auto my-auto rounded-lg border-2 border-[#C5A059]/60 overflow-hidden shadow-md relative bg-white ring-1 ring-black/10 z-10">
+                                  <img
+                                    src={getPhotoDisplayUrl(uploadedPhotos[0]) || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=600&q=80'}
+                                    alt="Foto de Portada"
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="h-3" />
+                              )
+                            )}
+
+                            {/* Embossed & Stamped Hot Foil Title */}
+                            <div className="text-center relative z-10 my-auto px-1">
+                              <span
+                                className="font-brand text-xs sm:text-sm font-bold tracking-[0.18em] block uppercase foil-stamping-emboss drop-shadow-xs truncate"
+                                style={{
+                                  color: FOIL_OPTIONS.find(f => f.id === foilColor)?.colorHex || '#D4AF37',
+                                }}
+                              >
+                                {foilTitleText || 'HALO FINE ART'}
+                              </span>
+
+                              <span
+                                className="font-serif-luxury text-[9px] sm:text-[10px] tracking-[0.12em] block uppercase mt-0.5 font-medium opacity-90 foil-stamping-emboss truncate"
+                                style={{
+                                  color: FOIL_OPTIONS.find(f => f.id === foilColor)?.colorHex || '#D4AF37',
+                                }}
+                              >
+                                {foilSubtitleText}
+                              </span>
+                            </div>
+
+                            {/* Bottom Spine & Brand Stamp */}
+                            <div className="text-center text-[7px] tracking-[0.25em] uppercase opacity-60 font-brand relative z-10">
+                              {currentCover.name} · FINE ART LAB
+                            </div>
                           </div>
                         </div>
+
+                        {/* Grounding contact shadow beneath the tilted book */}
+                        <div
+                          className="mx-auto mt-1 h-3 rounded-full bg-black/30 blur-md"
+                          style={{ width: '78%' }}
+                        />
                       </div>
                     </div>
 
