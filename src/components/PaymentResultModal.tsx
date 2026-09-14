@@ -12,6 +12,11 @@ type ReturnKind = 'success' | 'pending' | 'failure';
 interface PaymentResultModalProps {
   mpReturn: ReturnKind;
   orderCode: string;
+  // Required by /api/order-status as a second factor alongside the order
+  // code (which alone is only 6 digits). May be empty if it couldn't be
+  // recovered from localStorage (e.g. a stale bookmark) — in that case the
+  // lookup just won't find the order, same as any wrong code.
+  orderEmail?: string;
   onClose: () => void;
   onOrderConfirmed: (order: TrackedOrder) => void;
   onOpenTracker: (orderId: string) => void;
@@ -28,6 +33,7 @@ interface PaymentResultModalProps {
 export const PaymentResultModal: React.FC<PaymentResultModalProps> = ({
   mpReturn,
   orderCode,
+  orderEmail,
   onClose,
   onOrderConfirmed,
   onOpenTracker,
@@ -43,7 +49,7 @@ export const PaymentResultModal: React.FC<PaymentResultModalProps> = ({
 
     const poll = async () => {
       try {
-        const res = await fetch(`/api/order-status?code=${encodeURIComponent(orderCode)}`);
+        const res = await fetch(`/api/order-status?code=${encodeURIComponent(orderCode)}&email=${encodeURIComponent(orderEmail || '')}`);
         const data = await res.json();
         if (cancelled) return;
 
@@ -91,7 +97,7 @@ export const PaymentResultModal: React.FC<PaymentResultModalProps> = ({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderCode, mpReturn]);
+  }, [orderCode, mpReturn, orderEmail]);
 
   const paymentStatus = order?.payment_status;
   const isApproved = paymentStatus === 'approved';

@@ -90,6 +90,9 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
 
   const buildItemsPayload = () =>
     cartItems.map((ci) => ({
+      // Which pricing formula the server should use to recompute this
+      // item's price (see api/create-preference.ts + src/lib/pricing.ts).
+      type: ci.type,
       title: ci.title,
       format: ci.project?.formatId || 'Formato Fine Art',
       cover: ci.project?.coverMaterialId || 'Lino Seleccionado',
@@ -97,10 +100,26 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
       pages: ci.project ? ci.project.spreads.length * 2 : 20,
       price: ci.price,
       previewUrl: ci.project?.photos[0]?.url || ci.printConfig?.thumbnailUrl || ci.thumbnailUrl || 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80',
-      hasGiftBox: true,
+      // Whether this specific item actually includes the gift box — was
+      // hardcoded to `true` before, which both misreported "sin cofre"
+      // custom albums on the invoice and made the server's price floor
+      // reject legitimate orders that opted out of the box.
+      hasGiftBox: ci.type === 'custom-album' ? !!ci.project?.giftBoxIncluded : ci.type === 'photobook-order',
       // Storage path of the customer's original photo (fine-art-print
       // orders only), so the lab can retrieve the full-resolution file.
       photoStoragePath: ci.printConfig?.storagePath,
+
+      // --- fields the server needs to recompute an EXACT price ---------
+      // 'custom-album' (PhotobookBuilder.tsx)
+      paperFinishId: ci.project?.paperFinishId,
+      giftBoxIncluded: ci.project?.giftBoxIncluded,
+      // 'photobook-order' (ProductCatalog.tsx — "Gran Formato")
+      photobookFormatId: ci.photobookConfig?.formatId,
+      extraSheets: ci.photobookConfig?.extraSheets,
+      // 'fine-art-print' (ProductCatalog.tsx)
+      printSizeId: ci.printConfig?.sizeId,
+      printPaperId: ci.printConfig?.paperId,
+      printQuantity: ci.printConfig?.quantity,
     }));
 
   // Real Mercado Pago Checkout Pro flow: create a preference server-side
@@ -141,9 +160,12 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
       }
 
       // The redirect to Mercado Pago is a full page navigation away from
-      // this SPA, so stash the order code — the return screen (App.tsx)
-      // reads it back to fetch the real payment result.
-      localStorage.setItem('halo_pending_mp_order', orderCode);
+      // this SPA, so stash the order code AND the buyer's email — the
+      // return screen (App.tsx / PaymentResultModal.tsx) reads both back to
+      // poll /api/order-status, which requires the email as a second factor
+      // alongside the (only 6-digit) order code so a guessed code alone
+      // can't be used to pull someone else's order details.
+      localStorage.setItem('halo_pending_mp_order', JSON.stringify({ code: orderCode, email: recipientEmail }));
       window.location.href = data.initPoint;
     } catch (err: any) {
       setPaymentError(err?.message || 'No se pudo conectar con Mercado Pago. Probá de nuevo en unos segundos.');
@@ -196,7 +218,9 @@ export const CartCheckoutModal: React.FC<CartCheckoutModalProps> = ({
         pages: ci.project ? ci.project.spreads.length * 2 : 20,
         price: ci.price,
         previewUrl: ci.project?.photos[0]?.url || ci.printConfig?.thumbnailUrl || ci.thumbnailUrl || 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80',
-        hasGiftBox: true,
+        // See buildItemsPayload() above — reflects whether this item
+        // actually includes the gift box, instead of always `true`.
+        hasGiftBox: ci.type === 'custom-album' ? !!ci.project?.giftBoxIncluded : ci.type === 'photobook-order',
         photoStoragePath: ci.printConfig?.storagePath,
       })),
       timeline: [
